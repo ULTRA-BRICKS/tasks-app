@@ -20,8 +20,9 @@ test('numbered migrations include avatar metadata and reject an unknown newer sc
     const current = await migrate(f.db);
     assert.equal(current.version, 2);
     assert.equal(current.applied, false);
-    const columns = await f.db.transaction((tx) => tx.all('PRAGMA table_info(users)'));
-    assert(columns.some((c) => c.name === 'avatar_url'));
+    // Exercise the migrated column directly on both supported database dialects.
+    const row = await f.db.transaction((tx) => tx.one('SELECT avatar_url FROM users LIMIT 1'));
+    assert(row && Object.hasOwn(row, 'avatar_url'));
     await f.db.transaction((tx) =>
       tx.exec('INSERT INTO schema_migrations(version,applied_at) VALUES(?,?)', [999, now()]),
     );
