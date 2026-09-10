@@ -2,9 +2,8 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "react", "jsx-a11y", "import"],
   "categories": { "correctness": "error" },
-  "ignorePatterns": ["dist/**", "storybook-static/**", "vendor/**", "docs/openapi.json", "src/shared/config/tokens.ts", "packages/contracts/request-types.ts"],
+  "ignorePatterns": ["dist/**", "storybook-static/**", "vendor/**", "node_modules/**", "docs/openapi.json", "src/shared/config/tokens.ts", "packages/contracts/request-types.ts"],
   "rules": {
-    "no-unused-vars": "off",
     "typescript/no-explicit-any": "off",
     "typescript/no-floating-promises": ["error", { "ignoreVoid": true }],
     "react/rules-of-hooks": "error",

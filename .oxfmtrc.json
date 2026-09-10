@@ -3,5 +3,5 @@
   "singleQuote": true,
   "semi": true,
   "printWidth": 100,
-  "ignorePatterns": ["vendor/**", "docs/openapi.json", "src/shared/config/tokens.ts", "src/shared/styles/tokens.css", "packages/contracts/request-types.ts", "packages/server/graphql/schema.graphql"]
+  "ignorePatterns": ["vendor/**", "node_modules/**", "dist/**", "storybook-static/**", "docs/openapi.json", "docs/verification/**", "src/shared/config/tokens.ts", "src/shared/styles/tokens.css", "packages/contracts/request-types.ts", "docs/tokens.md", "bun.lock"]
 }
