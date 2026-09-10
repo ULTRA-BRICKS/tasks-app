@@ -5,7 +5,7 @@ on:
   pull_request:
   workflow_dispatch:
   workflow_run:
-    workflows: ['Publish recovered application source']
+    workflows: ['Publish recovered application source', 'Approve visual evidence']
     types: [completed]
 permissions:
   contents: read
@@ -50,7 +50,7 @@ jobs:
           POSTGRES_DB: tickets_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd 'pg_isready -U tickets -d tickets_test'
+          --health-cmd "pg_isready -U tickets -d tickets_test"
           --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
@@ -89,7 +89,7 @@ jobs:
       - name: Compare reviewed visual baselines
         if: ${{ !cancelled() && hashFiles('tests/e2e/__screenshots__/**/*.png') != '' }}
         run: bun run test:visual
-      - name: Capture initial visual candidates for human review
+      - name: Capture initial visual candidates for review
         if: ${{ !cancelled() && hashFiles('tests/e2e/__screenshots__/**/*.png') == '' }}
         run: bun run screenshots
       - name: Record exact tested source
