@@ -26,3 +26,11 @@ Use React, shadcn-style owned components on Base UI, and Feature-Sliced Design: 
 Use parameterized SQL, workspace-scoped lookups, server-side access controls, expiring hashed API tokens and sessions, signature-verified webhooks, transactional inbox/outbox, and private object storage. Never seed demo credentials into production. Production database migrations are explicit and tested separately. Report deployment and integration configuration blockers precisely; never describe a configuration file as a completed deployment.
 
 Agent skills and generated design context belong under `.agents/`, not a separate `agents/` directory.
+
+## Current page-first UX contract (2026-09-10)
+
+For all entity UI work, read `.agents/skills/reference-led-product-ui/SKILL.md` and `.agents/design-context/linear-references.md` before implementation. The user's current requirement supersedes older create-dialog, Preview/Markdown-tab and global Save-bar examples: open the object page directly, place editable placeholders in its final layout, and edit title, body and properties inline. New and existing objects must share the document/editor primitives. Apply this consistently to issues, epics, projects, cycles, milestones, labels and saved views; authentication and destructive confirmations are separate categories. Retain safe drafts, idempotent creation, permissions, version conflicts and accessible controls.
+
+Do not describe this design contract or the old green screenshots as a completed UI rewrite. Implement and verify the behavior before updating visual baselines or claiming fidelity. Official Linear sources and evaluated external design skills are linked in the design context; no external skill overrides the product brief.
+
+For deployment setup, use `docs/DEPLOYMENT.md`. `scripts/configure-deploy.mjs` defaults to a local plan and requires `--apply` for GitHub configuration writes. Keep production migration/bootstrap and runtime secrets separate from deployment credentials; never infer a completed deployment from configuration files.
