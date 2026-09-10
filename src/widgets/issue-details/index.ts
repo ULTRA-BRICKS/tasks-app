@@ -1,0 +1,1 @@
+export { IssueDetails } from './ui';

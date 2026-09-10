@@ -1,0 +1,906 @@
+{
+  "$description": "tickets-app design tokens. DTCG 2025.10 format subset; original Linear-inspired palette.",
+  "palette": {
+    "dark": {
+      "canvas": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.07843137,
+            0.07843137,
+            0.08627451
+          ],
+          "alpha": 1
+        }
+      },
+      "sidebar": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.09411765,
+            0.09411765,
+            0.10588235
+          ],
+          "alpha": 1
+        }
+      },
+      "panel": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.10588235,
+            0.10588235,
+            0.1254902
+          ],
+          "alpha": 1
+        }
+      },
+      "elevated": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.1372549,
+            0.1372549,
+            0.16078431
+          ],
+          "alpha": 1
+        }
+      },
+      "hover": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.14901961,
+            0.14901961,
+            0.17647059
+          ],
+          "alpha": 1
+        }
+      },
+      "selected": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.17647059,
+            0.16470588,
+            0.23529412
+          ],
+          "alpha": 1
+        }
+      },
+      "border": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.18823529,
+            0.18823529,
+            0.21960784
+          ],
+          "alpha": 1
+        }
+      },
+      "borderStrong": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.27058824,
+            0.27058824,
+            0.31372549
+          ],
+          "alpha": 1
+        }
+      },
+      "text": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.93333333,
+            0.92941176,
+            0.95294118
+          ],
+          "alpha": 1
+        }
+      },
+      "muted": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.63921569,
+            0.63529412,
+            0.68627451
+          ],
+          "alpha": 1
+        }
+      },
+      "subtle": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.4627451,
+            0.45882353,
+            0.50588235
+          ],
+          "alpha": 1
+        }
+      },
+      "accent": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.65098039,
+            0.58039216,
+            1.0
+          ],
+          "alpha": 1
+        }
+      },
+      "accentSolid": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.45882353,
+            0.38431373,
+            0.78823529
+          ],
+          "alpha": 1
+        }
+      },
+      "onAccent": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "alpha": 1
+        }
+      },
+      "danger": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.9372549,
+            0.56470588,
+            0.56470588
+          ],
+          "alpha": 1
+        }
+      },
+      "success": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.56862745,
+            0.78431373,
+            0.6745098
+          ],
+          "alpha": 1
+        }
+      },
+      "warning": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.8745098,
+            0.77254902,
+            0.4745098
+          ],
+          "alpha": 1
+        }
+      },
+      "overlay": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.03137255,
+            0.03137255,
+            0.05098039
+          ],
+          "alpha": 1
+        }
+      }
+    },
+    "light": {
+      "canvas": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "alpha": 1
+        }
+      },
+      "sidebar": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.96470588,
+            0.96470588,
+            0.97254902
+          ],
+          "alpha": 1
+        }
+      },
+      "panel": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.98039216,
+            0.98039216,
+            0.98039216
+          ],
+          "alpha": 1
+        }
+      },
+      "elevated": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "alpha": 1
+        }
+      },
+      "hover": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.9372549,
+            0.9372549,
+            0.95294118
+          ],
+          "alpha": 1
+        }
+      },
+      "selected": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.93333333,
+            0.91764706,
+            0.97647059
+          ],
+          "alpha": 1
+        }
+      },
+      "border": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.89803922,
+            0.89411765,
+            0.92156863
+          ],
+          "alpha": 1
+        }
+      },
+      "borderStrong": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.78431373,
+            0.77647059,
+            0.81568627
+          ],
+          "alpha": 1
+        }
+      },
+      "text": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.14509804,
+            0.1372549,
+            0.17254902
+          ],
+          "alpha": 1
+        }
+      },
+      "muted": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.39607843,
+            0.38039216,
+            0.43137255
+          ],
+          "alpha": 1
+        }
+      },
+      "subtle": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.49019608,
+            0.47058824,
+            0.5254902
+          ],
+          "alpha": 1
+        }
+      },
+      "accent": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.4,
+            0.31372549,
+            0.66666667
+          ],
+          "alpha": 1
+        }
+      },
+      "accentSolid": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.45882353,
+            0.38431373,
+            0.78823529
+          ],
+          "alpha": 1
+        }
+      },
+      "onAccent": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "alpha": 1
+        }
+      },
+      "danger": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.65098039,
+            0.19607843,
+            0.19607843
+          ],
+          "alpha": 1
+        }
+      },
+      "success": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.18823529,
+            0.43921569,
+            0.31372549
+          ],
+          "alpha": 1
+        }
+      },
+      "warning": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.54509804,
+            0.39215686,
+            0.10588235
+          ],
+          "alpha": 1
+        }
+      },
+      "overlay": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [
+            0.08235294,
+            0.0745098,
+            0.1254902
+          ],
+          "alpha": 1
+        }
+      }
+    }
+  },
+  "theme": {
+    "dark": {
+      "canvas": {
+        "$type": "color",
+        "$value": "{palette.dark.canvas}"
+      },
+      "sidebar": {
+        "$type": "color",
+        "$value": "{palette.dark.sidebar}"
+      },
+      "panel": {
+        "$type": "color",
+        "$value": "{palette.dark.panel}"
+      },
+      "elevated": {
+        "$type": "color",
+        "$value": "{palette.dark.elevated}"
+      },
+      "hover": {
+        "$type": "color",
+        "$value": "{palette.dark.hover}"
+      },
+      "selected": {
+        "$type": "color",
+        "$value": "{palette.dark.selected}"
+      },
+      "border": {
+        "$type": "color",
+        "$value": "{palette.dark.border}"
+      },
+      "borderStrong": {
+        "$type": "color",
+        "$value": "{palette.dark.borderStrong}"
+      },
+      "text": {
+        "$type": "color",
+        "$value": "{palette.dark.text}"
+      },
+      "muted": {
+        "$type": "color",
+        "$value": "{palette.dark.muted}"
+      },
+      "subtle": {
+        "$type": "color",
+        "$value": "{palette.dark.subtle}"
+      },
+      "accent": {
+        "$type": "color",
+        "$value": "{palette.dark.accent}"
+      },
+      "accentSolid": {
+        "$type": "color",
+        "$value": "{palette.dark.accentSolid}"
+      },
+      "onAccent": {
+        "$type": "color",
+        "$value": "{palette.dark.onAccent}"
+      },
+      "danger": {
+        "$type": "color",
+        "$value": "{palette.dark.danger}"
+      },
+      "success": {
+        "$type": "color",
+        "$value": "{palette.dark.success}"
+      },
+      "warning": {
+        "$type": "color",
+        "$value": "{palette.dark.warning}"
+      },
+      "overlay": {
+        "$type": "color",
+        "$value": "{palette.dark.overlay}"
+      }
+    },
+    "light": {
+      "canvas": {
+        "$type": "color",
+        "$value": "{palette.light.canvas}"
+      },
+      "sidebar": {
+        "$type": "color",
+        "$value": "{palette.light.sidebar}"
+      },
+      "panel": {
+        "$type": "color",
+        "$value": "{palette.light.panel}"
+      },
+      "elevated": {
+        "$type": "color",
+        "$value": "{palette.light.elevated}"
+      },
+      "hover": {
+        "$type": "color",
+        "$value": "{palette.light.hover}"
+      },
+      "selected": {
+        "$type": "color",
+        "$value": "{palette.light.selected}"
+      },
+      "border": {
+        "$type": "color",
+        "$value": "{palette.light.border}"
+      },
+      "borderStrong": {
+        "$type": "color",
+        "$value": "{palette.light.borderStrong}"
+      },
+      "text": {
+        "$type": "color",
+        "$value": "{palette.light.text}"
+      },
+      "muted": {
+        "$type": "color",
+        "$value": "{palette.light.muted}"
+      },
+      "subtle": {
+        "$type": "color",
+        "$value": "{palette.light.subtle}"
+      },
+      "accent": {
+        "$type": "color",
+        "$value": "{palette.light.accent}"
+      },
+      "accentSolid": {
+        "$type": "color",
+        "$value": "{palette.light.accentSolid}"
+      },
+      "onAccent": {
+        "$type": "color",
+        "$value": "{palette.light.onAccent}"
+      },
+      "danger": {
+        "$type": "color",
+        "$value": "{palette.light.danger}"
+      },
+      "success": {
+        "$type": "color",
+        "$value": "{palette.light.success}"
+      },
+      "warning": {
+        "$type": "color",
+        "$value": "{palette.light.warning}"
+      },
+      "overlay": {
+        "$type": "color",
+        "$value": "{palette.light.overlay}"
+      }
+    }
+  },
+  "space": {
+    "0": {
+      "$type": "dimension",
+      "$value": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
+    "2": {
+      "$type": "dimension",
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      }
+    },
+    "4": {
+      "$type": "dimension",
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      }
+    },
+    "6": {
+      "$type": "dimension",
+      "$value": {
+        "value": 6,
+        "unit": "px"
+      }
+    },
+    "8": {
+      "$type": "dimension",
+      "$value": {
+        "value": 8,
+        "unit": "px"
+      }
+    },
+    "10": {
+      "$type": "dimension",
+      "$value": {
+        "value": 10,
+        "unit": "px"
+      }
+    },
+    "12": {
+      "$type": "dimension",
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      }
+    },
+    "16": {
+      "$type": "dimension",
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "20": {
+      "$type": "dimension",
+      "$value": {
+        "value": 20,
+        "unit": "px"
+      }
+    },
+    "24": {
+      "$type": "dimension",
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      }
+    },
+    "32": {
+      "$type": "dimension",
+      "$value": {
+        "value": 32,
+        "unit": "px"
+      }
+    },
+    "40": {
+      "$type": "dimension",
+      "$value": {
+        "value": 40,
+        "unit": "px"
+      }
+    },
+    "48": {
+      "$type": "dimension",
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      }
+    },
+    "64": {
+      "$type": "dimension",
+      "$value": {
+        "value": 64,
+        "unit": "px"
+      }
+    }
+  },
+  "radius": {
+    "sm": {
+      "$type": "dimension",
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      }
+    },
+    "md": {
+      "$type": "dimension",
+      "$value": {
+        "value": 6,
+        "unit": "px"
+      }
+    },
+    "lg": {
+      "$type": "dimension",
+      "$value": {
+        "value": 8,
+        "unit": "px"
+      }
+    },
+    "xl": {
+      "$type": "dimension",
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      }
+    },
+    "round": {
+      "$type": "dimension",
+      "$value": {
+        "value": 999,
+        "unit": "px"
+      }
+    }
+  },
+  "font": {
+    "family": {
+      "$type": "fontFamily",
+      "$value": [
+        "Inter",
+        "ui-sans-serif",
+        "system-ui",
+        "sans-serif"
+      ]
+    },
+    "mono": {
+      "$type": "fontFamily",
+      "$value": [
+        "ui-monospace",
+        "SFMono-Regular",
+        "Consolas",
+        "monospace"
+      ]
+    },
+    "size": {
+      "11": {
+        "$type": "dimension",
+        "$value": {
+          "value": 11,
+          "unit": "px"
+        }
+      },
+      "12": {
+        "$type": "dimension",
+        "$value": {
+          "value": 12,
+          "unit": "px"
+        }
+      },
+      "13": {
+        "$type": "dimension",
+        "$value": {
+          "value": 13,
+          "unit": "px"
+        }
+      },
+      "14": {
+        "$type": "dimension",
+        "$value": {
+          "value": 14,
+          "unit": "px"
+        }
+      },
+      "16": {
+        "$type": "dimension",
+        "$value": {
+          "value": 16,
+          "unit": "px"
+        }
+      },
+      "20": {
+        "$type": "dimension",
+        "$value": {
+          "value": 20,
+          "unit": "px"
+        }
+      },
+      "24": {
+        "$type": "dimension",
+        "$value": {
+          "value": 24,
+          "unit": "px"
+        }
+      },
+      "32": {
+        "$type": "dimension",
+        "$value": {
+          "value": 32,
+          "unit": "px"
+        }
+      }
+    },
+    "weight": {
+      "regular": {
+        "$type": "fontWeight",
+        "$value": 400
+      },
+      "medium": {
+        "$type": "fontWeight",
+        "$value": 500
+      },
+      "semibold": {
+        "$type": "fontWeight",
+        "$value": 600
+      }
+    },
+    "line": {
+      "body": {
+        "$type": "number",
+        "$value": 1.5
+      },
+      "tight": {
+        "$type": "number",
+        "$value": 1.25
+      }
+    }
+  },
+  "size": {
+    "sidebar": {
+      "$type": "dimension",
+      "$value": {
+        "value": 224,
+        "unit": "px"
+      }
+    },
+    "toolbar": {
+      "$type": "dimension",
+      "$value": {
+        "value": 52,
+        "unit": "px"
+      }
+    },
+    "row": {
+      "$type": "dimension",
+      "$value": {
+        "value": 42,
+        "unit": "px"
+      }
+    },
+    "control": {
+      "$type": "dimension",
+      "$value": {
+        "value": 32,
+        "unit": "px"
+      }
+    },
+    "icon": {
+      "$type": "dimension",
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "detail": {
+      "$type": "dimension",
+      "$value": {
+        "value": 780,
+        "unit": "px"
+      }
+    },
+    "mobileTouch": {
+      "$type": "dimension",
+      "$value": {
+        "value": 44,
+        "unit": "px"
+      }
+    }
+  },
+  "motion": {
+    "fast": {
+      "$type": "duration",
+      "$value": {
+        "value": 80,
+        "unit": "ms"
+      }
+    },
+    "normal": {
+      "$type": "duration",
+      "$value": {
+        "value": 140,
+        "unit": "ms"
+      }
+    },
+    "ease": {
+      "$type": "cubicBezier",
+      "$value": [
+        0.2,
+        0,
+        0,
+        1
+      ]
+    }
+  }
+}
