@@ -2,5 +2,5 @@
 saveTextLockfile = true
 
 [test]
-root = "./tests/unit"
+root = "./tests"
 timeout = 30000
