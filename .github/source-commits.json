@@ -1,0 +1,6 @@
+[
+  {"message":"feat(tickets): add versioned issues, projects and private attachment services","blobs":["aee46f51979b0e73ce7a74a400948588502a9201"]},
+  {"message":"feat(integrations): add signed GitHub and Slack inbox and outbox","blobs":["268e6eb6415b76e764724995844165a313652baf"]},
+  {"message":"feat(api): expose authenticated REST routes and client SDK","blobs":["52d9e610e6dd0fccc2d055acb2cc8697bdf7fc4a"]},
+  {"message":"feat(cli): ship Bun command line and Vercel HTTP adapter","blobs":["461c1d7c7b11e217427618ba81f9eda451a22f90"]}
+]
