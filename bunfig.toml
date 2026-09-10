@@ -1,0 +1,6 @@
+[install]
+saveTextLockfile = true
+
+[test]
+root = "./tests/unit"
+timeout = 30000

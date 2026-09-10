@@ -1,0 +1,7 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": true,
+  "semi": true,
+  "printWidth": 100,
+  "ignorePatterns": ["vendor/**", "docs/openapi.json", "src/shared/config/tokens.ts", "src/shared/styles/tokens.css", "packages/contracts/request-types.ts", "packages/server/graphql/schema.graphql"]
+}

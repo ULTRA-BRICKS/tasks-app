@@ -1,0 +1,48 @@
+name: Pin toolchain inputs
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/toolchain-inputs.yml']
+permissions:
+  contents: write
+concurrency:
+  group: toolchain-inputs
+  cancel-in-progress: false
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install
+      - name: Pin official Linear schema by Git object hash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun scripts/vendor-linear.mjs
+      - name: Commit reproducible dependency and API inputs
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add bun.lock vendor/linear
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: lock Bun dependencies and pin official Linear GraphQL schema'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Prepare isolated development tools
+        run: |
+          mkdir -p /tmp/tickets-tools/bin
+          cp "$(command -v bun)" /tmp/tickets-tools/bin/bun
+          tar --zstd -cf /tmp/tickets-development-tools.tar.zst node_modules vendor -C /tmp/tickets-tools bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tickets-development-tools
+          path: /tmp/tickets-development-tools.tar.zst
+          retention-days: 1
