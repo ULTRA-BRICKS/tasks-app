@@ -2,7 +2,7 @@ name: Publish recovered application source
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/restore-source.yml']
+    paths: ['.github/workflows/restore-source.yml', '.github/source-commits.json']
   workflow_dispatch:
 permissions:
   contents: write
@@ -25,12 +25,11 @@ jobs:
       - name: Materialize reviewed source and commit each independent module
         env:
           GH_TOKEN: ${{ github.token }}
-          SOURCE_BLOBS: '5115b1bf2446a932ce659fd3d5ec423a073f4334'
         run: |
           cat > /tmp/publish-tickets-source.mjs <<'JS'
           import { brotliDecompressSync } from 'node:zlib';
           import { createHash } from 'node:crypto';
-          import { mkdirSync, writeFileSync } from 'node:fs';
+          import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
           import { dirname } from 'node:path';
           function git(...args) {
             const result = Bun.spawnSync(['git', ...args], { stdout: 'pipe', stderr: 'pipe' });
@@ -39,30 +38,39 @@ jobs:
           }
           git('config', 'user.name', 'github-actions[bot]');
           git('config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com');
-          for (const sha of process.env.SOURCE_BLOBS.split(' ')) {
-            if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error('Invalid source object');
-            const response = await fetch(`https://api.github.com/repos/alex-mextner/tickets-app/git/blobs/${sha}`, {
-              headers: { Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json' }
-            });
-            if (!response.ok) throw new Error(`Source fetch failed: ${response.status}`);
-            const blob = await response.json();
-            const bytes = Buffer.from(blob.content, 'base64');
-            const actual = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
-            if (actual !== sha || bytes.length > 1000000) throw new Error('Source object integrity mismatch');
-            const source = JSON.parse(brotliDecompressSync(bytes, { maxOutputLength: 4000000 }));
-            if (typeof source.message !== 'string' || !source.files) throw new Error('Invalid manifest');
-            const paths = Object.keys(source.files);
+          const groups = JSON.parse(readFileSync('.github/source-commits.json', 'utf8'));
+          for (const group of groups) {
+            if (git('log', '--format=%s').split('\n').includes(group.message)) continue;
+            const files = {};
+            for (const sha of group.blobs) {
+              if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error('Invalid source object');
+              const response = await fetch(`https://api.github.com/repos/alex-mextner/tickets-app/git/blobs/${sha}`, {
+                headers: { Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json' }
+              });
+              if (!response.ok) throw new Error(`Source fetch failed: ${response.status}`);
+              const blob = await response.json();
+              const bytes = Buffer.from(blob.content, 'base64');
+              const actual = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
+              if (actual !== sha || bytes.length > 1000000) throw new Error('Source object integrity mismatch');
+              const source = JSON.parse(brotliDecompressSync(bytes, { maxOutputLength: 4000000 }));
+              if (!source.files) throw new Error('Invalid manifest');
+              for (const [path, content] of Object.entries(source.files)) {
+                if (path in files) throw new Error(`Duplicate path: ${path}`);
+                files[path] = content;
+              }
+            }
+            const paths = Object.keys(files);
             for (const path of paths) {
               if (!/^(packages\/|src\/|api\/|tokens\/|public\/|tests\/|scripts\/|docs\/|\.storybook\/|\.agents\/|DESIGN\.md$|LICENSE$|index\.html$|components\.json$|vite\.config\.ts$|vitest\.config\.ts$|playwright\.config\.ts$|tsconfig\.json$|package\.json$|\.oxlintrc\.json$|\.oxfmtrc\.json$|\.env\.example$)/.test(path) || path.includes('..') || path.includes('\\') || /\.(zip|tar|gz|db|sqlite|woff2?|ttf|otf)$/.test(path)) throw new Error(`Disallowed source path: ${path}`);
-              if (typeof source.files[path] !== 'string') throw new Error('Non-text source');
+              if (typeof files[path] !== 'string') throw new Error('Non-text source');
               mkdirSync(dirname(path), { recursive: true });
-              writeFileSync(path, source.files[path]);
+              writeFileSync(path, files[path]);
             }
             git('add', '--', ...paths);
             if (!git('diff', '--cached', '--name-only')) continue;
-            git('commit', '-m', source.message);
+            git('commit', '-m', group.message);
             git('push', 'origin', 'HEAD:main');
-            console.log(`${git('rev-parse', '--short', 'HEAD')} ${source.message} (${paths.length} files)`);
+            console.log(`${git('rev-parse', '--short', 'HEAD')} ${group.message} (${paths.length} files)`);
           }
           JS
           bun /tmp/publish-tickets-source.mjs
