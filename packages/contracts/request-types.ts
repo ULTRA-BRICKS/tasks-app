@@ -1,0 +1,25 @@
+// Generated from schemas.mjs. Run npm run api:generate.
+export type IssueCreate = { "title": string; "description"?: string; "kind"?: "issue" | "epic"; "status_id"?: string; "priority"?: number; "assignee_id"?: string | null; "project_id"?: string | null; "cycle_id"?: string | null; "milestone_id"?: string | null; "parent_id"?: string | null; "estimate"?: number | null; "start_date"?: string | null; "due_date"?: string | null; "label_ids"?: Array<string>; "team_id": string };
+export type IssuePatch = { "title"?: string; "description"?: string; "kind"?: "issue" | "epic"; "status_id"?: string; "priority"?: number; "assignee_id"?: string | null; "project_id"?: string | null; "cycle_id"?: string | null; "milestone_id"?: string | null; "parent_id"?: string | null; "estimate"?: number | null; "start_date"?: string | null; "due_date"?: string | null; "label_ids"?: Array<string>; "version": number; "archived"?: boolean; "deleted"?: boolean; "position"?: number };
+export type IssueBulk = { "updates": Array<{ "id": string; "patch": { "title"?: string; "description"?: string; "kind"?: "issue" | "epic"; "status_id"?: string; "priority"?: number; "assignee_id"?: string | null; "project_id"?: string | null; "cycle_id"?: string | null; "milestone_id"?: string | null; "parent_id"?: string | null; "estimate"?: number | null; "start_date"?: string | null; "due_date"?: string | null; "label_ids"?: Array<string>; "version": number; "archived"?: boolean } }> };
+export type Relation = { "target_id": string; "type": "blocks" | "related" | "duplicates" };
+export type Comment = { "body": string };
+export type CommentPatch = { "body": string; "version": number };
+export type Login = { "email": string; "password": string; "workspace_slug"?: string };
+export type Invite = { "email": string; "role": "admin" | "member" | "viewer" };
+export type AcceptInvite = { "token": string; "name": string; "password": string };
+export type Token = { "name": string; "scopes": Array<"read" | "write" | "admin">; "days"?: number };
+export type MemberRole = { "role": "owner" | "admin" | "member" | "viewer" };
+export type Profile = { "name": string };
+export type Team = { "key": string; "name": string };
+export type Status = { "team_id": string; "name": string; "category": "triage" | "backlog" | "unstarted" | "started" | "completed" | "canceled"; "color": string; "position"?: number };
+export type Label = { "name": string; "color": string };
+export type ProjectCreate = { "name": string; "description"?: string; "status"?: "planned" | "in_progress" | "paused" | "completed" | "canceled"; "health"?: "on_track" | "at_risk" | "off_track"; "lead_id"?: string | null; "start_date"?: string | null; "target_date"?: string | null; "team_ids": Array<string> };
+export type ProjectPatch = { "name"?: string; "description"?: string; "status"?: "planned" | "in_progress" | "paused" | "completed" | "canceled"; "health"?: "on_track" | "at_risk" | "off_track"; "lead_id"?: string | null; "start_date"?: string | null; "target_date"?: string | null; "version": number; "archived"?: boolean };
+export type Milestone = { "project_id": string; "name": string; "target_date"?: string | null };
+export type Cycle = { "team_id": string; "name": string; "start_date": string; "end_date": string };
+export type View = { "name": string; "filters": { "q"?: string; "team_id"?: string; "status_id"?: string; "category"?: "triage" | "backlog" | "unstarted" | "started" | "completed" | "canceled"; "assignee_id"?: string; "project_id"?: string; "cycle_id"?: string; "label_id"?: string; "parent_id"?: string; "kind"?: "issue" | "epic"; "priority"?: number; "archived"?: boolean; "deleted"?: boolean; "due_before"?: string }; "shared"?: boolean };
+export type Attachment = { "filename": string; "mime": string; "bytes": number };
+export type Module = { "enabled": boolean };
+export type GitHubConfig = { "review_status_id"?: string | null; "done_status_id"?: string | null; "notify"?: boolean };
+export type SlackConfig = { "notify"?: boolean; "team_id"?: string; "user_map"?: Record<string, string> };
