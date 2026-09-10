@@ -37,8 +37,8 @@ export function inspectFile(bytes, mime) {
               : !b.subarray(0, 8192).includes(0);
   assert(ok, 415, 'MEDIA_MISMATCH', 'File contents do not match the declared type');
 }
-// oxlint-disable-next-line no-control-regex -- strip untrusted control characters
 function filename(value) {
+  // oxlint-disable-next-line no-control-regex -- Intentionally remove untrusted terminal/path control characters.
   return value.replace(/[\x00-\x1f\x7f/\\]/g, '_').slice(0, 180);
 }
 export function createStorage(env = process.env) {

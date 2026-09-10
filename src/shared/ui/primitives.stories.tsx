@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within, fn } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 import { Button, Input, Picker, Modal, Avatar, ErrorState, EmptyState, Markdown } from './index';
 const meta = { title: 'Design system/Primitives', parameters: { layout: 'padded' } } satisfies Meta;
 export default meta;
@@ -59,7 +59,7 @@ function InteractivePicker() {
   return (
     <>
       <Picker
-        label="Status"
+        aria-label="Status"
         value={value}
         onChange={setValue}
         options={[
@@ -88,7 +88,7 @@ function DialogExample() {
     <>
       <Button onClick={() => setOpen(true)}>Open dialog</Button>
       <Modal open={open} onOpenChange={setOpen} title="New issue">
-        <Input aria-label="Title" autoFocus placeholder="A clear outcome" />
+        <Input aria-label="Title" data-autofocus placeholder="A clear outcome" />
         <Button onClick={() => setOpen(false)}>Create issue</Button>
       </Modal>
     </>

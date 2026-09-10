@@ -10,14 +10,14 @@ export function Picker({
   value,
   onChange,
   options,
-  label,
+  'aria-label': label,
   disabled,
   className,
 }: {
   value: string;
   onChange: (value: string) => void;
   options: Option[];
-  label: string;
+  'aria-label': string;
   disabled?: boolean;
   className?: string;
 }) {

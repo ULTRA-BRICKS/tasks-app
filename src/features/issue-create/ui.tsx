@@ -80,7 +80,7 @@ export function CreateIssue({
       <form onSubmit={submit}>
         <div className="create-context">
           <Picker
-            label="Team"
+            aria-label="Team"
             value={teamId}
             options={
               catalog?.teams.map((t) => ({ value: t.id, label: t.key + ' · ' + t.name })) ?? []
@@ -91,7 +91,7 @@ export function CreateIssue({
             }}
           />
           <Picker
-            label="Issue type"
+            aria-label="Issue type"
             value={kind}
             options={[
               { value: 'issue', label: 'Issue' },
@@ -101,7 +101,7 @@ export function CreateIssue({
           />
         </div>
         <Input
-          autoFocus
+          data-autofocus
           aria-label="Issue title"
           placeholder="Issue title"
           className="create-title"
@@ -125,9 +125,14 @@ export function CreateIssue({
           }}
         />
         <div className="create-properties">
-          <Picker label="Priority" value={priority} options={priorities} onChange={setPriority} />
           <Picker
-            label="Assignee"
+            aria-label="Priority"
+            value={priority}
+            options={priorities}
+            onChange={setPriority}
+          />
+          <Picker
+            aria-label="Assignee"
             value={assignee}
             options={[
               { value: 'none', label: 'Unassigned' },
@@ -137,7 +142,7 @@ export function CreateIssue({
           />
           {moduleEnabled(catalog, 'planning') && (
             <Picker
-              label="Project"
+              aria-label="Project"
               value={project}
               options={[
                 { value: 'none', label: 'No project' },

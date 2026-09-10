@@ -1,5 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises';
-import { resolve, relative, dirname, extname } from 'node:path';
+import { resolve, relative, dirname } from 'node:path';
 const root = resolve('src'),
   layers = ['shared', 'entities', 'features', 'widgets', 'pages', 'app'];
 async function walk(dir) {

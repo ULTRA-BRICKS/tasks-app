@@ -5,7 +5,6 @@ import {
   PanelLeft,
   Check,
   ExternalLink,
-  Copy,
   KeyRound,
   Plug,
   Users,
@@ -13,7 +12,7 @@ import {
   Palette,
   Plus,
 } from 'lucide-react';
-import { useCatalog, useMe, moduleEnabled } from '@/entities/workspace';
+import { useCatalog, useMe } from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
 import { Button, Input, Textarea, Picker, Avatar, ErrorState, Loading } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
@@ -212,7 +211,7 @@ export function SettingsPage() {
                       <span>{p.email}</span>
                     </div>
                     <Picker
-                      label={`Role of ${p.name}`}
+                      aria-label={`Role of ${p.name}`}
                       value={p.role}
                       options={['owner', 'admin', 'member', 'viewer'].map((v) => ({
                         value: v,
@@ -245,7 +244,7 @@ export function SettingsPage() {
                     required
                   />
                   <Picker
-                    label="Invite role"
+                    aria-label="Invite role"
                     value={inviteRole}
                     onChange={setInviteRole}
                     options={['member', 'viewer', 'admin'].map((v) => ({ value: v, label: v }))}
@@ -369,7 +368,7 @@ export function SettingsPage() {
                   required
                 />
                 <Picker
-                  label="Token permissions"
+                  aria-label="Token permissions"
                   value={tokenScope}
                   onChange={setTokenScope}
                   options={[
@@ -434,6 +433,7 @@ export function SettingsPage() {
                   <input
                     type="checkbox"
                     role="switch"
+                    aria-checked={m.enabled}
                     className="toggle"
                     aria-label={`${m.name} enabled`}
                     checked={m.enabled}

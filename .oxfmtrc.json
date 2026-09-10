@@ -3,5 +3,18 @@
   "singleQuote": true,
   "semi": true,
   "printWidth": 100,
-  "ignorePatterns": ["vendor/**", "node_modules/**", "dist/**", "storybook-static/**", "docs/openapi.json", "docs/verification/**", "src/shared/config/tokens.ts", "src/shared/styles/tokens.css", "packages/contracts/request-types.ts", "docs/tokens.md", "bun.lock"]
+  "ignorePatterns": [
+    "vendor/**",
+    "node_modules/**",
+    "dist/**",
+    "storybook-static/**",
+    "docs/openapi.json",
+    "docs/verification/**",
+    "src/shared/config/tokens.ts",
+    "src/shared/styles/tokens.css",
+    "packages/contracts/request-types.ts",
+    "docs/tokens.md",
+    "bun.lock",
+    "packages/linear/schema.graphql"
+  ]
 }

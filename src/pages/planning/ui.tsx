@@ -1,8 +1,8 @@
-import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, FolderKanban, CalendarRange, PanelLeft, ArrowUpRight, Flag } from 'lucide-react';
-import type { Project, ProjectCreate, Cycle } from '@tickets/contracts';
+import type { Project } from '@tickets/contracts';
 import { useCatalog, useProjects, useCycles, useMe, moduleEnabled } from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
 import {
@@ -130,8 +130,7 @@ export function PlanningPage({ kind }: { kind: 'projects' | 'cycles' }) {
 function ProjectCard({ project }: { project: Project }) {
   const { data: catalog } = useCatalog(),
     { data: me } = useMe(),
-    client = useQueryClient(),
-    navigate = useNavigate();
+    client = useQueryClient();
   const mutation = useMutation({
     mutationFn: (health: string) =>
       api<Project>('/v1/projects/' + project.id, {
@@ -150,7 +149,7 @@ function ProjectCard({ project }: { project: Project }) {
           <FolderKanban size={19} />
         </span>
         <Picker
-          label={`Health of ${project.name}`}
+          aria-label={`Health of ${project.name}`}
           value={project.health}
           options={[
             { value: 'on_track', label: 'On track' },
@@ -238,7 +237,7 @@ function CreatePlan({
         <label>
           Name
           <Input
-            autoFocus
+            data-autofocus
             aria-label="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -249,7 +248,7 @@ function CreatePlan({
         <label>
           Team
           <Picker
-            label="Team"
+            aria-label="Team"
             value={team}
             onChange={setTeam}
             options={catalog?.teams.map((t) => ({ value: t.id, label: t.name })) ?? []}

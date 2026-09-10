@@ -119,7 +119,7 @@ async function addExternalLink(tx, actor, issue, provider, externalId, url, titl
     [id(), actor.workspace_id, issue.id, provider, String(externalId), url, title],
   );
 }
-async function handleGitHub(tx, job, env) {
+async function handleGitHub(tx, job) {
   const data = JSON.parse(job.payload),
     actor = await actorFor(tx, job.workspace_id),
     settings = await config(tx, job.workspace_id, 'github');
@@ -230,7 +230,7 @@ async function handleGitHub(tx, job, env) {
       );
   }
 }
-async function handleSlack(tx, job, env) {
+async function handleSlack(tx, job) {
   const data = JSON.parse(job.payload),
     settings = await config(tx, job.workspace_id, 'slack');
   const slackId = data.user?.id ?? data.user_id;
@@ -319,14 +319,14 @@ export async function setIntegrationConfig(tx, actor, provider, input) {
   );
   return { provider, config: input };
 }
-async function processIncoming(db, job, env) {
+async function processIncoming(db, job) {
   await db.transaction(async (tx) => {
     await tx.lock(job.workspace_id);
     await assertModule(tx, job.workspace_id, job.provider);
     const live = await tx.one('SELECT status FROM webhook_deliveries WHERE id=?', [job.id]);
     if (live?.status !== 'processing') return;
-    if (job.provider === 'github') await handleGitHub(tx, job, env);
-    else await handleSlack(tx, job, env);
+    if (job.provider === 'github') await handleGitHub(tx, job);
+    else await handleSlack(tx, job);
     await tx.exec("UPDATE webhook_deliveries SET status='done',last_error=NULL WHERE id=?", [
       job.id,
     ]);
@@ -411,7 +411,7 @@ export async function runWorker(db, env, { limit = 20, fetcher = fetch } = {}) {
       });
       if (!job) break;
       try {
-        if (table === 'webhook_deliveries') await processIncoming(db, job, env);
+        if (table === 'webhook_deliveries') await processIncoming(db, job);
         else {
           await db.transaction(async (tx) => {
             await assertModule(tx, job.workspace_id, job.provider);

@@ -5,8 +5,6 @@ import {
   Layers,
   Plus,
   Search,
-  ChevronDown,
-  ChevronsLeft,
   FolderKanban,
   CalendarRange,
   SlidersHorizontal,
@@ -93,35 +91,35 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
           <Plus size={17} />
         </Button>
       </div>
-      <nav onClick={close}>
+      <nav>
         {moduleEnabled(catalog, 'notifications') && (
-          <NavLink to="/inbox" className={navClass}>
+          <NavLink onClick={close} to="/inbox" className={navClass}>
             <Inbox size={16} />
             <span>Inbox</span>
             {unread > 0 && <span className="nav-count">{unread}</span>}
           </NavLink>
         )}
-        <NavLink to="/my-issues" className={navClass}>
+        <NavLink onClick={close} to="/my-issues" className={navClass}>
           <UserRound size={16} />
           <span>My issues</span>
         </NavLink>
         <div className="nav-section-label">Workspace</div>
-        <NavLink to="/issues" end className={navClass}>
+        <NavLink onClick={close} to="/issues" end className={navClass}>
           <Layers size={16} />
           <span>All issues</span>
         </NavLink>
-        <NavLink to="/epics" className={navClass}>
+        <NavLink onClick={close} to="/epics" className={navClass}>
           <Layers size={16} />
           <span>Epics</span>
         </NavLink>
         {moduleEnabled(catalog, 'planning') && (
-          <NavLink to="/projects" className={navClass}>
+          <NavLink onClick={close} to="/projects" className={navClass}>
             <FolderKanban size={16} />
             <span>Projects</span>
           </NavLink>
         )}
         {moduleEnabled(catalog, 'cycles') && (
-          <NavLink to="/cycles" className={navClass}>
+          <NavLink onClick={close} to="/cycles" className={navClass}>
             <CalendarRange size={16} />
             <span>Cycles</span>
           </NavLink>
@@ -164,7 +162,7 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
             )}
           </>
         )}
-        <NavLink to="/archive" className={navClass}>
+        <NavLink onClick={close} to="/archive" className={navClass}>
           <Archive size={15} />
           <span>Archive</span>
         </NavLink>

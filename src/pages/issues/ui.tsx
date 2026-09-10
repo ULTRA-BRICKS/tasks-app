@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -7,7 +7,6 @@ import {
   Plus,
   Filter,
   Search,
-  SlidersHorizontal,
   ChevronDown,
   ChevronRight,
   Save,
@@ -34,10 +33,20 @@ export function IssuesPage() {
   const { data: catalog } = useCatalog(),
     { data: me } = useMe(),
     projects = useProjects(moduleEnabled(catalog, 'planning'));
+  const selectionKey = location.pathname + '?' + params.toString();
+  const [selection, setSelection] = useState({ key: selectionKey, ids: new Set<string>() });
+  const selected = selection.key === selectionKey ? selection.ids : new Set<string>();
+  const setSelected = (value: Set<string> | ((old: Set<string>) => Set<string>)) =>
+    setSelection((previous) => ({
+      key: selectionKey,
+      ids:
+        typeof value === 'function'
+          ? value(previous.key === selectionKey ? previous.ids : new Set())
+          : value,
+    }));
   const [filterOpen, setFilterOpen] = useState(false),
     [createOpen, setCreateOpen] = useState(false),
     [defaults, setDefaults] = useState<Partial<IssueCreate>>({}),
-    [selected, setSelected] = useState<Set<string>>(new Set()),
     [collapsed, setCollapsed] = useState<Set<string>>(new Set()),
     [saveOpen, setSaveOpen] = useState(false),
     [viewName, setViewName] = useState('');
@@ -71,13 +80,12 @@ export function IssuesPage() {
     if (title === 'Epics') f.kind = 'epic';
     if (title === 'Archive') f.archived = true;
     return f;
-  }, [params.toString(), title]);
+  }, [params, title]);
   const query = useIssues(filters),
     issues = query.data?.pages.flatMap((p) => p.data) ?? [];
   const statuses =
     catalog?.statuses.filter((s) => !filters.team_id || s.team_id === filters.team_id) ?? [];
   const readOnly = me?.role === 'viewer';
-  useEffect(() => setSelected(new Set()), [params.toString(), title]);
   const selectedRows = issues.filter((i) => selected.has(i.id));
   const bulk = useMutation({
     mutationFn: (status: string) =>
@@ -221,7 +229,7 @@ export function IssuesPage() {
       {filterOpen && (
         <div className="filters-panel">
           <Picker
-            label="Filter by team"
+            aria-label="Filter by team"
             value={params.get('team_id') ?? 'all'}
             options={[
               { value: 'all', label: 'All teams' },
@@ -230,7 +238,7 @@ export function IssuesPage() {
             onChange={(v) => setFilter('team_id', v)}
           />
           <Picker
-            label="Filter by assignee"
+            aria-label="Filter by assignee"
             value={params.get('assignee_id') ?? 'all'}
             options={[
               { value: 'all', label: 'All assignees' },
@@ -241,7 +249,7 @@ export function IssuesPage() {
             onChange={(v) => setFilter('assignee_id', v)}
           />
           <Picker
-            label="Filter by status"
+            aria-label="Filter by status"
             value={params.get('status_id') ?? 'all'}
             options={[
               { value: 'all', label: 'All statuses' },
@@ -250,7 +258,7 @@ export function IssuesPage() {
             onChange={(v) => setFilter('status_id', v)}
           />
           <Picker
-            label="Filter by label"
+            aria-label="Filter by label"
             value={params.get('label_id') ?? 'all'}
             options={[
               { value: 'all', label: 'All labels' },
@@ -260,7 +268,7 @@ export function IssuesPage() {
           />
           {moduleEnabled(catalog, 'planning') && (
             <Picker
-              label="Filter by project"
+              aria-label="Filter by project"
               value={params.get('project_id') ?? 'all'}
               options={[
                 { value: 'all', label: 'All projects' },
@@ -282,7 +290,7 @@ export function IssuesPage() {
           </Button>
           {new Set(selectedRows.map((i) => i.team_id)).size === 1 ? (
             <Picker
-              label="Bulk change status"
+              aria-label="Bulk change status"
               value="none"
               disabled={bulk.isPending}
               options={[
@@ -411,7 +419,7 @@ export function IssuesPage() {
           }}
         >
           <Input
-            autoFocus
+            data-autofocus
             aria-label="View name"
             placeholder="e.g. Bugs ready for review"
             value={viewName}

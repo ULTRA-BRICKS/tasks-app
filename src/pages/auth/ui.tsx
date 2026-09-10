@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
@@ -36,7 +36,7 @@ export function LoginPage() {
           <label>
             Email
             <Input
-              autoFocus
+              data-autofocus
               type="email"
               autoComplete="username"
               value={email}

@@ -1,3 +1,4 @@
+/* oxlint-disable jsx-a11y/prefer-tag-over-role -- Editable combobox with a virtual-focus ARIA listbox, not a native select. */
 import { useEffect, useRef, useState } from 'react';
 import { Search, Plus, Inbox, Layers, Settings, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -31,17 +32,14 @@ export function CommandMenu({
   const results = [
     ...commands,
     ...(query.trim()
-      ? (issues.data?.pages[0]?.data
-          .slice(0, 8)
-          .map((i) => ({
-            id: i.id,
-            label: `${i.key}  ${i.title}`,
-            icon: ArrowRight,
-            action: () => navigate('/issues/' + i.id),
-          })) ?? [])
+      ? (issues.data?.pages[0]?.data.slice(0, 8).map((i) => ({
+          id: i.id,
+          label: `${i.key}  ${i.title}`,
+          icon: ArrowRight,
+          action: () => navigate('/issues/' + i.id),
+        })) ?? [])
       : []),
   ];
-  useEffect(() => setIndex(0), [query]);
   useEffect(() => {
     list.current
       ?.querySelector(`[data-command-index="${index}"]`)
@@ -60,11 +58,14 @@ export function CommandMenu({
       <div className="command-search">
         <Search size={18} />
         <Input
-          autoFocus
+          data-autofocus
           aria-label="Search commands and issues"
           placeholder="Search issues or type a command…"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setIndex(0);
+          }}
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown') {
               e.preventDefault();
@@ -96,6 +97,13 @@ export function CommandMenu({
         {results.map((r, i) => (
           <div
             role="option"
+            tabIndex={-1}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                choose(i);
+              }
+            }}
             aria-selected={index === i}
             id={'command-' + r.id}
             key={r.id}

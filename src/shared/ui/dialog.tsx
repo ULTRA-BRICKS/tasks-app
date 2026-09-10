@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { X } from 'lucide-react';
 import { cn } from '../lib/cn';
@@ -17,12 +17,19 @@ export function Modal({
   children: ReactNode;
   className?: string;
 }) {
+  const popup = useRef<HTMLDivElement>(null);
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="dialog-backdrop" />
         <Dialog.Viewport className="dialog-viewport">
-          <Dialog.Popup className={cn('dialog-popup', className)}>
+          <Dialog.Popup
+            ref={popup}
+            initialFocus={() =>
+              popup.current?.querySelector<HTMLElement>('[data-autofocus]') ?? true
+            }
+            className={cn('dialog-popup', className)}
+          >
             <div className="dialog-heading">
               <Dialog.Title className="dialog-title">{title}</Dialog.Title>
               <Dialog.Close className="button button-ghost button-icon" aria-label="Close dialog">

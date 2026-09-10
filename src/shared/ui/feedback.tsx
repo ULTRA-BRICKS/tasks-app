@@ -38,21 +38,21 @@ export function ErrorState({ message, retry }: { message: string; retry?: () => 
 }
 export function Loading({ label = 'Loading' }: { label?: string }) {
   return (
-    <div className="loading" role="status">
+    <output className="loading">
       <LoaderCircle className="spin" size={18} />
       <span>{label}…</span>
-    </div>
+    </output>
   );
 }
 export function SkeletonRows() {
   return (
-    <div role="status" aria-label="Loading issues">
+    <output aria-label="Loading issues">
       {Array.from({ length: 8 }, (_, i) => (
         <div className="skeleton-row" key={i}>
           <span className="skeleton" />
           <span className="skeleton" />
         </div>
       ))}
-    </div>
+    </output>
   );
 }

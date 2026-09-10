@@ -20,14 +20,23 @@ const actual = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes)
 if (actual !== sha) throw new Error('Pinned Linear schema integrity check failed');
 await mkdir('vendor/linear', { recursive: true });
 await writeFile('vendor/linear/schema.graphql', bytes);
-await writeFile('vendor/linear/provenance.json', JSON.stringify({
-  repository: 'https://github.com/linear/linear',
-  path: 'packages/sdk/src/schema.graphql',
-  gitBlobSha: sha,
-  retrievedAt: '2026-09-10',
-  license: 'MIT',
-}, null, 2) + '\n');
-const license = await fetch('https://raw.githubusercontent.com/linear/linear/master/LICENSE', { signal: AbortSignal.timeout(30000) });
+await writeFile(
+  'vendor/linear/provenance.json',
+  JSON.stringify(
+    {
+      repository: 'https://github.com/linear/linear',
+      path: 'packages/sdk/src/schema.graphql',
+      gitBlobSha: sha,
+      retrievedAt: '2026-09-10',
+      license: 'MIT',
+    },
+    null,
+    2,
+  ) + '\n',
+);
+const license = await fetch('https://raw.githubusercontent.com/linear/linear/master/LICENSE', {
+  signal: AbortSignal.timeout(30000),
+});
 if (!license.ok) throw new Error(`Cannot fetch upstream license: HTTP ${license.status}`);
 await writeFile('vendor/linear/LICENSE', await license.text());
 console.log(`Pinned official Linear GraphQL schema: ${sha} (${bytes.length} bytes)`);

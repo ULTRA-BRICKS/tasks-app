@@ -18,14 +18,14 @@ export async function api<T>(
   } = {},
 ): Promise<T> {
   const { json, ...init } = options;
+  const headers = new Headers(init.headers);
+  if (!headers.has('x-tickets-csrf')) headers.set('x-tickets-csrf', '1');
+  if (json !== undefined && !headers.has('content-type'))
+    headers.set('content-type', 'application/json');
   const response = await fetch('/api' + path, {
     ...init,
     credentials: 'same-origin',
-    headers: {
-      'x-tickets-csrf': '1',
-      ...(json !== undefined ? { 'content-type': 'application/json' } : {}),
-      ...init.headers,
-    },
+    headers,
     body: json !== undefined ? JSON.stringify(json) : init.body,
   });
   const text = await response.text();

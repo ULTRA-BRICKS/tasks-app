@@ -65,8 +65,8 @@ function required(v, name) {
     throw Object.assign(new Error(`${name} is required`), { status: 422 });
   return v;
 }
-// oxlint-disable-next-line no-control-regex -- strip untrusted control characters
 function terminal(v) {
+  // oxlint-disable-next-line no-control-regex -- Intentionally remove untrusted terminal/path control characters.
   return String(v ?? '').replace(/[\x00-\x1f\x7f\x9b]/g, ' ');
 }
 function print(v, json) {

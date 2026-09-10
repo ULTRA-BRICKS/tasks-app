@@ -1,5 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises';
-import { resolve, relative, basename } from 'node:path';
+import { resolve, relative } from 'node:path';
 const root = resolve('.'),
   excluded = new Set([
     '.git',

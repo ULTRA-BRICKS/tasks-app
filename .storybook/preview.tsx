@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import type { Preview } from '@storybook/react-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '../src/app/styles.css';

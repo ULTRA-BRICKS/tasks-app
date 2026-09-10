@@ -453,7 +453,7 @@ test('Slack signature checks replay window', () => {
   const raw = Buffer.from('command=%2Ftickets'),
     time = Date.now(),
     ts = String(Math.floor(time / 1000)),
-    sig = 'v0=' + hmac('secret', `v0:${ts}:${raw}`);
+    sig = 'v0=' + hmac('secret', `v0:${ts}:${raw.toString()}`);
   verifySlack(raw, ts, sig, 'secret', time);
   assert.throws(() => verifySlack(raw, ts, sig, 'secret', time + 301000));
 });

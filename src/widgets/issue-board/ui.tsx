@@ -26,20 +26,21 @@ function Draggable({
   onOpen: () => void;
   disabled: boolean;
 }) {
-  const drag = useDraggable({ id: issue.id, disabled });
+  const { setNodeRef, setActivatorNodeRef, isDragging, transform, listeners, attributes } =
+    useDraggable({ id: issue.id, disabled });
   return (
     <div
-      ref={drag.setNodeRef}
-      className={'draggable-card' + (drag.isDragging ? ' dragging' : '')}
-      style={{ transform: CSS.Translate.toString(drag.transform) } as CSSProperties}
+      ref={setNodeRef}
+      className={'draggable-card' + (isDragging ? ' dragging' : '')}
+      style={{ transform: CSS.Translate.toString(transform) } as CSSProperties}
     >
       <button
         type="button"
         className="drag-handle"
         aria-label={`Move ${issue.key}`}
-        ref={drag.setActivatorNodeRef}
-        {...drag.listeners}
-        {...drag.attributes}
+        ref={setActivatorNodeRef}
+        {...listeners}
+        {...attributes}
         disabled={disabled}
       >
         <GripVertical size={13} />
@@ -61,11 +62,11 @@ function Column({
   onCreate: (status: Status) => void;
   disabled: boolean;
 }) {
-  const drop = useDroppable({ id: status.id });
+  const { setNodeRef, isOver } = useDroppable({ id: status.id });
   return (
     <section
-      ref={drop.setNodeRef}
-      className={'board-column' + (drop.isOver ? ' drop-active' : '')}
+      ref={setNodeRef}
+      className={'board-column' + (isOver ? ' drop-active' : '')}
       aria-label={status.name}
     >
       <header>

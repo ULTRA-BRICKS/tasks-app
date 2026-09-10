@@ -1,12 +1,43 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "react", "jsx-a11y", "import"],
-  "categories": { "correctness": "error" },
-  "ignorePatterns": ["dist/**", "storybook-static/**", "vendor/**", "node_modules/**", "docs/openapi.json", "src/shared/config/tokens.ts", "packages/contracts/request-types.ts"],
+  "categories": {
+    "correctness": "error"
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "storybook-static/**",
+    "vendor/**",
+    "node_modules/**",
+    "docs/openapi.json",
+    "src/shared/config/tokens.ts",
+    "packages/contracts/request-types.ts"
+  ],
   "rules": {
     "typescript/no-explicit-any": "off",
-    "typescript/no-floating-promises": ["error", { "ignoreVoid": true }],
+    "typescript/no-floating-promises": [
+      "error",
+      {
+        "ignoreVoid": true
+      }
+    ],
     "react/rules-of-hooks": "error",
-    "jsx-a11y/alt-text": "error"
+    "jsx-a11y/alt-text": "error",
+    "no-unused-vars": [
+      "error",
+      {
+        "ignoreRestSiblings": true
+      }
+    ]
+  },
+  "settings": {
+    "jsx-a11y": {
+      "components": {
+        "Input": "input",
+        "Textarea": "textarea",
+        "Button": "button",
+        "Picker": "select"
+      }
+    }
   }
 }

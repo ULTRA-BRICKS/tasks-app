@@ -1,6 +1,7 @@
+import { snapshotDraft as fromIssue, isDraftDirty } from './model';
 import { useEffect, useState, useRef, type FormEvent } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   X,
   Link2,
@@ -13,7 +14,6 @@ import {
   BellOff,
   ExternalLink,
   ChevronLeft,
-  MessageSquare,
   Layers,
 } from 'lucide-react';
 import type { IssueDetail, IssuePatch, Issue } from '@tickets/contracts';
@@ -39,7 +39,7 @@ import {
   Loading,
   Modal,
 } from '@/shared/ui';
-import { api, ApiError, errorMessage } from '@/shared/api/client';
+import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
 export function IssueDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const query = useIssue(id);
@@ -64,12 +64,12 @@ export function IssueDetails({ id, onClose }: { id: string; onClose: () => void 
 function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void }) {
   const { data: catalog } = useCatalog(),
     { data: me } = useMe(),
-    client = useQueryClient(),
-    navigate = useNavigate();
+    client = useQueryClient();
   const projects = useProjects(moduleEnabled(catalog, 'planning')),
     cycles = useCycles(moduleEnabled(catalog, 'cycles')),
     milestones = useMilestones(moduleEnabled(catalog, 'planning'));
   const draftKey = `ticket-draft:${me?.id}:${issue.workspace_id}:${issue.id}`;
+
   function initialDraft() {
     try {
       const raw = JSON.parse(sessionStorage.getItem(draftKey) ?? 'null');
@@ -79,13 +79,14 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
         typeof raw.description === 'string' &&
         Number.isInteger(raw.version)
       )
-        return raw as {
-          title: string;
-          description: string;
-          version: number;
-        };
+        return {
+          ...raw,
+          baseTitle: typeof raw.baseTitle === 'string' ? raw.baseTitle : issue.title,
+          baseDescription:
+            typeof raw.baseDescription === 'string' ? raw.baseDescription : issue.description,
+        } as ReturnType<typeof fromIssue>;
     } catch {}
-    return { title: issue.title, description: issue.description, version: issue.version };
+    return fromIssue(issue);
   }
   const [draft, setDraft] = useState(initialDraft),
     [editing, setEditing] = useState(false),
@@ -100,16 +101,23 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
     mutation = useIssueUpdate(),
     busy = useIssueWriteBusy(),
     readOnly = me?.role === 'viewer';
-  const dirty = draft.title !== issue.title || draft.description !== issue.description,
+  const dirty = isDraftDirty(draft),
     propertiesDisabled = readOnly || busy || dirty;
   useEffect(() => {
-    if (!dirty) {
-      setDraft({ title: issue.title, description: issue.description, version: issue.version });
+    if (!dirty && draft.version !== issue.version) {
+      // oxlint-disable-next-line react/set-state-in-effect -- Synchronize a clean form with the external query cache; never overwrite a local edit.
+      setDraft({
+        title: issue.title,
+        description: issue.description,
+        version: issue.version,
+        baseTitle: issue.title,
+        baseDescription: issue.description,
+      });
       try {
         sessionStorage.removeItem(draftKey);
       } catch {}
     }
-  }, [issue.version, issue.title, issue.description]);
+  }, [issue.version, issue.title, issue.description, draft.version, dirty, draftKey]);
   useEffect(() => {
     try {
       if (dirty) sessionStorage.setItem(draftKey, JSON.stringify(draft));
@@ -136,7 +144,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
         issue: { ...issue, version: draft.version },
         patch: { title: draft.title, description: draft.description },
       });
-      setDraft({ title: result.title, description: result.description, version: result.version });
+      setDraft(fromIssue(result));
       setEditing(false);
       try {
         sessionStorage.removeItem(draftKey);
@@ -147,7 +155,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
   }
   function discard() {
     if (dirty && !window.confirm('Discard your local title and description changes?')) return;
-    setDraft({ title: issue.title, description: issue.description, version: issue.version });
+    setDraft(fromIssue(issue));
     setEditing(false);
     try {
       sessionStorage.removeItem(draftKey);
@@ -217,7 +225,6 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
     }
   }
   const [uploading, setUploading] = useState(false);
-  const status = catalog?.statuses.find((s) => s.id === issue.status_id);
   const none = (label: string) => ({ value: 'none', label });
   return (
     <>
@@ -255,7 +262,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
       <div className="detail-layout">
         <div className="detail-main">
           {dirty && (
-            <div className="draft-banner" role="status">
+            <output className="draft-banner">
               Local draft preserved.
               {draft.version !== issue.version
                 ? ' A newer server version exists. Saving will require reconciliation.'
@@ -263,7 +270,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
               <Button size="sm" variant="ghost" onClick={discard}>
                 Discard draft
               </Button>
-            </div>
+            </output>
           )}
           <form onSubmit={save} className="issue-content-form">
             <Input
@@ -549,9 +556,9 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             <p className="section-hint">Save the description before changing properties.</p>
           )}
           <div className="property-row">
-            <label>Status</label>
+            <span>Status</span>
             <Picker
-              label="Status"
+              aria-label="Status"
               value={issue.status_id}
               options={
                 catalog?.statuses
@@ -563,9 +570,9 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             />
           </div>
           <div className="property-row">
-            <label>Priority</label>
+            <span>Priority</span>
             <Picker
-              label="Priority"
+              aria-label="Priority"
               value={String(issue.priority)}
               options={priorities}
               onChange={(v) => update({ priority: Number(v) })}
@@ -573,9 +580,9 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             />
           </div>
           <div className="property-row">
-            <label>Assignee</label>
+            <span>Assignee</span>
             <Picker
-              label="Assignee"
+              aria-label="Assignee"
               value={issue.assignee_id ?? 'none'}
               options={[
                 none('Unassigned'),
@@ -586,9 +593,9 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             />
           </div>
           <div className="property-row">
-            <label>Estimate</label>
+            <span>Estimate</span>
             <Picker
-              label="Estimate"
+              aria-label="Estimate"
               value={issue.estimate === null ? 'none' : String(issue.estimate)}
               options={[
                 none('No estimate'),
@@ -606,7 +613,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             />
           </div>
           <div className="property-row">
-            <label>Start date</label>
+            <span>Start date</span>
             <Input
               aria-label="Start date"
               type="date"
@@ -616,7 +623,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             />
           </div>
           <div className="property-row">
-            <label>Due date</label>
+            <span>Due date</span>
             <Input
               aria-label="Due date"
               type="date"
@@ -629,7 +636,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             <>
               <div className="property-section-title">Project</div>
               <Picker
-                label="Project"
+                aria-label="Project"
                 value={issue.project_id ?? 'none'}
                 options={[
                   none('No project'),
@@ -644,9 +651,9 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
               />
               {issue.project_id && (
                 <div className="property-row">
-                  <label>Milestone</label>
+                  <span>Milestone</span>
                   <Picker
-                    label="Milestone"
+                    aria-label="Milestone"
                     value={issue.milestone_id ?? 'none'}
                     options={[
                       none('No milestone'),
@@ -665,7 +672,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             <>
               <div className="property-section-title">Cycle</div>
               <Picker
-                label="Cycle"
+                aria-label="Cycle"
                 value={issue.cycle_id ?? 'none'}
                 options={[
                   none('No cycle'),
@@ -752,7 +759,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
           className="stack-form"
         >
           <Picker
-            label="Relationship type"
+            aria-label="Relationship type"
             value={relationType}
             onChange={setRelationType}
             options={[
@@ -762,7 +769,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             ]}
           />
           <Input
-            autoFocus
+            data-autofocus
             aria-label="Target issue key"
             placeholder="TKT-42"
             value={target}
