@@ -1,0 +1,113 @@
+name: Deploy to Vercel
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/deploy.yml']
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: vercel-production
+  cancel-in-progress: false
+jobs:
+  preflight:
+    if: >-
+      github.repository == 'alex-mextner/tickets-app' &&
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        github.event.workflow_run.event == 'push'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      sha: ${{ steps.check.outputs.sha }}
+    steps:
+      - name: Check credentials and a successful CI for the exact current main commit
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID }}
+        run: |
+          missing=0
+          for key in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!key}" ]; then
+              echo "::error title=Deployment not configured::Missing $key"
+              printf -- '- Missing `%s`\n' "$key" >> "$GITHUB_STEP_SUMMARY"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then exit 1; fi
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if ! [[ "$sha" =~ ^[a-f0-9]{40}$ ]]; then exit 1; fi
+          passed=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$sha&per_page=100" --jq '[.workflow_runs[] | select(.path == ".github/workflows/ci.yml" and .event == "push" and .head_branch == "main" and .conclusion == "success")] | length')
+          if [ "$passed" -lt 1 ]; then
+            echo '::error::The current main commit has no successful full CI. No deployment was created.'
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          printf 'Release source: `%s`\n' "$sha" >> "$GITHUB_STEP_SUMMARY"
+  deploy:
+    needs: preflight
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID }}
+      DO_NOT_TRACK: 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.preflight.outputs.sha }}
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - name: Pull the explicitly linked production environment
+        run: bun x --bun vercel@59.11.7 pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Fail closed on missing or unsafe runtime configuration
+        run: |
+          bun --env-file=.vercel/.env.production.local - <<'JS'
+          const env = process.env;
+          const missing = ['DATABASE_URL', 'AUTH_SECRET', 'APP_URL'].filter(k => !env[k]);
+          if (missing.length) throw new Error(`Missing production variables: ${missing.join(', ')}`);
+          if (env.AUTH_SECRET.length < 32) throw new Error('AUTH_SECRET must contain at least 32 characters');
+          const origin = new URL(env.APP_URL);
+          if (origin.protocol !== 'https:' || origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash) throw new Error('APP_URL must be an HTTPS origin');
+          const database = new URL(env.DATABASE_URL);
+          if (!['postgres:', 'postgresql:'].includes(database.protocol)) throw new Error('Production requires PostgreSQL');
+          const { createDatabase, EXPECTED_SCHEMA_VERSION } = await import('./packages/db/index.mjs');
+          const db = await createDatabase({ url: env.DATABASE_URL, production: true });
+          try {
+            await db.transaction(tx => tx.one('SELECT MAX(version) AS version FROM schema_migrations').then(row => {
+              if (Number(row?.version) !== EXPECTED_SCHEMA_VERSION) throw new Error('Apply the reviewed production migration before deploying');
+            }));
+          } finally { await db.close(); }
+          console.log('Production configuration and schema validated; no secrets printed.');
+          JS
+      - name: Build the validated commit with the Bun runtime
+        run: bun x --bun vercel@59.11.7 build --prod --token="$VERCEL_TOKEN"
+      - name: Deploy prebuilt output without relying on Git integration
+        run: |
+          bun x --bun vercel@59.11.7 deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" > /tmp/deployment-url.txt
+          url=$(tail -n 1 /tmp/deployment-url.txt)
+          if ! [[ "$url" =~ ^https://[a-zA-Z0-9.-]+/?$ ]]; then echo '::error::Unexpected deployment URL'; exit 1; fi
+          printf 'Deployment created: %s\n\nThis is not a substitute for authenticated acceptance checks.\n' "$url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Check the canonical origin without exposing credentials
+        run: |
+          bun --env-file=.vercel/.env.production.local - <<'JS'
+          const origin = new URL(process.env.APP_URL).origin;
+          const response = await fetch(`${origin}/api/health`, {signal: AbortSignal.timeout(30000)});
+          if (!response.ok || !(await response.json()).ok) throw new Error('Canonical origin health check failed');
+          console.log('Canonical origin health check passed. Complete owner login and provider acceptance separately.');
+          JS
