@@ -1,17 +1,7 @@
 [
   {
-    "message": "fix(web): preserve drafts, request headers and accessible interactions under strict Oxc",
-    "patchBlob": "c9a439fbea28317a5c6fb6814e5a2d33f3004fa0",
-    "patchSHA256": "2905d568e39a8094e4d7f069fff775f0e5a0d65aa02a5452af59007f3e989c3b"
-  },
-  {
-    "message": "feat(api): implement schema-checked Linear GraphQL subset on shared domain services",
-    "patchBlob": "1fb2ca0b0904e16e2806740e5351229639fe6f63",
-    "patchSHA256": "3477942e5860acfcbeaff2a5cf6d46693aeb144c68fdb3e5ae66073b7ff6db03",
-    "generated": {
-      "docs/openapi.json": "394df5558a09bd42eb33ec653aab4c9268920e54",
-      "docs/tokens.md": "f4a68a9b1f8ab45d9843b99ba81d0504f5d10432",
-      "packages/linear/schema.graphql": "2ee359cac123eeececec39bffffa88ec1f0b00a0"
-    }
+    "message": "fix(a11y): label Markdown tasks and keep issue metadata readable",
+    "patchBlob": "837060289895bf4423605e3855273bf9c1d0729c",
+    "patchSHA256": "0814fc28bb49aae31e34239f12a7f39a908ce846dc9bf69e962c59b4e467e782"
   }
 ]
