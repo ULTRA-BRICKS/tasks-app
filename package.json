@@ -17,7 +17,7 @@
     "dev:api": "bun packages/server/dev.mjs",
     "dev:web": "bun --bun vite --host 127.0.0.1",
     "build": "bun run prepare:generated && bun run typecheck && bun --bun vite build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "oxlint --type-aware --type-check --deny-warnings",
     "start": "bun packages/server/dev.mjs",
     "db:migrate": "bun scripts/db.mjs migrate",
     "db:bootstrap": "bun scripts/db.mjs bootstrap",
@@ -38,7 +38,7 @@
     "worker": "bun scripts/worker.mjs",
     "setup": "bun scripts/setup.mjs",
     "check:secrets": "bun scripts/secret-scan.mjs",
-    "prepare:generated": "bun run tokens:build && bun run api:generate",
+    "prepare:generated": "bun run tokens:build && bun run api:generate && bun run graphql:generate",
     "lint": "oxlint --deny-warnings && bun run lint:fsd",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --write .",
@@ -47,8 +47,9 @@
     "graphql:generate": "bun scripts/linear-schema.mjs",
     "graphql:check": "bun scripts/linear-schema.mjs --check",
     "test:postgres": "bun test tests/postgres",
-    "screenshots": "bun scripts/screenshots.mjs",
-    "check": "bun run prepare:generated && bun run lint && bun run typecheck && bun run test && bun run build"
+    "screenshots": "bun --bun playwright test --project=visual --update-snapshots",
+    "check": "bun run prepare:generated && bun run lint && bun run typecheck && bun run test && bun run build",
+    "typecheck:tsc": "tsc --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.800.0",

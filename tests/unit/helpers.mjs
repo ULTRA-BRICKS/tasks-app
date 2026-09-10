@@ -1,7 +1,25 @@
+import { withLinear } from '../../packages/linear/handler.mjs';
 import { createDatabase, migrate } from '../../packages/db/index.mjs';
 import { bootstrap } from '../../packages/server/modules/identity/service.mjs';
 import { createApp } from '../../packages/server/app.mjs';
 export async function fixture(extra = {}, databaseOptions = { sqlitePath: ':memory:' }) {
+  let cleanup = async () => {};
+  if (process.env.TEST_DATABASE_URL && databaseOptions.sqlitePath === ':memory:') {
+    const { Pool } = await import('pg');
+    const admin = new Pool({ connectionString: process.env.TEST_DATABASE_URL, max: 1 });
+    const schema = 'tickets_test_' + crypto.randomUUID().replaceAll('-', '');
+    await admin.query(`CREATE SCHEMA ${schema}`);
+    const url = new URL(process.env.TEST_DATABASE_URL);
+    url.searchParams.set('options', `-c search_path=${schema}`);
+    databaseOptions = { url: url.toString() };
+    cleanup = async () => {
+      try {
+        await admin.query(`DROP SCHEMA ${schema} CASCADE`);
+      } finally {
+        await admin.end();
+      }
+    };
+  }
   const db = await createDatabase(databaseOptions);
   await migrate(db);
   const init = await bootstrap(db, {
@@ -22,7 +40,7 @@ export async function fixture(extra = {}, databaseOptions = { sqlitePath: ':memo
     NODE_ENV: 'test',
     ...extra,
   };
-  const app = createApp({ db, env, storage, logger: { error: () => {} } });
+  const app = withLinear(createApp({ db, env, storage, logger: { error: () => {} } }), { db, env });
   let session;
   async function request(method, path, data, options = {}) {
     const headers = {
@@ -76,6 +94,12 @@ export async function fixture(extra = {}, databaseOptions = { sqlitePath: ':memo
     setSession(value) {
       session = value;
     },
-    close: () => db.close(),
+    close: async () => {
+      try {
+        await db.close();
+      } finally {
+        await cleanup();
+      }
+    },
   };
 }
