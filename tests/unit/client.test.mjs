@@ -28,7 +28,7 @@ test('client reports malformed responses and retains conflict details', async ()
   const fetch = globalThis.fetch;
   try {
     globalThis.fetch = async () => new Response('<html>bad gateway</html>', { status: 502 });
-    await expect(api('/v1/issues')).rejects.toBeInstanceOf(ApiError);
+    expect(await api('/v1/issues').catch((error) => error)).toBeInstanceOf(ApiError);
     globalThis.fetch = async () =>
       Response.json(
         {

@@ -25,7 +25,8 @@
     "vite.config.ts",
     ".storybook",
     "vitest.config.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "tests"
   ],
   "exclude": ["node_modules", "dist"]
 }

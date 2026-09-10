@@ -2,7 +2,7 @@ import { defineConfig, mergeConfig } from 'vitest/config';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import { playwright } from '@vitest/browser-playwright';
 import { fileURLToPath } from 'node:url';
-import viteConfig from './vite.config';
+import viteConfig from './vite.config.ts';
 
 // Browser stories must use the application's aliases and transforms. Without this
 // merge Vite cannot resolve FSD imports and may reload the runner mid-test.
