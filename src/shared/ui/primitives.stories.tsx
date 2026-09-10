@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, within, waitFor } from 'storybook/test';
 import { Button, Input, Picker, Modal, Avatar, ErrorState, EmptyState, Markdown } from './index';
 const meta = { title: 'Design system/Primitives', parameters: { layout: 'padded' } } satisfies Meta;
 export default meta;
@@ -21,8 +21,9 @@ export const People: Story = {
     <div style={{ display: 'flex', gap: 12 }}>
       <Avatar name="Alex Morgan" />
       <Avatar name="Jamie Chen" />
+      <Avatar name="Sam Rivera" />
       <Avatar name={null} />
-      <Avatar name="Sam Rivera" size="md" />
+      <Avatar name="Taylor Park" size="md" />
     </div>
   ),
 };
@@ -101,8 +102,10 @@ export const KeyboardDialog: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Open dialog' }));
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.getByRole('dialog')).toBeVisible();
+    await waitFor(() => expect(page.getByRole('textbox', { name: 'Title' })).toHaveFocus());
     await userEvent.keyboard('{Escape}');
-    await expect(page.queryByRole('dialog')).not.toBeInTheDocument();
-    await expect(canvas.getByRole('button', { name: 'Open dialog' })).toHaveFocus();
+    // Base UI keeps the popup mounted until its exit transition finishes.
+    await waitFor(() => expect(page.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(canvas.getByRole('button', { name: 'Open dialog' })).toHaveFocus());
   },
 };
