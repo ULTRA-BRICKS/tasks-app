@@ -78,20 +78,25 @@ jobs:
       - name: Fail closed on missing or unsafe runtime configuration
         run: |
           bun --env-file=.vercel/.env.production.local - <<'JS'
+          import { readdir } from 'node:fs/promises';
           const env = process.env;
           const missing = ['DATABASE_URL', 'AUTH_SECRET', 'APP_URL'].filter(k => !env[k]);
           if (missing.length) throw new Error(`Missing production variables: ${missing.join(', ')}`);
           if (env.AUTH_SECRET.length < 32) throw new Error('AUTH_SECRET must contain at least 32 characters');
-          const origin = new URL(env.APP_URL);
+          let origin, database;
+          try { origin = new URL(env.APP_URL); database = new URL(env.DATABASE_URL); }
+          catch { throw new Error('Invalid production URL configuration'); }
           if (origin.protocol !== 'https:' || origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash) throw new Error('APP_URL must be an HTTPS origin');
-          const database = new URL(env.DATABASE_URL);
           if (!['postgres:', 'postgresql:'].includes(database.protocol)) throw new Error('Production requires PostgreSQL');
-          const { createDatabase, EXPECTED_SCHEMA_VERSION } = await import('./packages/db/index.mjs');
+          const expected = (await readdir('./packages/db/migrations')).filter(p => /^\d+.*\.sql$/.test(p)).map(p => Number(p.match(/^\d+/)[0])).sort((a,b) => a-b);
+          if (!expected.length) throw new Error('No numbered migrations found');
+          const { createDatabase } = await import('./packages/db/index.mjs');
           const db = await createDatabase({ url: env.DATABASE_URL, production: true });
           try {
-            await db.transaction(tx => tx.one('SELECT MAX(version) AS version FROM schema_migrations').then(row => {
-              if (Number(row?.version) !== EXPECTED_SCHEMA_VERSION) throw new Error('Apply the reviewed production migration before deploying');
-            }));
+            await db.transaction(async tx => {
+              const applied = (await tx.all('SELECT version FROM schema_migrations ORDER BY version')).map(row => Number(row.version));
+              if (JSON.stringify(applied) !== JSON.stringify(expected)) throw new Error('Apply the reviewed production migrations before deploying');
+            }, { readOnly: true });
           } finally { await db.close(); }
           console.log('Production configuration and schema validated; no secrets printed.');
           JS
@@ -108,6 +113,6 @@ jobs:
           bun --env-file=.vercel/.env.production.local - <<'JS'
           const origin = new URL(process.env.APP_URL).origin;
           const response = await fetch(`${origin}/api/health`, {signal: AbortSignal.timeout(30000)});
-          if (!response.ok || !(await response.json()).ok) throw new Error('Canonical origin health check failed');
+          if (!response.ok || (await response.json()).status !== 'ok') throw new Error('Canonical origin health check failed');
           console.log('Canonical origin health check passed. Complete owner login and provider acceptance separately.');
           JS
