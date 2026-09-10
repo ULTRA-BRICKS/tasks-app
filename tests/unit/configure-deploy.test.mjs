@@ -1,4 +1,5 @@
 import { test, expect } from 'bun:test';
+import assert from 'node:assert/strict';
 import {
   configure,
   planConfiguration,
@@ -68,7 +69,7 @@ function runner({ variables = [], secrets = [], failName } = {}) {
 }
 test('missing TTY stops before any writes', async () => {
   const r = runner();
-  await expect(configure({ link, apply: true, run: r.run })).rejects.toThrow('terminal');
+  await assert.rejects(() => configure({ link, apply: true, run: r.run }), /terminal/);
   expect(r.writes).toEqual([]);
 });
 test('apply writes missing values and delegates hidden input to gh', async () => {
@@ -85,8 +86,9 @@ test('existing token is not rotated', async () => {
 });
 test('remote write failure stops the sequence', async () => {
   const r = runner({ failName: 'VERCEL_PROJECT_ID' });
-  await expect(configure({ link, apply: true, tty: true, run: r.run })).rejects.toThrow(
-    'permission denied',
+  await assert.rejects(
+    () => configure({ link, apply: true, tty: true, run: r.run }),
+    /permission denied/,
   );
   expect(r.writes).toHaveLength(1);
 });
