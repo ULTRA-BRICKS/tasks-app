@@ -1,8 +1,17 @@
 [
-  {"message":"feat(tickets): add versioned issues, projects and private attachment services","blobs":["aee46f51979b0e73ce7a74a400948588502a9201"]},
-  {"message":"feat(integrations): add signed GitHub and Slack inbox and outbox","blobs":["268e6eb6415b76e764724995844165a313652baf"]},
-  {"message":"feat(api): expose authenticated REST routes and client SDK","blobs":["52d9e610e6dd0fccc2d055acb2cc8697bdf7fc4a"]},
-  {"message":"feat(cli): ship Bun command line and Vercel HTTP adapter","blobs":["461c1d7c7b11e217427618ba81f9eda451a22f90"]},
-  {"message":"feat(web): implement Base UI issue workspace, boards and planning with FSD","blobs":["c01ee03858232d262e45c166d870773184e17445","2de0c2cb04189aac0fa8663cb6df15c9efa1c1da","6668a814e7405000d7aab77f7d5a31391befe949","d3f2c39294b9e1c2d08995d04993a89282734bc7",{"sha":"900ae9665ba4497c2ec9530f9f48e5dcba9eb992","expectedSha":"7fe5abffcca7fdb5cb4433c4a79e247daf2ddd0a","corrections":[[94,223],[95,76],[144,254],[145,125]]},"05407d7f30a6fc5a3d22aa8eebc3b78789769ebc"]},
-  {"message":"test: restore verified Bun suites and reproducible web build configuration","blobs":["5d1431e96a24f06e55ad7a372d388555f401269c","3d8dafbec53bf4f3daa1834b722682321db9f66d","9bf6fe070c18edb5aeaab076231f61655ceb9510"]}
+  {
+    "message": "fix(web): preserve drafts, request headers and accessible interactions under strict Oxc",
+    "patchBlob": "c9a439fbea28317a5c6fb6814e5a2d33f3004fa0",
+    "patchSHA256": "2905d568e39a8094e4d7f069fff775f0e5a0d65aa02a5452af59007f3e989c3b"
+  },
+  {
+    "message": "feat(api): implement schema-checked Linear GraphQL subset on shared domain services",
+    "patchBlob": "1fb2ca0b0904e16e2806740e5351229639fe6f63",
+    "patchSHA256": "3477942e5860acfcbeaff2a5cf6d46693aeb144c68fdb3e5ae66073b7ff6db03",
+    "generated": {
+      "docs/openapi.json": "394df5558a09bd42eb33ec653aab4c9268920e54",
+      "docs/tokens.md": "f4a68a9b1f8ab45d9843b99ba81d0504f5d10432",
+      "packages/linear/schema.graphql": "2ee359cac123eeececec39bffffa88ec1f0b00a0"
+    }
+  }
 ]
