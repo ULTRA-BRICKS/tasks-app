@@ -36,13 +36,15 @@ jobs:
             if (result.exitCode) throw new Error(`git ${args[0]} failed: ${result.stderr.toString()}`);
             return result.stdout.toString().trim();
           }
+          const hash = (b) => createHash('sha1').update(`blob ${b.length}\0`).update(b).digest('hex');
           git('config', 'user.name', 'github-actions[bot]');
           git('config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com');
           const groups = JSON.parse(readFileSync('.github/source-commits.json', 'utf8'));
           for (const group of groups) {
             if (git('log', '--format=%s').split('\n').includes(group.message)) continue;
             const files = {};
-            for (const sha of group.blobs) {
+            for (const item of group.blobs) {
+              const sha = typeof item === 'string' ? item : item.sha;
               if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error('Invalid source object');
               const response = await fetch(`https://api.github.com/repos/alex-mextner/tickets-app/git/blobs/${sha}`, {
                 headers: { Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json' }
@@ -50,8 +52,14 @@ jobs:
               if (!response.ok) throw new Error(`Source fetch failed: ${response.status}`);
               const blob = await response.json();
               const bytes = Buffer.from(blob.content, 'base64');
-              const actual = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
-              if (actual !== sha || bytes.length > 1000000) throw new Error('Source object integrity mismatch');
+              if (hash(bytes) !== sha || bytes.length > 1000000) throw new Error('Source object integrity mismatch');
+              if (typeof item !== 'string') {
+                for (const [offset, value] of item.corrections) {
+                  if (!Number.isInteger(offset) || offset < 0 || offset >= bytes.length || !Number.isInteger(value) || value < 0 || value > 255) throw new Error('Invalid correction');
+                  bytes[offset] = value;
+                }
+                if (hash(bytes) !== item.expectedSha) throw new Error('Corrected source integrity mismatch');
+              }
               const source = JSON.parse(brotliDecompressSync(bytes, { maxOutputLength: 4000000 }));
               if (!source.files) throw new Error('Invalid manifest');
               for (const [path, content] of Object.entries(source.files)) {
