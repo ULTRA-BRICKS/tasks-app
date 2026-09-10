@@ -16,14 +16,35 @@ env:
   CI: true
   DO_NOT_TRACK: 1
 jobs:
+  source:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.sha }}
+          persist-credentials: false
+      - name: Resolve the source once, before parallel jobs
+        id: source
+        run: |
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          printf 'All verification jobs test commit `%s`.\n' "$sha" >> "$GITHUB_STEP_SUMMARY"
   quality:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    needs: source
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.ref }}
+          ref: ${{ needs.source.outputs.sha }}
           persist-credentials: false
       - uses: oven-sh/setup-bun@v2
         with:
@@ -38,7 +59,7 @@ jobs:
       - name: Verify generators did not change tracked files
         run: git diff --exit-code
   postgres:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    needs: source
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -55,7 +76,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.ref }}
+          ref: ${{ needs.source.outputs.sha }}
           persist-credentials: false
       - uses: oven-sh/setup-bun@v2
         with:
@@ -65,13 +86,13 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://tickets:tickets@127.0.0.1:5432/tickets_test
   browser:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    needs: source
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.ref }}
+          ref: ${{ needs.source.outputs.sha }}
           persist-credentials: false
       - uses: oven-sh/setup-bun@v2
         with:
@@ -87,6 +108,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: bun run test:e2e
       - name: Compare reviewed visual baselines
+        id: visual
         if: ${{ !cancelled() && hashFiles('tests/e2e/__screenshots__/**/*.png') != '' }}
         run: bun run test:visual
       - name: Capture initial visual candidates for review
@@ -97,7 +119,7 @@ jobs:
         run: |
           mkdir -p reports
           git rev-parse HEAD > reports/TESTED_SHA
-          printf 'storybook=%s\ne2e=%s\n' '${{ steps.storybook.outcome }}' '${{ steps.e2e.outcome }}' > reports/RESULTS
+          printf 'storybook=%s\ne2e=%s\nvisual=%s\n' '${{ steps.storybook.outcome }}' '${{ steps.e2e.outcome }}' '${{ steps.visual.outcome }}' > reports/RESULTS
       - uses: actions/upload-artifact@v4
         if: always()
         with:
