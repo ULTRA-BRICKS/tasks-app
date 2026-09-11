@@ -9,38 +9,16 @@ permissions:
 jobs:
   snapshot:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.2
-      - name: Inspect remaining recovered source without executing it
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Capture tracked source and history without legacy recovery payloads
         run: |
-          mkdir -p /tmp/tickets-snapshot/candidates
-          bun -e '
-          const {brotliDecompressSync} = await import("node:zlib");
-          const {createHash} = await import("node:crypto");
-          for (const sha of ["5d1431e96a24f06e55ad7a372d388555f401269c","3d8dafbec53bf4f3daa1834b722682321db9f66d","9bf6fe070c18edb5aeaab076231f61655ceb9510"]) {
-            const r = await fetch(`https://api.github.com/repos/alex-mextner/tickets-app/git/blobs/${sha}`, {headers:{Authorization:`Bearer ${process.env.GH_TOKEN}`,Accept:"application/vnd.github+json"}});
-            if (!r.ok) throw new Error(`Fetch ${sha}: ${r.status}`);
-            const b = await r.json();
-            const bytes = Buffer.from(b.content,"base64");
-            if (createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex") !== sha) throw new Error("Bad blob hash");
-            try {
-              const text = brotliDecompressSync(bytes,{maxOutputLength:4000000}).toString();
-              const manifest = JSON.parse(text);
-              console.log(sha, manifest.message, Object.keys(manifest.files));
-              await Bun.write(`/tmp/tickets-snapshot/candidates/${sha}.json`, text);
-            } catch(error) { console.error(sha, String(error)); }
-          }'
-      - name: Capture tracked source and Git history only
-        run: |
+          mkdir -p /tmp/tickets-snapshot
           git archive HEAD | tar -x -C /tmp/tickets-snapshot
           git bundle create /tmp/tickets-snapshot/history.bundle --all
           git rev-parse HEAD > /tmp/tickets-snapshot/SNAPSHOT_SHA
@@ -49,4 +27,4 @@ jobs:
         with:
           name: tickets-source-snapshot
           path: /tmp/tickets-snapshot.tar.gz
-          retention-days: 1
+          retention-days: 2
