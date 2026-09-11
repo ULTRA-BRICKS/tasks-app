@@ -1,0 +1,30 @@
+name: Parity evidence
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/linear-parity-20260911]
+    paths: [.github/workflows/parity-evidence.yml]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Export tracked source and history, never the working environment
+        run: |
+          mkdir -p /tmp/parity-source
+          git archive HEAD | tar -x -C /tmp/parity-source
+          git bundle create /tmp/parity-source/history.bundle --all
+          git rev-parse HEAD > /tmp/parity-source/SNAPSHOT_SHA
+          tar -C /tmp/parity-source -czf /tmp/parity-source.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: parity-source
+          path: /tmp/parity-source.tar.gz
+          retention-days: 2
