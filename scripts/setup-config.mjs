@@ -33,14 +33,31 @@ function dotenvValue(value) {
   throw new Error('Setup cannot safely quote a value containing both quote characters');
 }
 function setKey(text, key, value) {
-  const pattern = new RegExp(`^[ \\t]*(?:export[ \\t]+)?${key}[ \\t]*=.*$`, 'gm');
-  if ((text.match(pattern) ?? []).length > 1)
-    throw new Error(`Duplicate ${key}; resolve before setup`);
+  // Walk complete assignments: apparent assignments inside multiline quoted
+  // values are data, not keys. Keep all unrelated bytes unchanged.
+  const start = /^[ \t]*(?:export[ \t]+)?([A-Za-z_][A-Za-z_0-9]*)[ \t]*=[ \t]*/gm;
+  const spans = [];
+  let match;
+  while ((match = start.exec(text))) {
+    let end = text.indexOf('\n', start.lastIndex);
+    if (end < 0) end = text.length;
+    const quote = text[start.lastIndex];
+    if (quote === "'" || quote === '"') {
+      const closing = text.indexOf(quote, start.lastIndex + 1);
+      if (closing < 0) throw new Error('Unclosed quote in environment file; no changes written');
+      end = text.indexOf('\n', closing + 1);
+      if (end < 0) end = text.length;
+    }
+    if (match[1] === key) spans.push([match.index, end]);
+    start.lastIndex = end;
+  }
+  if (spans.length > 1) throw new Error(`Duplicate ${key}; resolve before setup`);
   const line = `${key}=${dotenvValue(value)}`;
-  return pattern.test(text)
-    ? text.replace(pattern, () => line)
+  return spans.length
+    ? text.slice(0, spans[0][0]) + line + text.slice(spans[0][1])
     : text.trimEnd() + '\n' + line + '\n';
 }
+
 export function buildLocalEnvironment(text, options = {}, shell = {}) {
   const previous = parseEnv(text),
     env = { ...previous, ...shell };

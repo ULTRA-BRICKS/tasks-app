@@ -99,3 +99,11 @@ test('setup preserves literal path backslashes and quote characters over repeat 
     expect(second.text).toBe(first.text);
   }
 });
+
+test('setup does not rewrite key-shaped text inside a multiline custom value', () => {
+  const source = 'CUSTOM="first\nAPI_PORT=9000\nlast"\n';
+  const first = buildLocalEnvironment(source, { port: '9002' });
+  expect(first.env.CUSTOM).toBe('first\nAPI_PORT=9000\nlast');
+  expect(first.env.API_PORT).toBe('9002');
+  expect(buildLocalEnvironment(first.text).text).toBe(first.text);
+});

@@ -1,4 +1,5 @@
-import { readFile, open, unlink } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
+import { acquireSetupLock } from './setup-lock.mjs';
 import { setupOptions, buildLocalEnvironment, writeLocalEnvironment } from './setup-config.mjs';
 async function main() {
   const options = setupOptions(process.argv.slice(2));
@@ -8,10 +9,7 @@ async function main() {
   }
   const file = '.env.local',
     lockFile = file + '.setup-lock';
-  const lock = await open(lockFile, 'wx', 0o600).catch((e) => {
-    if (e.code === 'EEXIST') throw new Error('Another setup is running; no data was changed');
-    throw e;
-  });
+  const release = await acquireSetupLock(lockFile);
   try {
     let text;
     try {
@@ -32,14 +30,14 @@ async function main() {
         env: result.env,
         stdio: ['inherit', 'inherit', 'inherit'],
       });
-      if (p.exitCode) throw new Error(`Setup stopped (${p.exitCode}); database was not removed`);
+      if (p.exitCode !== 0)
+        throw new Error(`Setup stopped (${p.exitCode}); database was not removed`);
     }
     console.log(
       `✓ UI: ${result.config.appUrl}\n✓ API: ${result.config.apiTarget}\nNext: bun run dev`,
     );
   } finally {
-    await lock.close();
-    await unlink(lockFile);
+    await release();
   }
 }
 main().catch((e) => {

@@ -48,7 +48,16 @@ const server = createServer(
   ),
 );
 await new Promise((resolve) => server.listen(dev.apiPort, dev.apiHost, resolve));
-const vite = spawn(process.execPath, ['run', 'dev:web'], { stdio: 'inherit' });
+const vite = spawn(process.execPath, ['run', 'dev:web'], {
+  stdio: 'inherit',
+  env: {
+    ...process.env,
+    NODE_ENV: 'test',
+    API_PORT: String(dev.apiPort),
+    WEB_PORT: String(dev.webPort),
+    APP_URL: dev.appUrl,
+  },
+});
 async function stop() {
   vite.kill('SIGTERM');
   server.close();
