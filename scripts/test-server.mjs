@@ -1,3 +1,5 @@
+import { resolveDevelopment } from '../packages/config/development.mjs';
+const dev = resolveDevelopment(process.env);
 import { withLinear } from '../packages/linear/handler.mjs';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -30,14 +32,14 @@ const server = createServer(
         db,
         env: {
           NODE_ENV: 'test',
-          APP_URL: 'http://localhost:5173',
+          APP_URL: dev.appUrl,
           AUTH_SECRET: 'synthetic-e2e-secret-not-used-in-production',
         },
       }),
       {
         db,
         env: {
-          APP_URL: 'http://localhost:5173',
+          APP_URL: dev.appUrl,
           AUTH_SECRET: 'synthetic-e2e-secret-not-used-in-production',
           NODE_ENV: 'test',
         },
@@ -45,7 +47,7 @@ const server = createServer(
     ),
   ),
 );
-await new Promise((resolve) => server.listen(8787, '127.0.0.1', resolve));
+await new Promise((resolve) => server.listen(dev.apiPort, dev.apiHost, resolve));
 const vite = spawn(process.execPath, ['run', 'dev:web'], { stdio: 'inherit' });
 async function stop() {
   vite.kill('SIGTERM');

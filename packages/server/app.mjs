@@ -1,3 +1,4 @@
+import { applicationOrigin, isAllowedOrigin } from '../config/development.mjs';
 import { AppError, assert, missing, conflict, requirePermission } from './core/errors.mjs';
 import { id, now, secret, sha256, constantEqual } from './core/crypto.mjs';
 import { schemas, filters as filterSchema } from '../contracts/schemas.mjs';
@@ -71,7 +72,7 @@ export function createApp({ db, env = process.env, storage, logger = console } =
     'Production AUTH_SECRET must contain at least 32 characters',
   );
   const signingKey = env.AUTH_SECRET || secret();
-  const origin = new URL(env.APP_URL || 'http://localhost:5173').origin;
+  const origin = applicationOrigin(env);
   const store = () => (storage ??= files.createStorage(env));
   async function handle(request) {
     const requestId = id(),
@@ -90,7 +91,7 @@ export function createApp({ db, env = process.env, storage, logger = console } =
         !bearer
       ) {
         assert(
-          !browserOrigin || browserOrigin === origin,
+          !browserOrigin || isAllowedOrigin(browserOrigin, env),
           403,
           'ORIGIN_NOT_ALLOWED',
           'Origin is not allowed',
@@ -129,7 +130,12 @@ export function createApp({ db, env = process.env, storage, logger = console } =
               })
             : json({ error: { code: 'ORIGIN_NOT_ALLOWED' } }, 403);
       else if (path === '/api/health' && method === 'GET')
-        response = json({ status: 'ok', service: 'tickets-app', version: '0.1.0' });
+        response = json({
+          status: 'ok',
+          service: 'tickets-app',
+          version: '0.2.0',
+          ...(env.DEV_INSTANCE_ID && !production ? { instance: env.DEV_INSTANCE_ID } : {}),
+        });
       else if (path === '/api/openapi.json' && method === 'GET')
         response = new Response(
           await readFile(new URL('../../docs/openapi.json', import.meta.url)),

@@ -3,7 +3,13 @@ import { bootstrap } from '../packages/server/modules/identity/service.mjs';
 import { seedDemo } from '../packages/server/demo.mjs';
 const command = process.argv[2];
 const isDemo = command === 'demo';
-if (isDemo && (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL))
+if (
+  isDemo &&
+  (process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL ||
+    process.env.DATABASE_URL ||
+    process.env.DATABASE_URL_UNPOOLED)
+)
   throw new Error('Demo seed is local-only. Production is never seeded with demo accounts.');
 const db = await createDatabase({
   url:
@@ -27,7 +33,15 @@ try {
     );
   else if (isDemo) {
     await migrate(db);
-    console.log(await seedDemo(db));
+    const exists = await db.transaction((tx) => tx.one('SELECT id FROM users LIMIT 1'));
+    if (exists)
+      console.log(
+        '✓ Database already initialized; data and passwords preserved. Use your existing account.',
+      );
+    else {
+      await seedDemo(db);
+      console.log('✓ Demo ready: demo@example.test / local-demo-password');
+    }
   } else throw new Error('Usage: bun scripts/db.mjs migrate|bootstrap|demo');
 } finally {
   await db.close();

@@ -1,23 +1,57 @@
-import { spawn } from 'node:child_process';
-const children = [
-  spawn(process.execPath, ['packages/server/dev.mjs'], { stdio: 'inherit' }),
-  spawn(process.execPath, ['run', 'dev:web'], {
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  }),
-];
+import { resolveDevelopment } from '../packages/config/development.mjs';
+const config = resolveDevelopment(process.env);
+const instance = crypto.randomUUID();
+const env = {
+  ...process.env,
+  API_PORT: String(config.apiPort),
+  WEB_PORT: String(config.webPort),
+  APP_URL: config.appUrl,
+  DEV_INSTANCE_ID: instance,
+};
+const children = [];
 let stopped = false;
 function stop(code = 0) {
   if (stopped) return;
   stopped = true;
-  for (const c of children) c.kill('SIGTERM');
+  for (const child of children) child.kill('SIGTERM');
   process.exitCode = code;
 }
-for (const c of children) {
-  c.on('error', (e) => {
-    console.error(e.message);
-    stop(1);
+function start(args) {
+  const child = Bun.spawn([process.execPath, ...args], {
+    env,
+    stdout: 'inherit',
+    stderr: 'inherit',
+    stdin: 'inherit',
   });
-  c.on('exit', (code) => stop(code ?? 0));
+  children.push(child);
+  void child.exited.then((code) => stop(code));
+  return child;
 }
-for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => stop());
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => stop());
+try {
+  start(['packages/server/dev.mjs']);
+  let ready = false;
+  const deadline = Date.now() + 15000;
+  while (!stopped && Date.now() < deadline) {
+    try {
+      const r = await fetch(config.apiTarget + '/api/health', { signal: AbortSignal.timeout(800) });
+      const health = r.ok ? await r.json() : null;
+      if (health?.service === 'tickets-app' && health.instance === instance) {
+        ready = true;
+        break;
+      }
+    } catch {
+      /* Retry only in this bounded startup window. */
+    }
+    await Bun.sleep(100);
+  }
+  if (!stopped && !ready)
+    throw new Error(`API failed to start at ${config.apiTarget}. See its error above.`);
+  if (!stopped) {
+    console.log(`Tickets UI: ${config.appUrl}\nAPI: ${config.apiTarget}`);
+    start(['run', 'dev:web']);
+  }
+} catch (error) {
+  console.error(error.message);
+  stop(1);
+}
