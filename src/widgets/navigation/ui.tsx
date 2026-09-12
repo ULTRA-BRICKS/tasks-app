@@ -57,7 +57,7 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
       aria-label="Workspace navigation"
     >
       <div className="workspace-switch">
-        <span className="workspace-logo">a</span>
+        <span className="workspace-logo">{catalog?.workspace.name.slice(0, 1) ?? 'T'}</span>
         <strong>{catalog?.workspace.name ?? 'Workspace'}</strong>
         <Button
           size="icon"
@@ -134,7 +134,10 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
             type="button"
             key={t.id}
             className="nav-item"
-            onClick={() => navigate('/issues?team_id=' + t.id)}
+            onClick={() => {
+              close();
+              void navigate('/issues?team_id=' + t.id);
+            }}
           >
             <span className="team-icon">{t.key.slice(0, 1)}</span>
             <span>{t.name}</span>
@@ -148,14 +151,15 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
                 type="button"
                 className="nav-item"
                 key={v.id}
-                onClick={() =>
-                  navigate(
+                onClick={() => {
+                  close();
+                  void navigate(
                     '/issues?' +
                       new URLSearchParams(
                         Object.entries(v.filters).map(([k, value]) => [k, String(value)]),
                       ),
-                  )
-                }
+                  );
+                }}
               >
                 <SlidersHorizontal size={15} />
                 <span>{v.name}</span>

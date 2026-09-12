@@ -21,7 +21,16 @@ import { CreateIssue } from '@/features/issue-create';
 import { usePreferences } from '@/features/preferences';
 import { IssueDetails } from '@/widgets/issue-details';
 import { IssueBoard } from '@/widgets/issue-board';
-import { Button, Input, Picker, EmptyState, ErrorState, SkeletonRows, Modal } from '@/shared/ui';
+import {
+  Button,
+  Input,
+  Picker,
+  EmptyState,
+  ErrorState,
+  SkeletonRows,
+  Modal,
+  ActionMenu,
+} from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 export function IssuesPage() {
   const { issueId } = useParams(),
@@ -159,20 +168,47 @@ export function IssuesPage() {
             {query.hasNextPage ? '+' : ''}
           </span>
         </div>
-        <div className="toolbar-actions">
+        <div className="toolbar-actions page-actions-pill">
           <Button
             variant="ghost"
             size="icon"
+            className="desktop-refresh"
             aria-label="Refresh issues"
             onClick={() => void query.refetch()}
             disabled={query.isFetching}
           >
             <RefreshCw size={14} className={query.isFetching ? 'spin' : ''} />
           </Button>
-          <Button variant="default" size="sm" onClick={() => create()} disabled={readOnly}>
-            <Plus size={15} />
-            New issue
+          <Button
+            variant="default"
+            size="sm"
+            className="page-create-action"
+            aria-label="New issue"
+            onClick={() => create()}
+            disabled={readOnly}
+          >
+            <Plus size={18} />
+            <span className="page-create-label">New issue</span>
           </Button>
+          <ActionMenu
+            label="Issue actions"
+            items={[
+              {
+                label: 'Refresh issues',
+                onSelect: () => void query.refetch(),
+                disabled: query.isFetching,
+              },
+              {
+                label: filterOpen ? 'Hide filters' : 'Show filters',
+                onSelect: () => setFilterOpen((o) => !o),
+              },
+              {
+                label: 'Select loaded issues',
+                onSelect: () => setSelected(new Set(issues.map((i) => i.id))),
+                disabled: readOnly || !issues.length,
+              },
+            ]}
+          />
         </div>
       </header>
       <div className="view-toolbar">

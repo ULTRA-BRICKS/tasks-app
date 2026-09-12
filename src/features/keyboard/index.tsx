@@ -18,7 +18,7 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
         if (
           e.defaultPrevented ||
           e.isComposing ||
-          document.querySelector('[role="dialog"],[role="menu"],[role="listbox"]')
+          document.querySelector('dialog[open],[role="dialog"],[role="menu"],[role="listbox"]')
         )
           return;
         e.preventDefault();

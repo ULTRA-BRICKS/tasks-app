@@ -11,7 +11,9 @@ export function shortcutGuard(event: KeyboardEvent): boolean {
     event.defaultPrevented ||
     event.isComposing ||
     isTextEntry(event.target) ||
-    Boolean(document.querySelector('[role="dialog"],[role="menu"],[role="listbox"]')) ||
+    Boolean(
+      document.querySelector('dialog[open],[role="dialog"],[role="menu"],[role="listbox"]'),
+    ) ||
     Boolean(window.getSelection()?.toString())
   );
 }

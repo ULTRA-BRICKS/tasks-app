@@ -745,7 +745,7 @@
     }
   },
   "document": {
-    "$description": "Document geometry measured against the public Linear desktop issue at 1440×1000; visual regions remain in native coordinates.",
+    "$description": "Document geometry measured against the public Linear desktop issue at 1440\u00d71000; visual regions remain in native coordinates.",
     "mainTop": {
       "$type": "dimension",
       "$value": {
@@ -835,6 +835,65 @@
       "$value": {
         "value": 3,
         "unit": "px"
+      }
+    }
+  },
+  "mobile": {
+    "$description": "Shared touch geometry for mobile document, dock and capsule action surfaces.",
+    "tap": {
+      "$type": "dimension",
+      "$value": {
+        "value": 44,
+        "unit": "px"
+      }
+    },
+    "pageTitle": {
+      "$type": "dimension",
+      "$value": {
+        "value": 32,
+        "unit": "px"
+      }
+    },
+    "row": {
+      "$type": "dimension",
+      "$value": {
+        "value": 60,
+        "unit": "px"
+      }
+    },
+    "pillRadius": {
+      "$type": "dimension",
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      }
+    },
+    "sheetRadius": {
+      "$type": "dimension",
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      }
+    },
+    "body": {
+      "$type": "dimension",
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "surfaceEnter": {
+      "$type": "duration",
+      "$value": {
+        "value": 180,
+        "unit": "ms"
+      }
+    },
+    "surfaceExit": {
+      "$type": "duration",
+      "$value": {
+        "value": 120,
+        "unit": "ms"
       }
     }
   }

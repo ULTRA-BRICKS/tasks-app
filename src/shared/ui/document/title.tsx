@@ -22,10 +22,21 @@ export function InlineTitle({
     original = useRef(value),
     canceled = useRef(false);
   useLayoutEffect(() => {
-    if (input.current) {
-      input.current.style.height = 'auto';
-      input.current.style.height = `${input.current.scrollHeight}px`;
-    }
+    const element = input.current;
+    if (!element) return;
+    let previousWidth = -1;
+    const resize = () => {
+      element.style.height = 'auto';
+      element.style.height = `${element.scrollHeight}px`;
+    };
+    resize();
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width === previousWidth) return;
+      previousWidth = entry.contentRect.width;
+      resize();
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
   }, [value]);
   return (
     <textarea

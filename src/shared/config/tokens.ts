@@ -1382,6 +1382,70 @@ export const tokens = {
       "unit": "px"
     },
     "css": "3px"
+  },
+  "mobile.tap": {
+    "type": "dimension",
+    "value": {
+      "value": 44,
+      "unit": "px"
+    },
+    "css": "44px"
+  },
+  "mobile.pageTitle": {
+    "type": "dimension",
+    "value": {
+      "value": 32,
+      "unit": "px"
+    },
+    "css": "32px"
+  },
+  "mobile.row": {
+    "type": "dimension",
+    "value": {
+      "value": 60,
+      "unit": "px"
+    },
+    "css": "60px"
+  },
+  "mobile.pillRadius": {
+    "type": "dimension",
+    "value": {
+      "value": 24,
+      "unit": "px"
+    },
+    "css": "24px"
+  },
+  "mobile.sheetRadius": {
+    "type": "dimension",
+    "value": {
+      "value": 24,
+      "unit": "px"
+    },
+    "css": "24px"
+  },
+  "mobile.body": {
+    "type": "dimension",
+    "value": {
+      "value": 16,
+      "unit": "px"
+    },
+    "css": "16px"
+  },
+  "mobile.surfaceEnter": {
+    "type": "duration",
+    "value": {
+      "value": 180,
+      "unit": "ms"
+    },
+    "css": "180ms"
+  },
+  "mobile.surfaceExit": {
+    "type": "duration",
+    "value": {
+      "value": 120,
+      "unit": "ms"
+    },
+    "css": "120ms"
   }
 } as const;
 export type TokenName = keyof typeof tokens;
