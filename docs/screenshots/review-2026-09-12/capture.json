@@ -1,0 +1,17 @@
+{
+  "capturedAt": "2026-09-12T21:57:37.937Z",
+  "source": "Actual React application; isolated SQLite synthetic demo fixture",
+  "viewports": [
+    {
+      "width": 393,
+      "height": 852
+    },
+    {
+      "width": 1440,
+      "height": 1000
+    }
+  ],
+  "browser": "Chromium",
+  "deviceScaleFactor": 1,
+  "errors": []
+}

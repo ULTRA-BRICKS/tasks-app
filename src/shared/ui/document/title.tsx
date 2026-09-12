@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 export function InlineTitle({
   value,
   onChange,
@@ -21,23 +21,27 @@ export function InlineTitle({
   const input = useRef<HTMLTextAreaElement>(null),
     original = useRef(value),
     canceled = useRef(false);
+  const resize = useCallback(() => {
+    const element = input.current;
+    if (!element) return;
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
+  }, []);
+  useLayoutEffect(() => {
+    resize();
+  }, [resize, value]);
   useLayoutEffect(() => {
     const element = input.current;
     if (!element) return;
     let previousWidth = -1;
-    const resize = () => {
-      element.style.height = 'auto';
-      element.style.height = `${element.scrollHeight}px`;
-    };
-    resize();
     const observer = new ResizeObserver(([entry]) => {
-      if (entry.contentRect.width === previousWidth) return;
+      if (!entry || entry.contentRect.width === previousWidth) return;
       previousWidth = entry.contentRect.width;
       resize();
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, [value]);
+  }, [resize]);
   return (
     <textarea
       ref={input}

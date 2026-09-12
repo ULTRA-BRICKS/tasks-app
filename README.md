@@ -6,6 +6,10 @@ Modular, keyboard-first issue tracking for a small team. React + Base UI, Bun, O
 
 **Release status (12 September 2026):** deployed to the existing Vercel project, with production PostgreSQL schema/owner readiness confirmed and anonymous workspace access denied. Local browser and PostgreSQL acceptance pass. Authenticated production browser and live private-Blob acceptance are still explicitly pending; see the [current release report](docs/RELEASE-2026-09-12.md). Public application access never makes workspace data public.
 
+## Latest review — 13 September 2026
+
+[Current verification and remaining acceptance](docs/RELEASE-2026-09-13.md). The mobile capsule actions, preview/keyboard fixes and responsive title editor were verified in an isolated working copy. No global 90% Linear similarity or newly provisioned production account is claimed.
+
 ## The interface
 
 New issues, projects and cycles open directly as document pages. Title, Markdown body and compact properties edit in place. Existing documents save committed edits without a global Save form. New drafts publish only on Create; uncertain creation responses reuse the identical idempotency key and payload.

@@ -1,0 +1,83 @@
+{
+  "capturedAt": "2026-09-12T21:57:03.844Z",
+  "referenceUrl": "https://linear.app/demo/issue/ENG-128/fix-css-in-payment-history",
+  "referenceCapturedAt": "2026-09-12T09:21:40.684Z",
+  "viewport": [
+    1440,
+    1000
+  ],
+  "deviceScaleFactor": 1,
+  "referenceSha256": "4422a422027458f743420c048dd2cd9deb08c07f7867298bcdbdfd1ebd2f58e4",
+  "actualSha256": "4f40733e64152b6e5de3814b37516192e76c273e685acb172635b18b1586b5b6",
+  "geometry": [
+    {
+      "selector": "title",
+      "x": 293,
+      "y": 106.5,
+      "width": 680.90625,
+      "height": 44,
+      "contentX": 307,
+      "contentY": 112.5,
+      "fontSize": "24px",
+      "lineHeight": "32px",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif"
+    },
+    {
+      "selector": "description",
+      "x": 293,
+      "y": 158.5,
+      "width": 680.90625,
+      "height": 74,
+      "contentX": 307,
+      "contentY": 168.5,
+      "fontSize": "15px",
+      "lineHeight": "24px",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif"
+    },
+    {
+      "selector": "properties",
+      "x": 1015.90625,
+      "y": 55,
+      "width": 415.09375,
+      "height": 936,
+      "contentX": 1018.90625,
+      "contentY": 127,
+      "fontSize": "11px",
+      "lineHeight": "16.5px",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif"
+    }
+  ],
+  "measuredOffsetsPx": {
+    "titleX": 0.171875,
+    "titleY": 0,
+    "descriptionX": 0.171875,
+    "descriptionY": 0
+  },
+  "rawPixelError": {
+    "full": {
+      "region": [
+        0,
+        0,
+        1440,
+        1000
+      ],
+      "meanAbsoluteRgbError": 6.012988657407408
+    },
+    "titleAndDescription": {
+      "region": [
+        244,
+        80,
+        746,
+        160
+      ],
+      "meanAbsoluteRgbError": 10.301424262734585
+    }
+  },
+  "conclusion": "One matched desktop document only. Geometry and raw pixel error are NOT an overall UI-similarity percentage. 90%+ parity across the original 50-screen PDF is not established: PDF absent, navigation and activity differ, mobile states not paired.",
+  "excludedFromSimilarityClaim": [
+    "Unmatched sidebar/navigation modules",
+    "Different activity records and people",
+    "Native mobile reference states unavailable",
+    "Fonts and rendering differ"
+  ]
+}
