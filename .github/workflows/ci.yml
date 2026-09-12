@@ -47,7 +47,7 @@ jobs:
       - run: bun run typecheck:tsc
       - run: bun run check:secrets
       - name: Check owned source formatting
-        run: bun x --no-install oxfmt --check src packages scripts tests tokens .storybook
+        run: bun x --no-install oxfmt --check src packages scripts tests tokens .storybook playwright.config.ts
       - name: Verify generators did not change tracked files
         run: git diff --exit-code
   postgres:
@@ -80,6 +80,7 @@ jobs:
   browser:
     needs: source
     runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -101,10 +102,10 @@ jobs:
         run: bun run test:e2e
       - name: Compare reviewed visual baselines
         id: visual
-        if: ${{ !cancelled() && hashFiles('tests/e2e/__screenshots__/**/*.png') != '' }}
+        if: ${{ !cancelled() && hashFiles('tests/e2e/__screenshots__/linux/**/*.png') != '' }}
         run: bun run test:visual
       - name: Capture initial visual candidates for review
-        if: ${{ !cancelled() && hashFiles('tests/e2e/__screenshots__/**/*.png') == '' }}
+        if: ${{ !cancelled() && hashFiles('tests/e2e/__screenshots__/linux/**/*.png') == '' }}
         run: bun run screenshots
       - name: Record exact tested source
         if: always()

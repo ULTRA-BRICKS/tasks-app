@@ -22,6 +22,13 @@ export function postgresParameters(sql) {
   return output;
 }
 
+// Leave two thirds of the 30-second serverless budget for useful database work.
+export const POSTGRES_POOL_OPTIONS = Object.freeze({
+  max: 4,
+  idleTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000,
+});
+
 export async function createDatabase({
   url,
   sqlitePath = DEFAULT_SQLITE_PATH,
@@ -31,11 +38,7 @@ export async function createDatabase({
     const { Pool } = await import('pg');
     const pool = new Pool({
       connectionString: url,
-      max: 4,
-      idleTimeoutMillis: 5000,
-      // pg applies this bound to both establishing and waiting for a pooled
-      // connection. Small pools can legitimately queue a short burst of writes.
-      connectionTimeoutMillis: 30000,
+      ...POSTGRES_POOL_OPTIONS,
     });
     if (process.env.VERCEL) {
       const { attachDatabasePool } = await import('@vercel/functions');

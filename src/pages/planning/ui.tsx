@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, FolderKanban, CalendarRange, PanelLeft, ArrowUpRight, Flag } from 'lucide-react';
@@ -23,6 +24,16 @@ export function PlanningPage({ kind }: { kind: 'projects' | 'cycles' }) {
   const projects = useProjects(kind === 'projects' && enabled),
     cycles = useCycles(kind === 'cycles' && enabled),
     query = kind === 'projects' ? projects : cycles;
+  const groupedProjects = useMemo(() => {
+    const groups = new Map<Project['status'], Project[]>();
+    if (kind !== 'projects') return groups;
+    for (const project of projects.data ?? []) {
+      const group = groups.get(project.status);
+      if (group) group.push(project);
+      else groups.set(project.status, [project]);
+    }
+    return groups;
+  }, [kind, projects.data]);
   const navigate = useNavigate(),
     prefs = usePreferences();
   const title = kind === 'projects' ? 'Projects' : 'Cycles',
@@ -75,7 +86,7 @@ export function PlanningPage({ kind }: { kind: 'projects' | 'cycles' }) {
                   ['canceled', 'Canceled'],
                 ] as const
               ).map(([status, name]) => {
-                const rows = projects.data.filter((p) => p.status === status);
+                const rows = groupedProjects.get(status) ?? [];
                 return rows.length ? (
                   <section key={status} aria-label={name} className="project-group">
                     <h2 className="project-group-heading">

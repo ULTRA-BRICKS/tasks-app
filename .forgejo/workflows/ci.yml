@@ -7,6 +7,7 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
     timeout-minutes: 25
     env:
       CI: true
@@ -32,10 +33,12 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run tokens:check && bun run api:check && bun run graphql:check
       - run: bun run check && bun run typecheck:tsc && bun run check:secrets
+      - run: bun x --no-install oxfmt --check src packages scripts tests tokens .storybook playwright.config.ts
       - run: bun run test:postgres
         env:
           TEST_DATABASE_URL: postgresql://tickets:tickets@postgres:5432/tickets_test
       - run: bun x --no-install playwright install --with-deps chromium webkit
       - run: bun run storybook:build && bun run test:ui
       - run: bun run test:e2e
+      - run: bun run test:visual
       - run: git diff --exit-code

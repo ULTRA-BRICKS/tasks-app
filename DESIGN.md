@@ -34,7 +34,7 @@ Prefer flat surfaces separated by quiet borders. Cards on the board have one sha
 
 ## Shapes
 
-Use the generated 4/6/8/12 px radius scale; pill shapes are reserved for labels/avatars. Icons normally use the 16 px token. Keep icon-only actions named for assistive technology, not merely titled on hover.
+Use the generated 4/6/8/12 px radius scale; pill shapes are reserved for labels/avatars and the explicitly reference-led mobile dock/action controls. Icons normally use the 16 px token. Keep icon-only actions named for assistive technology, not merely titled on hover.
 
 ## Components
 

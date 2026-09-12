@@ -24,7 +24,7 @@ export default defineConfig({
     timeout: 60000,
   },
   expect: { toHaveScreenshot: { animations: 'disabled', maxDiffPixelRatio: 0.003 } },
-  snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}-{projectName}{ext}',
+  snapshotPathTemplate: `{testDir}/__screenshots__/${process.platform}/{testFilePath}/{arg}-{projectName}{ext}`,
   projects: [
     { name: 'chromium', testIgnore: /visual\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
     {

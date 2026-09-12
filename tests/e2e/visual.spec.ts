@@ -22,6 +22,7 @@ test('issue detail — long description and property rail', async ({ page }) => 
   await login(page);
   await page.getByRole('button', { name: /Preserve drafts when switching/ }).click();
   await expect(page.getByLabel('Title', { exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Description', exact: true })).toBeVisible();
   await expect(page).toHaveScreenshot('issue-detail.png');
 });
 test('issue list — narrow viewport', async ({ page }) => {
