@@ -11,16 +11,16 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
   useEffect(() => {
     let chordUntil = 0;
     const listener = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.isComposing) return;
-      if (document.querySelector('[role="dialog"],[role="menu"],[role="listbox"]')) return;
       const key = e.key.toLowerCase();
-      if (
-        !e.isComposing &&
-        !e.defaultPrevented &&
-        (e.metaKey || e.ctrlKey) &&
-        key === 'k' &&
-        !document.querySelector('[role=dialog],[role=menu],[role=listbox]')
-      ) {
+      // Deliberate exception: command search works inside editors; ordinary keys do not.
+      // Covered by the editor-command-menu browser regression.
+      if ((e.metaKey || e.ctrlKey) && key === 'k') {
+        if (
+          e.defaultPrevented ||
+          e.isComposing ||
+          document.querySelector('[role="dialog"],[role="menu"],[role="listbox"]')
+        )
+          return;
         e.preventDefault();
         e.stopPropagation();
         onSearch();

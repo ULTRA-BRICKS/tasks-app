@@ -15,11 +15,17 @@ export async function listProjects(tx, actor) {
   const teams = await tx.all('SELECT project_id,team_id FROM project_teams WHERE workspace_id=?', [
     actor.workspace_id,
   ]);
+  const totalsByProject = new Map(totals.map((t) => [t.project_id, t]));
+  const teamsByProject = new Map();
+  for (const t of teams) {
+    if (!teamsByProject.has(t.project_id)) teamsByProject.set(t.project_id, []);
+    teamsByProject.get(t.project_id).push(t.team_id);
+  }
   return projects.map((p) => ({
     ...p,
-    total: Number(totals.find((t) => t.project_id === p.id)?.total ?? 0),
-    completed: Number(totals.find((t) => t.project_id === p.id)?.completed ?? 0),
-    team_ids: teams.filter((t) => t.project_id === p.id).map((t) => t.team_id),
+    total: Number(totalsByProject.get(p.id)?.total ?? 0),
+    completed: Number(totalsByProject.get(p.id)?.completed ?? 0),
+    team_ids: teamsByProject.get(p.id) ?? [],
   }));
 }
 async function checkProject(tx, actor, input) {

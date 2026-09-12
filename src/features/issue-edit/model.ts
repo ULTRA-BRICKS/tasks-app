@@ -1,3 +1,4 @@
+import { rollbackOptimistic } from '@/shared/lib/optimistic';
 import { mergeVersioned } from '@/shared/lib/versioned';
 import {
   useMutation,
@@ -26,7 +27,9 @@ export function useIssueUpdate() {
               ...old,
               pages: old.pages.map((p) => ({
                 ...p,
-                data: p.data.map((i) => (i.id === issue.id ? { ...i, ...patch } : i)),
+                data: p.data.map((i) =>
+                  i.id === issue.id && i.version === issue.version ? { ...i, ...patch } : i,
+                ),
               })),
             }
           : old,
@@ -35,28 +38,8 @@ export function useIssueUpdate() {
     },
     onError: (_error, { issue, patch }, context) => {
       context?.lists.forEach(([key, previous]) => {
-        const original = previous?.pages.flatMap((p) => p.data).find((row) => row.id === issue.id);
-        const serializedPatch = Object.entries(patch).map(([key, value]) => [
-          key,
-          JSON.stringify(value),
-        ]);
         client.setQueryData<InfiniteData<Page<Issue>>>(key, (current) =>
-          current
-            ? {
-                ...current,
-                pages: current.pages.map((p) => ({
-                  ...p,
-                  data: p.data.map((row) => {
-                    if (row.id !== issue.id || row.version !== issue.version) return row;
-                    const stillOurPatch = serializedPatch.every(
-                      ([key, value]) =>
-                        JSON.stringify((row as unknown as Record<string, unknown>)[key]) === value,
-                    );
-                    return stillOurPatch ? (original ?? row) : row;
-                  }),
-                })),
-              }
-            : current,
+          current ? rollbackOptimistic(current, previous, issue.id, issue.version, patch) : current,
         );
       });
     },
