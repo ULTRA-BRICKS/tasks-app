@@ -133,3 +133,11 @@ Source: `tokens/tickets.tokens.json`. Run `bun run tokens:build`.
 | `document.bodyMinimum` | dimension | `74px` |
 | `document.bodySpace` | dimension | `110px` |
 | `document.propertiesInset` | dimension | `3px` |
+| `mobile.tap` | dimension | `44px` |
+| `mobile.pageTitle` | dimension | `32px` |
+| `mobile.row` | dimension | `60px` |
+| `mobile.pillRadius` | dimension | `24px` |
+| `mobile.sheetRadius` | dimension | `24px` |
+| `mobile.body` | dimension | `16px` |
+| `mobile.surfaceEnter` | duration | `180ms` |
+| `mobile.surfaceExit` | duration | `120ms` |

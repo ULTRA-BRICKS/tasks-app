@@ -32,10 +32,12 @@ export function PressPreview({
 }) {
   const anchor = useRef<HTMLDivElement>(null),
     trigger = useRef<HTMLButtonElement>(null),
-    popup = useRef<HTMLDialogElement>(null);
+    popup = useRef<HTMLDialogElement>(null),
+    sourcePosition = useRef<{ left: number; top: number } | null>(null);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   const [highlighted, setHighlighted] = useState(-1),
-    [error, setError] = useState('');
+    [error, setError] = useState(''),
+    [pending, setPending] = useState(false);
   const opened = useRef(false),
     held = useRef(false),
     busy = useRef(false),
@@ -61,6 +63,8 @@ export function PressPreview({
   const show = (focus: boolean) => {
     if (selectedText() || !anchor.current) return;
     const rect = trigger.current?.getBoundingClientRect() ?? anchor.current.getBoundingClientRect();
+    document.dispatchEvent(new CustomEvent('tickets:preview-open', { detail: anchor.current }));
+    sourcePosition.current = { left: rect.left, top: rect.top };
     opened.current = true;
     setError('');
     setPosition({
@@ -73,13 +77,15 @@ export function PressPreview({
     const action = actions[index];
     if (!action || busy.current) return;
     busy.current = true;
+    setPending(true);
     try {
       await action.run();
       close();
     } catch {
-      setError('Action failed. Your data has not changed. Please try again.');
+      setError('Action could not be confirmed. Check the result before retrying.');
     } finally {
       busy.current = false;
+      setPending(false);
     }
   };
   const actionAt = (x: number, y: number) => {
@@ -179,6 +185,9 @@ export function PressPreview({
   );
   useEffect(() => {
     if (!position) return;
+    const anotherPreview = (event: Event) => {
+      if ((event as CustomEvent<Element>).detail !== anchor.current) close();
+    };
     const outside = (e: Event) => {
       const node = e.target as Node;
       if (!anchor.current?.contains(node) && !popup.current?.contains(node)) close();
@@ -191,14 +200,31 @@ export function PressPreview({
       }
     };
     const resized = () => close();
+    const scrolled = (event: Event) => {
+      if (popup.current?.contains(event.target as Node)) return;
+      const before = sourcePosition.current;
+      const current = trigger.current?.getBoundingClientRect();
+      // Scroll events queued before opening can arrive after the popup commits.
+      // Only an actual anchor displacement invalidates the current placement.
+      if (
+        before &&
+        current &&
+        (Math.abs(before.left - current.left) > 1 || Math.abs(before.top - current.top) > 1)
+      )
+        close();
+    };
+    document.addEventListener('tickets:preview-open', anotherPreview);
     document.addEventListener('pointerdown', outside, true);
     document.addEventListener('keydown', keyboard, true);
     window.addEventListener('resize', resized);
+    window.addEventListener('scroll', scrolled, true);
     window.addEventListener('blur', resized);
     return () => {
+      document.removeEventListener('tickets:preview-open', anotherPreview);
       document.removeEventListener('pointerdown', outside, true);
       document.removeEventListener('keydown', keyboard, true);
       window.removeEventListener('resize', resized);
+      window.removeEventListener('scroll', scrolled, true);
       window.removeEventListener('blur', resized);
     };
   }, [position, close]);
@@ -252,6 +278,7 @@ export function PressPreview({
             tabIndex={-1}
             ref={popup}
             aria-label={dialogLabel}
+            aria-busy={pending}
             className="peek-surface"
             style={position}
             onKeyDown={(e) => {
@@ -293,6 +320,7 @@ export function PressPreview({
                   key={action.label}
                   type="button"
                   data-peek-action={index}
+                  disabled={pending}
                   className={highlighted === index ? 'is-highlighted' : ''}
                   onPointerEnter={() => setHighlighted(index)}
                   onClick={() => {

@@ -14,6 +14,7 @@ import {
   Avatar,
   PressPreview,
   Markdown,
+  ActionMenu,
 } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
@@ -54,15 +55,32 @@ export function PlanningPage({ kind }: { kind: 'projects' | 'cycles' }) {
           <Icon size={17} />
           <h1>{title}</h1>
         </div>
-        <Button
-          variant="default"
-          size="sm"
-          disabled={me?.role === 'viewer' || !enabled}
-          onClick={() => navigate('/' + kind + '/new')}
-        >
-          <Plus size={15} />
-          New {kind === 'projects' ? 'project' : 'cycle'}
-        </Button>
+        <div className="toolbar-actions page-actions-pill">
+          <Button
+            variant="default"
+            size="sm"
+            className="page-create-action"
+            aria-label={'New ' + (kind === 'projects' ? 'project' : 'cycle')}
+            disabled={me?.role === 'viewer' || !enabled}
+            onClick={() => navigate('/' + kind + '/new')}
+          >
+            <Plus size={18} />
+            <span className="page-create-label">
+              New {kind === 'projects' ? 'project' : 'cycle'}
+            </span>
+          </Button>
+          <ActionMenu
+            label={title + ' actions'}
+            items={[
+              {
+                label: 'Refresh ' + kind,
+                onSelect: () => void query.refetch(),
+                disabled: !enabled || query.isFetching,
+              },
+              { label: 'Open all issues', onSelect: () => navigate('/issues') },
+            ]}
+          />
+        </div>
       </header>
       <div className="planning-content">
         {!enabled ? (

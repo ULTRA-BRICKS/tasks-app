@@ -3224,3 +3224,178 @@ button,
     border-radius: 22px;
   }
 }
+
+/* Capsule actions share native menu semantics and preserve normal keyboard focus. */
+.page-menu-positioner {
+  z-index: 200;
+}
+.page-menu-popup {
+  min-width: 216px;
+  max-width: calc(100vw - 24px);
+  padding: 6px;
+  color: var(--color-text);
+  background: var(--color-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--mobile-sheet-radius);
+  box-shadow: 0 16px 48px #0005;
+  transform-origin: var(--transform-origin);
+  transition:
+    opacity var(--mobile-surface-enter),
+    transform var(--mobile-surface-enter);
+}
+.page-menu-popup[data-starting-style],
+.page-menu-popup[data-ending-style] {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+}
+.page-menu-popup[data-ending-style] {
+  transition-duration: var(--mobile-surface-exit);
+}
+.page-menu-item {
+  min-height: var(--mobile-tap);
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 18px;
+  outline: none;
+  cursor: pointer;
+  font-size: var(--font-size-14);
+}
+.page-menu-item[data-highlighted] {
+  background: var(--color-hover);
+}
+.page-menu-item[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+@media (max-width: 767px) {
+  .page-toolbar {
+    padding-inline: var(--space-24);
+    min-height: 88px;
+    border-bottom-color: transparent;
+    gap: var(--space-8);
+  }
+  .page-heading {
+    min-width: 0;
+  }
+  .page-heading h1 {
+    font-size: var(--mobile-page-title);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.9px;
+  }
+  .page-heading .count-badge {
+    display: none;
+  }
+  .page-toolbar > .mobile-only {
+    width: var(--mobile-tap);
+    height: var(--mobile-tap);
+    margin-left: -12px;
+  }
+  .page-actions-pill {
+    min-height: var(--mobile-tap);
+    padding: 0;
+    gap: 0;
+    border-radius: var(--mobile-pill-radius);
+    background: var(--color-elevated);
+    flex-shrink: 0;
+  }
+  .page-actions-pill .desktop-refresh {
+    display: none;
+  }
+  .page-actions-pill .page-create-label {
+    display: none;
+  }
+  .page-actions-pill .page-create-action,
+  .page-actions-pill .page-menu-trigger {
+    min-width: var(--mobile-tap);
+    min-height: var(--mobile-tap);
+    padding: 0;
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    color: var(--color-text);
+    border-radius: var(--mobile-pill-radius);
+  }
+  .page-actions-pill .page-create-action:hover,
+  .page-actions-pill .page-menu-trigger:hover {
+    background: var(--color-hover);
+  }
+  .peek-trigger,
+  .peek-heading button {
+    width: var(--mobile-tap);
+    height: var(--mobile-tap);
+  }
+  .peek-anchor > .issue-row {
+    min-height: var(--mobile-row);
+    padding-right: 48px;
+  }
+  .issue-open {
+    font-size: var(--font-size-14);
+  }
+  .project-card h3 {
+    font-size: var(--mobile-body);
+  }
+  .document-description,
+  .document-source,
+  .settings-content input,
+  .login-card input {
+    font-size: var(--mobile-body);
+  }
+  .detail-properties {
+    gap: var(--space-8);
+  }
+  .detail-properties .compact-property {
+    border: 1px solid var(--color-border);
+    border-radius: var(--mobile-pill-radius);
+    min-height: var(--mobile-tap);
+    padding: 0 10px;
+  }
+  .detail-properties .compact-property .picker {
+    min-width: 0;
+    width: auto;
+    max-width: 100%;
+    padding-inline: 4px;
+  }
+  .property-section-title {
+    margin-top: var(--space-12);
+  }
+  .detail-properties .compact-property .property-icon {
+    flex-shrink: 0;
+  }
+  .mobile-dock .nav-item,
+  .mobile-create,
+  .page-actions-pill button {
+    transition:
+      background var(--motion-normal),
+      transform var(--motion-normal);
+  }
+  .mobile-create:active,
+  .page-actions-pill button:active {
+    transform: scale(0.96);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-menu-popup,
+  .mobile-dock .nav-item,
+  .mobile-create,
+  .page-actions-pill button {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .issue-detail-toolbar {
+    min-height: 60px;
+  }
+  .issue-detail-toolbar .button {
+    min-width: var(--mobile-tap);
+    min-height: var(--mobile-tap);
+  }
+  .detail-properties .compact-property .picker {
+    min-width: var(--mobile-tap);
+    min-height: var(--mobile-tap);
+  }
+}

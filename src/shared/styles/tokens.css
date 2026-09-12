@@ -93,6 +93,14 @@
   --document-body-minimum: 74px;
   --document-body-space: 110px;
   --document-properties-inset: 3px;
+  --mobile-tap: 44px;
+  --mobile-page-title: 32px;
+  --mobile-row: 60px;
+  --mobile-pill-radius: 24px;
+  --mobile-sheet-radius: 24px;
+  --mobile-body: 16px;
+  --mobile-surface-enter: 180ms;
+  --mobile-surface-exit: 120ms;
 }
 :root, [data-theme="dark"] {
   --color-canvas: rgb(17 17 17 / 1);
