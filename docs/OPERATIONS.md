@@ -47,3 +47,5 @@ At this bounded file size downloads currently buffer content. Uploads still hold
 External Slack/GitHub provider round-trips require separately configured provider credentials. Their mock-transport acceptance tests do not imply a live integration is connected. Forgejo is the code host, not a newly implemented ticket-import provider.
 
 The function deadline is 60 seconds and pool acquisition remains capped at 30 seconds. Reducing acquisition to 10 seconds reproduced a concurrent-create failure over the real Neon connection; the release preserves the working burst behavior while reserving half the function budget for execution.
+
+**Saturation limit:** the 30-second acquisition cap is per transaction, not a route-wide deadline or latency guarantee. Routes such as login use multiple transactions and can still exhaust the 60-second function deadline under sustained pool saturation. The last review identified this as a remaining bounded operational limitation; no route-wide budget propagation is claimed. The final review found no remaining architecture/path/hash inconsistencies or introduced performance regressions.
