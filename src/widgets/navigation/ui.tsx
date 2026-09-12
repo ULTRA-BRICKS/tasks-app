@@ -42,7 +42,8 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
     await api('/auth/logout', { method: 'POST' });
     client.clear();
     for (const key of Object.keys(sessionStorage))
-      if (key.startsWith('ticket-draft:')) sessionStorage.removeItem(key);
+      if (['ticket-draft:', 'ticket-new:', 'plan-draft:'].some((prefix) => key.startsWith(prefix)))
+        sessionStorage.removeItem(key);
     window.location.assign('/login');
   }
   const navClass = ({ isActive }: { isActive: boolean }) =>

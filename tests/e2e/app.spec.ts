@@ -9,16 +9,21 @@ async function login(page: Page) {
 test('create issue, edit Markdown, change status, filter list', async ({ page }) => {
   await login(page);
   await page.getByRole('button', { name: 'New issue', exact: true }).click();
-  const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Issue title').fill('Browser acceptance test');
-  await dialog.getByLabel('Issue description').fill('## Acceptance\n- [ ] Works in the browser');
-  await dialog.getByRole('button', { name: 'Create issue', exact: true }).click();
-  await expect(dialog).not.toBeVisible();
-  await page.getByRole('button', { name: /Browser acceptance test/ }).click();
-  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Browser acceptance test');
-  await page.getByRole('button', { name: 'Markdown', exact: true }).click();
-  await page.getByLabel('Description', { exact: true }).fill('## Updated\nA durable description.');
-  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page).toHaveURL(/\/issues\/new$/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByLabel('Title', { exact: true }).fill('Browser acceptance test');
+  await page.getByLabel('Description', { exact: true }).fill('Works in the browser');
+  await page.getByRole('button', { name: 'Create issue', exact: true }).click();
+  await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  const editor = page.getByRole('textbox', { name: 'Description', exact: true });
+  await editor.fill('');
+  await editor.pressSequentially('## Updated');
+  await editor.press('Enter');
+  await editor.pressSequentially('A durable description.');
+  await page.getByLabel('Title', { exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Updated', exact: true })).toBeVisible();
+  await expect(page.getByText('Saving…', { exact: true })).toHaveCount(0);
+  await page.reload();
   await expect(page.getByRole('heading', { name: 'Updated', exact: true })).toBeVisible();
   await page.getByRole('combobox', { name: 'Status', exact: true }).click();
   await page.getByRole('option', { name: 'Done', exact: true }).click();
@@ -58,4 +63,52 @@ test('read-only API token cannot mutate via browser HTTP client', async ({ page 
     data: { name: 'Should not exist', color: '#ffffff' },
   });
   expect(r.status()).toBe(403);
+});
+
+test('keyboard moves between issues, opens a page and never hijacks typing', async ({ page }) => {
+  await login(page);
+  await expect(page.locator('.issue-list .issue-open').first()).toBeVisible();
+  await page.getByRole('heading', { name: 'All issues', exact: true }).click();
+  await page.keyboard.press('j');
+  await expect(page.locator('.issue-list .issue-open').first()).toBeFocused();
+  await page.keyboard.press('j');
+  await expect(page.locator('.issue-list .issue-open').nth(1)).toBeFocused();
+  await page.keyboard.press('k');
+  await expect(page.locator('.issue-list .issue-open').first()).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Title', { exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/issues$/);
+  await page.keyboard.press('c');
+  await expect(page).toHaveURL(/\/issues\/new$/);
+  await page.getByLabel('Title', { exact: true }).fill('keyboard c v j k g');
+  await expect(page).toHaveURL(/\/issues\/new$/);
+});
+test('private issue drafts survive navigation without premature publication', async ({ page }) => {
+  await login(page);
+  await page.goto('/issues/new');
+  await page.getByLabel('Title', { exact: true }).fill('Draft not yet published');
+  await page.goto('/issues');
+  await page.getByLabel('Search issues', { exact: true }).fill('Draft not yet published');
+  await expect(page.getByTestId('issue-row')).toHaveCount(0);
+  await page.goto('/issues/new');
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Draft not yet published');
+});
+test('project creation uses the document page, not a dialog, and inline rename persists', async ({
+  page,
+}) => {
+  await login(page);
+  await page.goto('/projects/new');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByLabel('Title', { exact: true }).fill('Document-first project');
+  await page.getByRole('button', { name: 'Create project', exact: true }).click();
+  await expect(page).toHaveURL(/\/projects\/(?!new)[^/]+$/);
+  await page.getByLabel('Title', { exact: true }).fill('Renamed project');
+  const saved = page.waitForResponse(
+    (r) => r.request().method() === 'PATCH' && r.url().includes('/api/v1/projects/'),
+  );
+  await page.getByLabel('Title', { exact: true }).press('Enter');
+  expect((await saved).ok()).toBeTruthy();
+  await page.reload();
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Renamed project');
 });

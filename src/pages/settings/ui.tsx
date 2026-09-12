@@ -1,3 +1,4 @@
+import { WorkspacePolicySettings } from '@/features/workspace-policy';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -123,6 +124,7 @@ export function SettingsPage() {
     { id: 'tokens', label: 'API & CLI', icon: KeyRound },
     ...(admin
       ? [
+          { id: 'security', label: 'Security', icon: KeyRound },
           { id: 'modules', label: 'Modules', icon: Layers },
           { id: 'integrations', label: 'Integrations', icon: Plug },
         ]
@@ -164,6 +166,7 @@ export function SettingsPage() {
           ))}
         </nav>
         <div className="settings-content">
+          {tab === 'security' && admin && <WorkspacePolicySettings />}
           {tab === 'appearance' && (
             <>
               <h2>Make room for focus.</h2>
@@ -190,8 +193,8 @@ export function SettingsPage() {
                 ))}
               </div>
               <div className="settings-note">
-                Design tokens are the source of truth. <code>npm run tokens:build</code> generates
-                CSS and TypeScript; <code>npm run tokens:check</code> detects drift.
+                Design tokens are the source of truth. <code>bun run tokens:build</code> generates
+                CSS and TypeScript; <code>bun run tokens:check</code> detects drift.
               </div>
             </>
           )}
@@ -463,7 +466,7 @@ export function SettingsPage() {
                     <IntegrationCard provider="github" state={connections.data.github} />
                     <IntegrationCard provider="slack" state={connections.data.slack} />
                     <div className="settings-note">
-                      Webhook inbox and outbound queue are durable. Run <code>npm run worker</code>{' '}
+                      Webhook inbox and outbound queue are durable. Run <code>bun run worker</code>{' '}
                       to process jobs. Delivery to external systems has not been live-verified in
                       this initial build.
                     </div>

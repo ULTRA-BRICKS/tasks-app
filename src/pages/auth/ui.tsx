@@ -66,7 +66,7 @@ export function LoginPage() {
         </div>
         {import.meta.env.DEV && (
           <p className="dev-hint">
-            Local demo after <code>npm run demo:seed</code>:<br />
+            Local demo after <code>bun run setup -- --demo</code>:<br />
             demo@example.test · local-demo-password
           </p>
         )}
