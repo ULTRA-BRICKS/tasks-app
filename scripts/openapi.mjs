@@ -24,6 +24,14 @@ export function toType(schema) {
   throw new Error('Unrecognized request schema');
 }
 const operations = [
+  ['/v1/workspace/policy', 'get', null, 'Read workspace invitation-domain policy', 'admin'],
+  [
+    '/v1/workspace/policy',
+    'patch',
+    'WorkspacePolicyPatch',
+    'Update versioned invitation-domain policy',
+    'admin',
+  ],
   ['/health', 'get', null, 'Service health', 'public'],
   ['/auth/login', 'post', 'Login', 'Create an HttpOnly session', 'public'],
   ['/auth/logout', 'post', null, 'Revoke current session', 'read'],
@@ -103,6 +111,7 @@ const operations = [
   ['/v1/milestones', 'get', null, 'List project milestones', 'read'],
   ['/v1/milestones', 'post', 'Milestone', 'Create project milestone', 'write'],
   ['/v1/cycles', 'get', null, 'List team cycles', 'read'],
+  ['/v1/cycles/{id}', 'patch', 'CyclePatch', 'Update cycle using expected version', 'write'],
   ['/v1/cycles', 'post', 'Cycle', 'Create time-boxed cycle', 'write'],
   ['/v1/views', 'get', null, 'List own and shared saved views', 'read'],
   ['/v1/views', 'post', 'View', 'Create a private or shared saved filter', 'write'],

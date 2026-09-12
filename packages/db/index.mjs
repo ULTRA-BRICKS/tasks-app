@@ -121,6 +121,7 @@ export async function createDatabase({
 const migrations = [
   { version: 1, path: './migrations/0001.sql' },
   { version: 2, path: './migrations/0002_avatar.sql' },
+  { version: 3, path: './migrations/0003_workspace_policy.sql' },
 ];
 export async function migrate(db) {
   const sources = await Promise.all(

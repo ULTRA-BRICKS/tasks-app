@@ -18,7 +18,7 @@ test('numbered migrations include avatar metadata and reject an unknown newer sc
   const f = await fixture();
   try {
     const current = await migrate(f.db);
-    assert.equal(current.version, 2);
+    assert.equal(current.version, 3);
     assert.equal(current.applied, false);
     // Exercise the migrated column directly on both supported database dialects.
     const row = await f.db.transaction((tx) => tx.one('SELECT avatar_url FROM users LIMIT 1'));
