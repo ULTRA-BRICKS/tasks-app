@@ -59,13 +59,16 @@ function SupportedDescription({
 }: DescriptionProps) {
   const emitted = useRef(value),
     original = useRef(value),
-    canceled = useRef(false),
-    container = useRef<HTMLDivElement>(null);
+    canceled = useRef(false);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ link: { openOnClick: false, autolink: false }, underline: false }),
       TaskList,
-      TaskItem.configure({ nested: true }),
+      TaskItem.configure({
+        nested: true,
+        HTMLAttributes: { 'data-type': 'taskItem' },
+        a11y: { checkboxLabel: (node) => node.firstChild?.textContent || 'Task' },
+      }),
       TableKit,
       SafeImage,
       Markdown.configure({ markedOptions: { gfm: true } }),
@@ -119,48 +122,9 @@ function SupportedDescription({
       emitted.current = value;
     }
   }, [editor, value]);
-  useEffect(() => {
-    const root = container.current;
-    if (!root) return;
-    const pending = new Set<Element>();
-    let frame = 0;
-    const flush = () => {
-      frame = 0;
-      for (const li of pending) {
-        if (!root.contains(li)) continue;
-        const input = li.querySelector(':scope > label input');
-        const text = li.querySelector(':scope > div > p')?.textContent?.trim() || 'Task';
-        if (input?.getAttribute('aria-label') !== text) input?.setAttribute('aria-label', text);
-      }
-      pending.clear();
-    };
-    const collect = (node: Node) => {
-      const element = node instanceof Element ? node : node.parentElement;
-      if (!element) return;
-      const parent = element.closest('li[data-type="taskItem"]');
-      if (parent) pending.add(parent);
-    };
-    const observer = new MutationObserver((records) => {
-      for (const r of records) {
-        collect(r.target);
-        for (const node of r.addedNodes) {
-          collect(node);
-          if (node instanceof Element)
-            node.querySelectorAll('li[data-type="taskItem"]').forEach((li) => pending.add(li));
-        }
-      }
-      if (pending.size && !frame) frame = requestAnimationFrame(flush);
-    });
-    observer.observe(root, { childList: true, subtree: true, characterData: true });
-    root.querySelectorAll('li[data-type="taskItem"]').forEach((li) => pending.add(li));
-    flush();
-    return () => {
-      observer.disconnect();
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, [editor]);
+
   return (
-    <div ref={container} className="document-editor">
+    <div className="document-editor">
       <EditorContent editor={editor} />
     </div>
   );

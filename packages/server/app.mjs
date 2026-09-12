@@ -1,3 +1,4 @@
+import { inspectReadiness } from './readiness.mjs';
 import { createIdempotently } from './core/idempotency.mjs';
 import * as workspacePolicy from './modules/identity/policy.mjs';
 import { applicationOrigin, isAllowedOrigin } from '../config/development.mjs';
@@ -131,7 +132,10 @@ export function createApp({ db, env = process.env, storage, logger = console } =
                 },
               })
             : json({ error: { code: 'ORIGIN_NOT_ALLOWED' } }, 403);
-      else if (path === '/api/health' && method === 'GET')
+      else if (path === '/api/ready' && method === 'GET') {
+        const state = await inspectReadiness(db);
+        response = json(state, state.status === 'ready' ? 200 : 503);
+      } else if (path === '/api/health' && method === 'GET')
         response = json({
           status: 'ok',
           service: 'tickets-app',
@@ -582,9 +586,10 @@ export function createApp({ db, env = process.env, storage, logger = console } =
           201,
         );
       } else if (/^\/api\/v1\/attachments\/[^/]+\/content$/.test(path) && method === 'GET') {
-        const result = await run(true, (tx, a) =>
-          files.downloadAttachment(tx, a, path.split('/')[4], store()),
+        const authorized = await run(true, (tx, a) =>
+          files.authorizeDownload(tx, a, path.split('/')[4]),
         );
+        const result = await files.downloadAttachment(authorized, store());
         response = result.url
           ? new Response(null, { status: 303, headers: { location: result.url } })
           : new Response(result.bytes, {

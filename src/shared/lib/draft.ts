@@ -28,6 +28,7 @@ export function acceptDocument(
   sent: DocumentDraft,
   result: ServerDocument,
 ): DocumentDraft {
+  if (result.version < current.version) return current;
   return {
     ...freshDraft(result),
     title: current.title === sent.title ? result.title : current.title,
@@ -60,4 +61,18 @@ export function restoreDocument(raw: string | null, fallback: ServerDocument): D
     /* Invalid local envelopes do not prevent opening an issue. */
   }
   return freshDraft(fallback);
+}
+
+/** A metadata-only update may advance a focused draft's version, never its text baseline. */
+export function advanceDocumentVersion(
+  draft: DocumentDraft,
+  latest: ServerDocument,
+): DocumentDraft {
+  if (
+    latest.version > draft.version &&
+    latest.title === draft.baseTitle &&
+    latest.description === draft.baseDescription
+  )
+    return { ...draft, version: latest.version };
+  return draft;
 }

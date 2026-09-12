@@ -1,3 +1,7 @@
+> Latest release: [12 September 2026 verification](RELEASE-2026-09-12.md). The results below are historical.
+
+> Historical evidence for the 2026-09-10 GitHub revision only. It does not describe the current Forgejo release or current production readiness. For the current operational contract, see [OPERATIONS.md](OPERATIONS.md); the current release report will name its exact tested commit.
+
 # Verification — 2026-09-10
 
 ## Verified source

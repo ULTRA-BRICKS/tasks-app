@@ -474,7 +474,7 @@ export function withLinear(app, { db, env = process.env }) {
   const origin = applicationOrigin(env);
   return {
     async fetch(request) {
-      if (new URL(request.url).pathname.replace(/\/$/, '') !== '/graphql')
+      if (!['/graphql', '/api/graphql'].includes(new URL(request.url).pathname.replace(/\/$/, '')))
         return app.fetch(request);
       let status = 200,
         result;

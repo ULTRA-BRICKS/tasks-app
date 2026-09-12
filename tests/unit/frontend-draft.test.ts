@@ -1,3 +1,4 @@
+import { advanceDocumentVersion } from '../../src/shared/lib/draft';
 import { mergeVersioned } from '../../src/shared/lib/versioned';
 import { test, expect } from 'bun:test';
 import {
@@ -47,4 +48,35 @@ test('delayed write responses cannot regress a newer cached version', () => {
     version: 4,
     title: 'Latest',
   });
+});
+
+test('focused drafts advance for metadata-only server changes, never conceal text conflicts', () => {
+  const acknowledged = {
+    ...freshDraft({ version: 2, title: 'Saved', description: 'Body' }),
+    title: 'Still typing',
+  };
+  expect(
+    advanceDocumentVersion(acknowledged, { version: 3, title: 'Saved', description: 'Body' }),
+  ).toEqual({ ...acknowledged, version: 3 });
+  expect(
+    advanceDocumentVersion(acknowledged, {
+      version: 3,
+      title: 'Remote text edit',
+      description: 'Body',
+    }),
+  ).toBe(acknowledged);
+});
+test('an older acknowledgement never regresses an already newer local baseline', () => {
+  const current = {
+    ...freshDraft({ version: 3, title: 'New baseline', description: 'Body' }),
+    title: 'Unsaved edit',
+  };
+  const sent = freshDraft({ version: 1, title: 'Old baseline', description: 'Body' });
+  expect(
+    acceptDocument(current, sent, {
+      version: 2,
+      title: 'Old acknowledgement',
+      description: 'Body',
+    }),
+  ).toBe(current);
 });

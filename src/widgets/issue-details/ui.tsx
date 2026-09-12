@@ -97,8 +97,9 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
     if (!dirty || window.confirm('Discard the local title and description edits?'))
       document.discard();
   }
+  const commentRevision = useRef(0);
   const action = useMutation({
-    mutationFn: async (input: { kind: string; data?: unknown }) => {
+    mutationFn: async (input: { kind: string; data?: unknown; revision?: number }) => {
       if (input.kind === 'comment')
         return api(`/v1/issues/${issue.id}/comments`, {
           method: 'POST',
@@ -122,8 +123,8 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
     onSuccess: (_result, variables) => {
       void client.invalidateQueries({ queryKey: ['issue', issue.id] });
       void client.invalidateQueries({ queryKey: ['notifications'] });
-      if (variables.kind === 'comment')
-        setComment((current) => (current === variables.data ? '' : current));
+      if (variables.kind === 'comment' && variables.revision === commentRevision.current)
+        setComment('');
       if (variables.kind === 'relation') {
         setRelationOpen(false);
         setTarget('');
@@ -266,7 +267,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                     document.resolveConflict();
                 }}
               >
-                Keep my draft and retry
+                Keep my issue draft
               </Button>
             </section>
           )}
@@ -465,13 +466,21 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                 className="comment-form"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (comment.trim()) action.mutate({ kind: 'comment', data: comment });
+                  if (comment.trim())
+                    action.mutate({
+                      kind: 'comment',
+                      data: comment,
+                      revision: commentRevision.current,
+                    });
                 }}
               >
                 <Textarea
                   aria-label="Comment"
                   value={comment}
-                  onChange={(e) => setComment(e.target.value)}
+                  onChange={(e) => {
+                    commentRevision.current++;
+                    setComment(e.target.value);
+                  }}
                   placeholder="Leave a comment…"
                   maxLength={50000}
                 />

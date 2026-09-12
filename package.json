@@ -32,7 +32,7 @@
     "storybook": "bun ./node_modules/storybook/dist/bin/dispatcher.js dev -p 6006 --no-open",
     "storybook:build": "bun ./node_modules/storybook/dist/bin/dispatcher.js build -o storybook-static",
     "test:ui": "bun --bun vitest run --project=storybook",
-    "test:e2e": "bun --bun playwright test --project=chromium",
+    "test:e2e": "bun --bun playwright test --project=chromium --project=webkit",
     "test:visual": "bun --bun playwright test --project=visual",
     "test:visual:update": "bun --bun playwright test --project=visual --update-snapshots",
     "worker": "bun scripts/worker.mjs",

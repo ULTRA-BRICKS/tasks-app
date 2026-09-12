@@ -200,13 +200,30 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
           });
           if (!latestServer.current || result.version >= latestServer.current.version)
             latestServer.current = result;
+          // Never pair a refetched v3 with fields acknowledged by v2. After unlocking,
+          // syncClean adopts the complete newer server object; dirty drafts keep v2
+          // and must resolve a conflict instead of silently overwriting remote text.
           version.current = Math.max(version.current, result.version);
-          base.current = planDraft(result, sent.team);
-          change({ version: version.current });
+          const acknowledged = planDraft(result, sent.team);
+          const preserved = { ...current.current, version: version.current };
+          for (const field of [
+            'name',
+            'description',
+            'team',
+            'start',
+            'end',
+            'status',
+            'health',
+            'lead',
+          ] as const) {
+            if (current.current[field] === sent[field])
+              Object.assign(preserved, { [field]: acknowledged[field] });
+          }
+          base.current = acknowledged;
+          change(preserved);
           setError(null);
           setConflict(null);
-          const unchanged =
-            JSON.stringify(payload(current.current)) === JSON.stringify(payload(sent));
+          const unchanged = !unsaved.current;
           if (unchanged) unsaved.current = false;
           if (unchanged)
             try {

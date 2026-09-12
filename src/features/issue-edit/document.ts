@@ -7,6 +7,7 @@ import {
   draftDirty,
   observeDocument,
   acceptDocument,
+  advanceDocumentVersion,
   restoreDocument,
   type DocumentDraft,
   type ServerDocument,
@@ -46,8 +47,10 @@ export function useInlineDocument(issue: IssueDetail, storageKey: string) {
   );
   useEffect(() => {
     if (issue.version >= latest.current.version) latest.current = issue;
-    if (!running.current && !editing.current) {
-      const next = observeDocument(current.current, issue);
+    if (!running.current) {
+      const next = editing.current
+        ? advanceDocumentVersion(current.current, issue)
+        : observeDocument(current.current, issue);
       if (next !== current.current) publish(next);
     }
   }, [issue, publish]);
@@ -78,7 +81,10 @@ export function useInlineDocument(issue: IssueDetail, storageKey: string) {
             patch: { title: sent.title, description: sent.description },
           });
           latest.current = mergeVersioned(latest.current, result);
-          const accepted = acceptDocument(current.current, sent, result);
+          const accepted = advanceDocumentVersion(
+            acceptDocument(current.current, sent, result),
+            latest.current,
+          );
           publish(editing.current ? accepted : observeDocument(accepted, latest.current));
           setError(null);
           setConflict(null);
@@ -90,11 +96,11 @@ export function useInlineDocument(issue: IssueDetail, storageKey: string) {
               typeof incoming.description === 'string' &&
               typeof incoming.version === 'number'
             ) {
-              latest.current = { ...latest.current, ...incoming };
+              latest.current = mergeVersioned(latest.current, incoming as IssueDetail);
               setConflict({
-                title: incoming.title,
-                description: incoming.description,
-                version: incoming.version,
+                title: latest.current.title,
+                description: latest.current.description,
+                version: latest.current.version,
               });
             }
           }

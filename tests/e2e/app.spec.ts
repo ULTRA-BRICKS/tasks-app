@@ -1,17 +1,26 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
+let cookies: Awaited<ReturnType<BrowserContext['cookies']>> | undefined;
 async function login(page: Page) {
+  if (cookies) {
+    await page.context().addCookies(cookies);
+    await page.goto('/issues');
+    await expect(page.getByRole('heading', { name: 'All issues', exact: true })).toBeVisible();
+    return;
+  }
   await page.goto('/issues');
   await page.getByLabel('Email', { exact: true }).fill('demo@example.test');
   await page.getByLabel('Password', { exact: true }).fill('local-demo-password');
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'All issues', exact: true })).toBeVisible();
+  cookies = await page.context().cookies();
 }
-test('create issue, edit Markdown, change status, filter list', async ({ page }) => {
+test('create issue, edit Markdown, change status, filter list', async ({ page }, testInfo) => {
+  const title = `Browser acceptance test ${testInfo.project.name} ${Date.now()}`;
   await login(page);
   await page.getByRole('button', { name: 'New issue', exact: true }).click();
   await expect(page).toHaveURL(/\/issues\/new$/);
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.getByLabel('Title', { exact: true }).fill('Browser acceptance test');
+  await page.getByLabel('Title', { exact: true }).fill(title);
   await page.getByLabel('Description', { exact: true }).fill('Works in the browser');
   await page.getByRole('button', { name: 'Create issue', exact: true }).click();
   await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
@@ -28,7 +37,7 @@ test('create issue, edit Markdown, change status, filter list', async ({ page })
   await page.getByRole('combobox', { name: 'Status', exact: true }).click();
   await page.getByRole('option', { name: 'Done', exact: true }).click();
   await page.getByRole('button', { name: 'Close issue', exact: true }).click();
-  await page.getByLabel('Search issues', { exact: true }).fill('Browser acceptance test');
+  await page.getByLabel('Search issues', { exact: true }).fill(title);
   await expect(page.getByTestId('issue-row')).toHaveCount(1);
 });
 test('command menu opens and closes with focus restoration', async ({ page }) => {

@@ -87,9 +87,10 @@ test('estimate and dates chosen during inline creation persist on the server', a
 });
 test('lost create response retries the identical request instead of duplicating an issue', async ({
   page,
-}) => {
+}, testInfo) => {
+  const title = `Ambiguous create response ${testInfo.project.name} ${Date.now()}`;
   await login(page);
-  await newIssue(page, 'Ambiguous create response');
+  await newIssue(page, title);
   const keys: string[] = [];
   await page.route('**/api/v1/issues', async (route) => {
     if (route.request().method() !== 'POST') return route.continue();
@@ -112,7 +113,7 @@ test('lost create response retries the identical request instead of duplicating 
   expect(keys[0]).toBeTruthy();
   expect(keys[0]).toBe(keys[1]);
   const issues = await (
-    await page.request.get('/api/v1/issues?q=Ambiguous%20create%20response')
+    await page.request.get('/api/v1/issues?q=' + encodeURIComponent(title))
   ).json();
   expect(issues.data).toHaveLength(1);
 });
@@ -214,7 +215,7 @@ test('focused clean description keeps its original version through a remote refe
   await editor.fill('My local edit from the previous version');
   await page.getByRole('textbox', { name: 'Title', exact: true }).click();
   await expect(
-    page.getByRole('button', { name: 'Keep my draft and retry', exact: true }),
+    page.getByRole('button', { name: 'Keep my issue draft', exact: true }),
   ).toBeVisible();
   expect((await (await page.request.get('/api/v1/issues/' + id)).json()).description).toBe(
     'New text from another user',
@@ -224,7 +225,7 @@ test('focused clean description keeps its original version through a remote refe
   const resolved = page.waitForResponse(
     (r) => r.request().method() === 'PATCH' && r.url().endsWith('/api/v1/issues/' + id) && r.ok(),
   );
-  await page.getByRole('button', { name: 'Keep my draft and retry', exact: true }).click();
+  await page.getByRole('button', { name: 'Keep my issue draft', exact: true }).click();
   await resolved;
   expect((await (await page.request.get('/api/v1/issues/' + id)).json()).description).toBe(
     'My local edit from the previous version',
@@ -410,6 +411,10 @@ test('issue text conflict can be resolved explicitly without endless stale retri
   await newIssue(page, 'Conflict fixture');
   await page.getByRole('button', { name: 'Create issue', exact: true }).click();
   await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  const title = page.getByRole('textbox', { name: 'Title', exact: true });
+  await expect(title).toHaveValue('Conflict fixture');
+  // Start the local edit before the remote write, so this deterministically tests a conflict.
+  await title.fill('Local draft retained');
   const id = new URL(page.url()).pathname.split('/').at(-1);
   const current = await (await page.request.get('/api/v1/issues/' + id)).json();
   const remote = await page.request.patch('/api/v1/issues/' + id, {
@@ -417,7 +422,6 @@ test('issue text conflict can be resolved explicitly without endless stale retri
     data: { version: current.version, title: 'Remote writer' },
   });
   expect(remote.ok()).toBeTruthy();
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Local draft retained');
   await page.getByRole('textbox', { name: 'Title', exact: true }).press('Enter');
   await expect(page.getByRole('region', { name: 'Resolve issue conflict' })).toBeVisible();
   await expect(page.getByText('Remote writer', { exact: true })).toBeVisible();
@@ -431,7 +435,7 @@ test('issue text conflict can be resolved explicitly without endless stale retri
       r.url().endsWith('/api/v1/issues/' + id) &&
       r.status() === 200,
   );
-  await page.getByRole('button', { name: 'Keep my draft and retry', exact: true }).click();
+  await page.getByRole('button', { name: 'Keep my issue draft', exact: true }).click();
   await saved;
   await expect(page.getByRole('region', { name: 'Resolve issue conflict' })).toHaveCount(0);
   await page.reload();
@@ -465,4 +469,103 @@ test('extended Markdown Escape cancels and command menu works from the source ed
   expect((await (await page.request.get('/api/v1/issues/' + issue.id)).json()).description).toBe(
     description,
   );
+});
+
+test('planning acknowledgements adopt normalized titles without reload', async ({ page }) => {
+  await login(page);
+  await page.goto('/projects/new');
+  const title = page.getByRole('textbox', { name: 'Title', exact: true });
+  await title.fill('Normalization fixture');
+  await page.getByRole('button', { name: 'Create project', exact: true }).click();
+  await expect(page).toHaveURL(/\/projects\/(?!new)[^/]+$/);
+  await title.fill('  Trim this saved title  ');
+  await title.press('Enter');
+  await expect(title).toHaveValue('Trim this saved title');
+});
+
+test('a posted response never erases a newly typed identical comment', async ({ page }) => {
+  await login(page);
+  await newIssue(page, 'Concurrent comments');
+  await page.getByRole('button', { name: 'Create issue', exact: true }).click();
+  await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  let release: () => void = () => {},
+    reached = false;
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/v1/issues/*/comments', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    const response = await route.fetch();
+    reached = true;
+    await waiting;
+    await route.fulfill({ response });
+  });
+  const comment = page.getByRole('textbox', { name: 'Comment', exact: true });
+  await comment.fill('First comment');
+  await page.getByRole('button', { name: 'Comment', exact: true }).click();
+  await expect.poll(() => reached).toBe(true);
+  await comment.fill('');
+  await comment.fill('First comment');
+  release();
+  await expect(page.getByRole('button', { name: 'Comment', exact: true })).toBeEnabled();
+  await expect(comment).toHaveValue('First comment');
+});
+
+test('older project acknowledgement cannot overwrite a refetched newer server version', async ({
+  page,
+}) => {
+  await login(page);
+  await page.goto('/projects/new');
+  const title = page.getByRole('textbox', { name: 'Title', exact: true });
+  await title.fill('Planning acknowledgement race');
+  await page.getByRole('button', { name: 'Create project', exact: true }).click();
+  await expect(page).toHaveURL(/\/projects\/(?!new)[^/]+$/);
+  const id = new URL(page.url()).pathname.split('/').at(-1);
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let committed!: (value: { version: number }) => void;
+  const acknowledged = new Promise<{ version: number }>((resolve) => {
+    committed = resolve;
+  });
+  await page.route('**/api/v1/projects/' + id, async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    const response = await route.fetch();
+    committed(await response.json());
+    await held;
+    await route.fulfill({ response });
+  });
+  await title.fill('Local version two');
+  await title.press('Enter');
+  const versionTwo = await acknowledged;
+  const remote = await page.request.patch('/api/v1/projects/' + id, {
+    headers: { 'x-tickets-csrf': '1' },
+    data: {
+      version: versionTwo.version,
+      name: 'Remote version three',
+      description: 'Remote body must survive',
+    },
+  });
+  expect(remote.ok()).toBeTruthy();
+  await page.clock.install();
+  await page.clock.fastForward(20000);
+  const refreshed = page.waitForResponse(
+    (r) => r.url().endsWith('/api/v1/projects') && r.request().method() === 'GET',
+  );
+  await page.evaluate(() => window.dispatchEvent(new Event('visibilitychange')));
+  await refreshed;
+  release();
+  await expect(title).toHaveValue('Remote version three');
+  await page.unroute('**/api/v1/projects/' + id);
+  await title.fill('Next intentional title');
+  const saved = page.waitForResponse(
+    (r) => r.url().endsWith('/api/v1/projects/' + id) && r.request().method() === 'PATCH',
+  );
+  await title.press('Enter');
+  expect((await saved).status()).toBe(200);
+  const final = (await (await page.request.get('/api/v1/projects')).json()).find(
+    (p: { id: string }) => p.id === id,
+  );
+  expect(final.description).toBe('Remote body must survive');
 });

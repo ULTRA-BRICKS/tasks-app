@@ -33,6 +33,7 @@ const operations = [
     'admin',
   ],
   ['/health', 'get', null, 'Service health', 'public'],
+  ['/ready', 'get', null, 'Read-only schema and owner readiness', 'public'],
   ['/auth/login', 'post', 'Login', 'Create an HttpOnly session', 'public'],
   ['/auth/logout', 'post', null, 'Revoke current session', 'read'],
   ['/auth/accept-invite', 'post', 'AcceptInvite', 'Accept a single-use invitation', 'public'],
@@ -229,6 +230,45 @@ export function generateOpenAPI() {
         503: { description: 'Provider or production configuration missing' },
       },
     };
+    if (path === '/ready') {
+      operation.responses[200] = {
+        description: 'Exact schema and workspace owner are ready',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['status'],
+              additionalProperties: false,
+              properties: { status: { const: 'ready' } },
+            },
+          },
+        },
+      };
+      operation.responses[503] = {
+        description:
+          'Database, migrations, or first owner still require setup; no initialization is performed',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['status', 'code'],
+              additionalProperties: false,
+              properties: {
+                status: { const: 'not_ready' },
+                code: {
+                  enum: [
+                    'MIGRATION_REQUIRED',
+                    'OWNER_SETUP_REQUIRED',
+                    'DATABASE_SETUP_REQUIRED',
+                    'PRODUCTION_CONFIG_REQUIRED',
+                  ],
+                },
+              },
+            },
+          },
+        },
+      };
+    }
     if (['public', 'webhook'].includes(scope)) operation.security = [];
     if (scope === 'worker') operation.security = [{ workerSecret: [] }];
     operation.parameters = [];
@@ -289,7 +329,7 @@ export function generateOpenAPI() {
       title: 'tickets-app API',
       version: '0.1.0',
       description:
-        'Modular workspace-scoped issue tracker. JSON snake_case fields, UUID identifiers, date-only YYYY-MM-DD values, ISO UTC timestamps. PATCH issue/project/comment requires expected version. Cookie mutations require X-Tickets-CSRF: 1 and a matching Origin when provided. Personal tokens use Authorization: Bearer. All endpoints are private except health, OpenAPI, login, invitation acceptance and signature-verified webhook receivers. Errors use {error:{code,message,details?,request_id}}. This API is not wire-compatible with Linear GraphQL.',
+        'Modular workspace-scoped issue tracker. JSON snake_case fields, UUID identifiers, date-only YYYY-MM-DD values, ISO UTC timestamps. PATCH issue/project/comment requires expected version. Cookie mutations require X-Tickets-CSRF: 1 and a matching Origin when provided. Personal tokens use Authorization: Bearer. All endpoints are private except health, readiness, OpenAPI, login, invitation acceptance and signature-verified webhook receivers. Errors use {error:{code,message,details?,request_id}}. This API is not wire-compatible with Linear GraphQL.',
     },
     servers: [{ url: '/api' }],
     security: [{ sessionCookie: [] }, { bearer: [] }],
@@ -308,7 +348,7 @@ export function outputs() {
   return {
     'docs/openapi.json': JSON.stringify(generateOpenAPI(), null, 2) + '\n',
     'packages/contracts/request-types.ts':
-      '// Generated from schemas.mjs. Run npm run api:generate.\n' +
+      '// Generated from schemas.mjs. Run bun run api:generate.\n' +
       Object.entries(schemas)
         .map(([name, schema]) => `export type ${name} = ${toType(schema)};`)
         .join('\n') +

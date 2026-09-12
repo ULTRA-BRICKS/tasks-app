@@ -5,6 +5,8 @@ if (!process.env.TEST_DATABASE_URL)
 // Run exactly the same API, authorization, GraphQL and integration cases on real Postgres.
 await import('../unit/core.test.mjs');
 await import('../unit/policy.test.mjs');
+await import('../unit/planning-inline.test.mjs');
+await import('../unit/readiness.test.mjs');
 await import('../unit/regressions.test.mjs');
 await import('../unit/linear.test.mjs');
 await import('../unit/transport.test.mjs');

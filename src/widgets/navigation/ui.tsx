@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Inbox,
   Layers,
@@ -13,6 +13,7 @@ import {
   Archive,
   PanelLeftClose,
   LogOut,
+  Ellipsis,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCatalog, useMe, useViews, useNotifications, moduleEnabled } from '@/entities/workspace';
@@ -27,6 +28,8 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
     client = useQueryClient();
   const prefs = usePreferences(),
     navigate = useNavigate();
+  const location = useLocation();
+  const documentRoute = /^\/(issues|projects|cycles)\/[^/]+/.test(location.pathname);
   const unread = notifications.data?.filter((n) => !n.read_at).length ?? 0;
   const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
   useEffect(() => {
@@ -184,14 +187,64 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
     </aside>
   );
   return mobile ? (
-    <Modal
-      open={prefs.sidebarOpen}
-      onOpenChange={prefs.setSidebarOpen}
-      title="Navigation"
-      className="mobile-nav-dialog"
-    >
-      {content}
-    </Modal>
+    <>
+      <div className="mobile-navigation-bar">
+        <nav className="mobile-dock" aria-label="Mobile navigation">
+          <NavLink to="/issues" aria-label="Issues" className={navClass}>
+            <Layers size={21} />
+            <span>Issues</span>
+          </NavLink>
+          <NavLink to="/my-issues" className={navClass}>
+            <UserRound size={21} />
+            <span>My issues</span>
+          </NavLink>
+          {moduleEnabled(catalog, 'planning') && (
+            <NavLink to="/projects" className={navClass}>
+              <FolderKanban size={21} />
+              <span>Projects</span>
+            </NavLink>
+          )}
+          <button
+            type="button"
+            className="nav-item"
+            aria-label="More navigation"
+            aria-expanded={prefs.sidebarOpen}
+            onClick={() => prefs.setSidebarOpen(true)}
+          >
+            <Ellipsis size={21} />
+            <span>More</span>
+          </button>
+        </nav>
+        {!documentRoute && me?.role !== 'viewer' && (
+          <button
+            type="button"
+            className="mobile-create"
+            aria-label={
+              location.pathname === '/projects'
+                ? 'Create new project'
+                : location.pathname === '/cycles'
+                  ? 'Create new cycle'
+                  : 'Create new issue'
+            }
+            onClick={() =>
+              location.pathname === '/projects' || location.pathname === '/cycles'
+                ? navigate(location.pathname + '/new')
+                : onCreate()
+            }
+          >
+            <Plus size={25} />
+          </button>
+        )}
+      </div>
+      <Modal
+        open={prefs.sidebarOpen}
+        onOpenChange={prefs.setSidebarOpen}
+        title="Navigation"
+        className="mobile-nav-dialog"
+      >
+        {content}
+      </Modal>
+    </>
   ) : (
     content
   );
