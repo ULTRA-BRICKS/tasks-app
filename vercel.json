@@ -18,7 +18,11 @@
       "destination": "/api/index"
     },
     {
-      "source": "/api/:path*",
+      "source": "/api",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/(.*)",
       "destination": "/api/index"
     },
     {
