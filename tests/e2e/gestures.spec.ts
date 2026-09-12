@@ -235,3 +235,75 @@ test('native preview dialog blocks workspace commands until dismissed', async ({
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
 });
+
+test('editing a title reuses its resize observer', async ({ page }) => {
+  await page.evaluate(() => {
+    const Original = window.ResizeObserver;
+    Reflect.set(window, '__titleObservations', 0);
+    window.ResizeObserver = class extends Original {
+      observe(target: Element, options?: ResizeObserverOptions) {
+        if (target.classList.contains('document-title'))
+          Reflect.set(
+            window,
+            '__titleObservations',
+            Number(Reflect.get(window, '__titleObservations')) + 1,
+          );
+        super.observe(target, options);
+      }
+    };
+  });
+  await page.getByRole('button', { name: 'New issue', exact: true }).click();
+  const title = page.getByRole('textbox', { name: 'Title', exact: true });
+  await title.waitFor();
+  const before = await page.evaluate(() => Number(Reflect.get(window, '__titleObservations')));
+  expect(before).toBeGreaterThan(0);
+  await title.pressSequentially('Repeated typing should not allocate repeated observers.');
+  expect(await page.evaluate(() => Number(Reflect.get(window, '__titleObservations')))).toBe(
+    before,
+  );
+});
+
+test('typing retains one title resize observation for the mounted editor', async ({ page }) => {
+  await page.evaluate(() => {
+    const NativeObserver = window.ResizeObserver;
+    Object.assign(window, { titleObservations: 0 });
+    window.ResizeObserver = class extends NativeObserver {
+      observe(target: Element, options?: ResizeObserverOptions) {
+        if (target.matches('.document-title')) {
+          const counts = window as typeof window & { titleObservations: number };
+          counts.titleObservations++;
+        }
+        return super.observe(target, options);
+      }
+    };
+  });
+  await page.getByRole('button', { name: 'New issue', exact: true }).click();
+  const title = page.getByRole('textbox', { name: 'Title', exact: true });
+  await expect(title).toBeVisible();
+  const count = () =>
+    page.evaluate(
+      () => (window as typeof window & { titleObservations: number }).titleObservations,
+    );
+  const before = await count();
+  expect(before).toBeGreaterThan(0);
+  await title.pressSequentially('Keep one observer while typing this sentence');
+  expect(await count()).toBe(before);
+  await page.setViewportSize({ width: 320, height: 700 });
+  await expect
+    .poll(() => title.evaluate((element) => element.scrollHeight - element.clientHeight))
+    .toBeLessThanOrEqual(2);
+  expect(await count()).toBe(before);
+});
+
+test('mobile document create and property actions remain touch-sized', async ({ page }) => {
+  await page.setViewportSize({ width: 393, height: 852 });
+  await page.getByRole('button', { name: 'New issue', exact: true }).click();
+  for (const action of [
+    page.getByRole('button', { name: 'Create issue', exact: true }),
+    page.getByRole('combobox', { name: 'Status', exact: true }),
+  ]) {
+    const box = (await action.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    expect(box.width).toBeGreaterThanOrEqual(44);
+  }
+});
