@@ -2,33 +2,30 @@ import { open, lstat, readFile, unlink } from 'node:fs/promises';
 import { unlinkSync } from 'node:fs';
 export async function acquireSetupLock(file) {
   let fd;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      fd = await open(file, 'wx', 0o600);
-      break;
-    } catch (error) {
-      if (error.code !== 'EEXIST') throw error;
-      const before = await lstat(file);
-      if (!before.isFile() || before.isSymbolicLink())
-        throw new Error('Setup lock is not a regular file');
-      const raw = await readFile(file, 'utf8');
-      const pid = Number(raw.trim());
-      let stale = false;
-      if (Number.isSafeInteger(pid) && pid > 0) {
-        try {
-          process.kill(pid, 0);
-        } catch (e) {
-          stale = e.code === 'ESRCH';
-        }
-      } else stale = raw.trim() === '' && Date.now() - before.mtimeMs > 60000;
-      if (!stale) throw new Error('Another setup is running; no data was changed');
-      const after = await lstat(file);
-      if (after.ino !== before.ino || after.mtimeMs !== before.mtimeMs)
-        throw new Error('Setup lock changed; retry after the other setup finishes');
-      await unlink(file);
+  try {
+    fd = await open(file, 'wx', 0o600);
+  } catch (error) {
+    if (error.code !== 'EEXIST') throw error;
+    const info = await lstat(file);
+    if (!info.isFile() || info.isSymbolicLink())
+      throw new Error('Setup lock is not a regular file');
+    const pid = Number((await readFile(file, 'utf8')).trim());
+    let stale = false;
+    if (Number.isSafeInteger(pid) && pid > 0) {
+      try {
+        process.kill(pid, 0);
+      } catch (e) {
+        stale = e.code === 'ESRCH';
+      }
     }
+    // Never unlink a named lock we do not own: another reclaimer could replace
+    // it between a check and unlink. Ordinary SIGINT/SIGTERM release our own lock.
+    throw new Error(
+      stale
+        ? `An interrupted setup left ${file}. Verify no setup is running, remove that lock file, and retry. No data changed.`
+        : 'Another setup is running; no data was changed',
+    );
   }
-  if (!fd) throw new Error('Setup lock could not be acquired');
   await fd.writeFile(String(process.pid));
   await fd.sync();
   let released = false;

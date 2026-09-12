@@ -23,21 +23,17 @@ test('setup lock rejects an active owner and releases cleanly', async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
-test('setup automatically reclaims a lock left by a terminated process', async () => {
+test('setup reports abandoned locks without racing a new owner', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'tickets-lock-')),
     file = join(dir, 'lock');
   try {
-    const p = Bun.spawn([process.execPath, '-e', 'process.exit(0)']);
-    await p.exited;
-    await writeFile(file, String(p.pid));
-    const release = await acquireSetupLock(file);
-    await release();
-    expect(
-      await stat(file).then(
-        () => true,
-        () => false,
-      ),
-    ).toBe(false);
+    const child = Bun.spawn([process.execPath, '-e', 'process.exit(0)']);
+    await child.exited;
+    await writeFile(file, String(child.pid));
+    const attempts = await Promise.allSettled([acquireSetupLock(file), acquireSetupLock(file)]);
+    expect(attempts.every((x) => x.status === 'rejected')).toBe(true);
+    expect(await readFile(file, 'utf8')).toBe(String(child.pid));
+    expect((await stat(file)).isFile()).toBe(true);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -107,3 +107,11 @@ test('setup does not rewrite key-shaped text inside a multiline custom value', (
   expect(first.env.API_PORT).toBe('9002');
   expect(buildLocalEnvironment(first.text).text).toBe(first.text);
 });
+
+test('setup preserves backtick multiline values and validates its serialized result', () => {
+  const source = 'CUSTOM=`first\nAPI_PORT=9000\nlast`\n';
+  const result = buildLocalEnvironment(source, { port: '9002' });
+  expect(result.env.CUSTOM).toBe('first\nAPI_PORT=9000\nlast');
+  expect(result.env.API_PORT).toBe('9002');
+  expect(buildLocalEnvironment(result.text).text).toBe(result.text);
+});

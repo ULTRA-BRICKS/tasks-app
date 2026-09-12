@@ -42,8 +42,14 @@ function setKey(text, key, value) {
     let end = text.indexOf('\n', start.lastIndex);
     if (end < 0) end = text.length;
     const quote = text[start.lastIndex];
-    if (quote === "'" || quote === '"') {
-      const closing = text.indexOf(quote, start.lastIndex + 1);
+    if (quote === "'" || quote === '"' || quote === '`') {
+      let closing = text.indexOf(quote, start.lastIndex + 1);
+      while (closing > 0) {
+        let slashes = 0;
+        for (let i = closing - 1; i >= 0 && text[i] === '\\'; i--) slashes++;
+        if (slashes % 2 === 0) break;
+        closing = text.indexOf(quote, closing + 1);
+      }
       if (closing < 0) throw new Error('Unclosed quote in environment file; no changes written');
       end = text.indexOf('\n', closing + 1);
       if (end < 0) end = text.length;
@@ -93,7 +99,11 @@ export function buildLocalEnvironment(text, options = {}, shell = {}) {
     if (!previous[key]) updates[key] = env[key] || randomBytes(32).toString('base64url');
   let output = text;
   for (const [key, value] of Object.entries(updates)) output = setKey(output, key, value);
-  return { text: output, env: { ...env, ...parseEnv(output) }, config: { ...config, appUrl } };
+  const parsed = parseEnv(output);
+  for (const [key, value] of Object.entries({ ...previous, ...updates }))
+    if (parsed[key] !== value)
+      throw new Error(`Environment serialization would alter ${key}; no file was written`);
+  return { text: output, env: { ...env, ...parsed }, config: { ...config, appUrl } };
 }
 export async function writeLocalEnvironment(file, text) {
   const existing = await lstat(file).catch((e) => {
