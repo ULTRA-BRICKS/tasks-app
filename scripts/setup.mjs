@@ -1,41 +1,46 @@
-import { readFile, writeFile, chmod, access } from 'node:fs/promises';
-import { randomBytes } from 'node:crypto';
-const demo = process.argv.includes('--demo');
-if (!process.versions.bun) throw new Error('Use Bun 1.4.2 or later.');
-const file = '.env.local';
-let existing = false;
-try {
-  await access(file);
-  existing = true;
-} catch {}
-if (!existing) {
-  let env = await readFile('.env.example', 'utf8');
-  for (const key of ['AUTH_SECRET', 'CRON_SECRET'])
-    env = env.replace(
-      new RegExp(`^${key}=$`, 'm'),
-      `${key}=${randomBytes(32).toString('base64url')}`,
+import { readFile } from 'node:fs/promises';
+import { acquireSetupLock } from './setup-lock.mjs';
+import { setupOptions, buildLocalEnvironment, writeLocalEnvironment } from './setup-config.mjs';
+async function main() {
+  const options = setupOptions(process.argv.slice(2));
+  if (options.help) {
+    console.log('bun run setup -- --demo [--port API_PORT] [--web-port WEB_PORT]');
+    return;
+  }
+  const file = '.env.local',
+    lockFile = file + '.setup-lock';
+  const release = await acquireSetupLock(lockFile);
+  try {
+    let text;
+    try {
+      text = await readFile(file, 'utf8');
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e;
+      text = await readFile('.env.example', 'utf8');
+    }
+    const result = buildLocalEnvironment(text, options, process.env);
+    await writeLocalEnvironment(file, result.text);
+    console.log('✓ .env.local ready; existing secrets preserved');
+    for (const args of [
+      ['install', '--frozen-lockfile'],
+      ['run', 'prepare:generated'],
+      ...(options.demo ? [['scripts/db.mjs', 'demo']] : []),
+    ]) {
+      const p = Bun.spawnSync([process.execPath, ...args], {
+        env: result.env,
+        stdio: ['inherit', 'inherit', 'inherit'],
+      });
+      if (p.exitCode !== 0)
+        throw new Error(`Setup stopped (${p.exitCode}); database was not removed`);
+    }
+    console.log(
+      `✓ UI: ${result.config.appUrl}\n✓ API: ${result.config.apiTarget}\nNext: bun run dev`,
     );
-  await writeFile(file, env, { mode: 0o600, flag: 'wx' });
-  await chmod(file, 0o600);
-  console.log('Created .env.local with private random secrets.');
-} else console.log('Existing .env.local preserved.');
-function run(args) {
-  const result = Bun.spawnSync([process.execPath, ...args], {
-    stdout: 'inherit',
-    stderr: 'inherit',
-    stdin: 'inherit',
-  });
-  if (result.exitCode !== 0) process.exit(result.exitCode);
+  } finally {
+    await release();
+  }
 }
-run(['install', '--frozen-lockfile']);
-run(['run', 'prepare:generated']);
-if (demo) {
-  const env = await readFile(file, 'utf8');
-  if (/^DATABASE_URL=.+$/m.test(env) || /^NODE_ENV=production$/m.test(env))
-    throw new Error('--demo refuses cloud/production databases.');
-  run(['run', 'demo:seed']);
-} else
-  console.log(
-    'Set BOOTSTRAP_EMAIL, BOOTSTRAP_NAME and BOOTSTRAP_PASSWORD privately, then run bun run db:migrate and bun run db:bootstrap.',
-  );
-console.log('Next: bun run dev.');
+main().catch((e) => {
+  console.error(e.message);
+  process.exitCode = 1;
+});

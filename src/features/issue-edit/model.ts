@@ -1,3 +1,5 @@
+import { rollbackOptimistic } from '@/shared/lib/optimistic';
+import { mergeVersioned } from '@/shared/lib/versioned';
 import {
   useMutation,
   useQueryClient,
@@ -25,18 +27,25 @@ export function useIssueUpdate() {
               ...old,
               pages: old.pages.map((p) => ({
                 ...p,
-                data: p.data.map((i) => (i.id === issue.id ? { ...i, ...patch } : i)),
+                data: p.data.map((i) =>
+                  i.id === issue.id && i.version === issue.version ? { ...i, ...patch } : i,
+                ),
               })),
             }
           : old,
       );
       return { lists };
     },
-    onError: (_error, _variables, context) =>
-      context?.lists.forEach(([key, data]) => client.setQueryData(key, data)),
+    onError: (_error, { issue, patch }, context) => {
+      context?.lists.forEach(([key, previous]) => {
+        client.setQueryData<InfiniteData<Page<Issue>>>(key, (current) =>
+          current ? rollbackOptimistic(current, previous, issue.id, issue.version, patch) : current,
+        );
+      });
+    },
     onSuccess: (updated) => {
       client.setQueryData<IssueDetail>(['issue', updated.id], (old) =>
-        old ? { ...old, ...updated } : old,
+        old ? mergeVersioned(old, updated) : old,
       );
     },
     onSettled: () => {

@@ -49,6 +49,13 @@ const issueFields = {
   label_ids: stringArray(),
 };
 export const schemas = {
+  WorkspacePolicyPatch: object(
+    {
+      allowed_email_domains: { type: 'array', items: text(253, 1), maxItems: 50 },
+      version: { type: 'integer', minimum: 0 },
+    },
+    ['allowed_email_domains', 'version'],
+  ),
   IssueCreate: object({ ...issueFields, team_id: uuid }, ['title', 'team_id']),
   IssuePatch: object(
     {
@@ -175,6 +182,15 @@ export const schemas = {
     'project_id',
     'name',
   ]),
+  CyclePatch: object(
+    {
+      name: text(200, 1),
+      start_date: date,
+      end_date: date,
+      version: { type: 'integer', minimum: 1 },
+    },
+    ['version'],
+  ),
   Cycle: object({ team_id: uuid, name: text(200, 1), start_date: date, end_date: date }, [
     'team_id',
     'name',

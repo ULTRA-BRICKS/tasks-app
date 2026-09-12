@@ -1,3 +1,4 @@
+import { createBlobStorage } from './blob.mjs';
 import { mkdir, writeFile, readFile, rename } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { id, now } from '../../core/crypto.mjs';
@@ -41,7 +42,12 @@ function filename(value) {
   // oxlint-disable-next-line no-control-regex -- Intentionally remove untrusted terminal/path control characters.
   return value.replace(/[\x00-\x1f\x7f/\\]/g, '_').slice(0, 180);
 }
-export function createStorage(env = process.env) {
+export function createStorage(env = process.env, { loadBlobSDK } = {}) {
+  if (env.STORAGE_DRIVER === 'blob')
+    return createBlobStorage(env, {
+      maxBytes: MAX_UPLOAD,
+      ...(loadBlobSDK ? { loadSDK: loadBlobSDK } : {}),
+    });
   if (env.STORAGE_DRIVER === 's3') {
     let promise;
     const client = () =>
@@ -208,7 +214,7 @@ export async function uploadAttachment(tx, actor, attachmentId, bytes, storage) 
   await recordActivity(tx, actor, issue, 'attached', { filename: record.filename });
   return { id: record.id, filename: record.filename, mime: record.mime, bytes: record.bytes };
 }
-export async function downloadAttachment(tx, actor, attachmentId, storage) {
+export async function authorizeDownload(tx, actor, attachmentId) {
   requirePermission(actor, 'read');
   await assertModule(tx, actor.workspace_id, 'attachments');
   const record = await tx.one(
@@ -217,6 +223,10 @@ export async function downloadAttachment(tx, actor, attachmentId, storage) {
   );
   if (!record) throw missing('Attachment');
   await getIssue(tx, actor, record.issue_id);
+  return { object_key: record.object_key, mime: record.mime, filename: record.filename };
+}
+// Network transfers must not hold a transaction/pooled DB connection.
+export async function downloadAttachment(record, storage) {
   return {
     ...(await storage.download(record.object_key, record.mime, record.filename)),
     mime: record.mime,

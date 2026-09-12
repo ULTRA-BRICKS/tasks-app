@@ -1,7 +1,0 @@
-[
-  {
-    "message": "fix(a11y): label Markdown tasks and keep issue metadata readable",
-    "patchBlob": "837060289895bf4423605e3855273bf9c1d0729c",
-    "patchSHA256": "0814fc28bb49aae31e34239f12a7f39a908ce846dc9bf69e962c59b4e467e782"
-  }
-]

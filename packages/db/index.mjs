@@ -1,4 +1,5 @@
 import { mkdir, readFile } from 'node:fs/promises';
+import { DEFAULT_SQLITE_PATH } from '../config/development.mjs';
 import { dirname } from 'node:path';
 
 // Values always remain bound parameters. This scanner skips quoted SQL literals.
@@ -21,18 +22,23 @@ export function postgresParameters(sql) {
   return output;
 }
 
+// Leave half of the 60-second serverless budget for useful database work.
+export const POSTGRES_POOL_OPTIONS = Object.freeze({
+  max: 4,
+  idleTimeoutMillis: 5000,
+  connectionTimeoutMillis: 30000,
+});
+
 export async function createDatabase({
   url,
-  sqlitePath = '.data/tickets.sqlite',
+  sqlitePath = DEFAULT_SQLITE_PATH,
   production = false,
 } = {}) {
   if (url) {
     const { Pool } = await import('pg');
     const pool = new Pool({
       connectionString: url,
-      max: 4,
-      idleTimeoutMillis: 5000,
-      connectionTimeoutMillis: 10000,
+      ...POSTGRES_POOL_OPTIONS,
     });
     if (process.env.VERCEL) {
       const { attachDatabasePool } = await import('@vercel/functions');
@@ -120,7 +126,9 @@ export async function createDatabase({
 const migrations = [
   { version: 1, path: './migrations/0001.sql' },
   { version: 2, path: './migrations/0002_avatar.sql' },
+  { version: 3, path: './migrations/0003_workspace_policy.sql' },
 ];
+export const CURRENT_SCHEMA_VERSION = migrations.at(-1).version;
 export async function migrate(db) {
   const sources = await Promise.all(
     migrations.map(async (m) => ({

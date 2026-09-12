@@ -9,6 +9,7 @@ import {
   useDroppable,
   DragOverlay,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Plus } from 'lucide-react';
@@ -128,7 +129,9 @@ export function IssueBoard({
       </p>
       <DndContext
         sensors={sensors}
-        onDragStart={(e) => setActive(issues.find((i) => i.id === e.active.id) ?? null)}
+        onDragStart={(e: DragStartEvent) =>
+          setActive(issues.find((i) => i.id === e.active.id) ?? null)
+        }
         onDragEnd={end}
         onDragCancel={() => setActive(null)}
       >

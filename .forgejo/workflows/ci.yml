@@ -1,0 +1,44 @@
+name: Verify source
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
+    timeout-minutes: 25
+    env:
+      CI: true
+      DO_NOT_TRACK: 1
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: tickets
+          POSTGRES_PASSWORD: tickets
+          POSTGRES_DB: tickets_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U tickets -d tickets_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: https://github.com/actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: https://github.com/oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - run: bun run tokens:check && bun run api:check && bun run graphql:check
+      - run: bun run check && bun run typecheck:tsc && bun run check:secrets
+      - run: bun x --no-install oxfmt --check src packages scripts tests tokens .storybook playwright.config.ts
+      - run: bun run test:postgres
+        env:
+          TEST_DATABASE_URL: postgresql://tickets:tickets@postgres:5432/tickets_test
+      - run: bun x --no-install playwright install --with-deps chromium webkit
+      - run: bun run storybook:build && bun run test:ui
+      - run: bun run test:e2e
+      - run: bun run test:visual
+      - run: git diff --exit-code

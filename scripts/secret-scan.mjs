@@ -1,3 +1,4 @@
+import { forbiddenTrackedPaths } from './secret-rules.mjs';
 import { readdir, readFile } from 'node:fs/promises';
 import { resolve, relative } from 'node:path';
 const root = resolve('.'),
@@ -42,6 +43,17 @@ async function walk(dir) {
         failed = true;
       }
   }
+}
+const listed = Bun.spawnSync(['git', 'ls-files', '--cached', '-z'], {
+  stdout: 'pipe',
+  stderr: 'pipe',
+});
+if (listed.exitCode) throw new Error('Unable to inspect tracked paths; secret scan fails closed.');
+for (const path of forbiddenTrackedPaths(listed.stdout.toString().split('\0').filter(Boolean))) {
+  console.error(
+    `${JSON.stringify(path)}: private runtime/configuration file is tracked; contents withheld`,
+  );
+  failed = true;
 }
 await walk(root);
 if (failed) process.exitCode = 1;

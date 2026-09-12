@@ -1,3 +1,4 @@
+import { resolveDevelopment } from '../../packages/config/development.mjs';
 import { withLinear } from '../../packages/linear/handler.mjs';
 import { createDatabase, migrate } from '../../packages/db/index.mjs';
 import { bootstrap } from '../../packages/server/modules/identity/service.mjs';
@@ -52,7 +53,7 @@ export async function fixture(extra = {}, databaseOptions = { sqlitePath: ':memo
     };
     if (options.noCsrf) delete headers['x-tickets-csrf'];
     const response = await app.fetch(
-      new Request('http://localhost:8787' + path, {
+      new Request(resolveDevelopment().apiTarget + path, {
         method,
         headers,
         ...(!['GET', 'HEAD'].includes(method) && data !== undefined

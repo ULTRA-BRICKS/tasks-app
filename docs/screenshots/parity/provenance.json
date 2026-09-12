@@ -1,0 +1,118 @@
+{
+  "sourceCommit": "800016e1225825958b61d89173d62bf8b36a1e4b",
+  "capturedAt": "2026-09-12T13:08:35.328Z",
+  "browser": "153.0.8010.12",
+  "platform": "darwin",
+  "reference": "https://linear.app/demo/issue/ENG-128/fix-css-in-payment-history",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "deviceScaleFactor": 1,
+  "colorScheme": "dark",
+  "locale": "en-US",
+  "timezoneId": "UTC",
+  "reducedMotion": "reduce",
+  "alignment": "Native viewport coordinates; no scaling, translation, warping or pixel exclusions.",
+  "overlayOpacity": 0.5,
+  "documentRegion": [
+    244,
+    80,
+    990,
+    240
+  ],
+  "limitations": [
+    "System font differs from Linear Inter Variable.",
+    "Different navigation modules, identifiers, avatars, activity and property values.",
+    "New issue deliberately uses a full document page, not the public demo modal.",
+    "No aggregate similarity percentage or native-mobile parity is claimed."
+  ],
+  "captures": {
+    "issues": "b1391ed7998a159d63d091298bfb35323f09275c2bfd3574ee6843fae319fcc6",
+    "board": "a882c219e0330a48ba57718d2b8a5fd8af7fcae2e1749b395d75b6a4a6f7d824",
+    "new-issue-empty": "ddda35b852f022c241e5e74a2e251db94396df26009eb006e5c58c13100bd71b",
+    "new-issue": "d40009d0cc3899e25ad00f432be37d4be016cb901dda11f716504d0eb19f700a",
+    "issue-detail": "360478cdb8f34f3f9c16a95665af26e180ddb42c4bc069729a8a87e5b19f3e8a",
+    "issue-detail-overlay": "cd71ba02e9022125ee943e3030357d15b7d66e38f2250c12c54555970d769980",
+    "document-overlay": "0966156287f38bf0674adf5623a35af1fcdfdc2b5835524a099e10751a8e8a5a",
+    "document-diff-x4": "6297f43d7182c4d6f3c5e2243afa887e567042514e6a26d9def874c34eed2139",
+    "issue-mobile": "fe3a748b88dbe155075306187435793ccf546f80774b89b6d72888d8868247cc",
+    "new-project": "184cd92089e5ef5237162424c1c2a68ada88f9600ce21ea848e9ba8f423a30f7",
+    "new-cycle": "dbb7d91d7e038304ec7825b47805c36fff54ff9c1141cf3a7ec8397849a6a6b8"
+  },
+  "referenceHash": "4422a422027458f743420c048dd2cd9deb08c07f7867298bcdbdfd1ebd2f58e4",
+  "referenceGeometry": [
+    {
+      "text": "Fix CSS in payment history",
+      "x": 306.828125,
+      "y": 112.5,
+      "width": 653.046875,
+      "height": 32,
+      "fontFamily": "\"Inter Variable\", \"SF Pro Display\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Open Sans\", \"Helvetica Neue\", \"Linear Thai\", sans-serif",
+      "fontSize": "24px",
+      "lineHeight": "38.4px",
+      "padding": "0px"
+    },
+    {
+      "text": "Clipping is causing the date/time for transactions to be cut off. Reported on Mobile iOS 14 user.",
+      "x": 292.828125,
+      "y": 158.5,
+      "width": 681.046875,
+      "height": 74,
+      "fontFamily": "\"Inter Variable\", \"SF Pro Display\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Open Sans\", \"Helvetica Neue\", \"Linear Thai\", sans-serif",
+      "fontSize": "15px",
+      "lineHeight": "24px",
+      "padding": "10px 14px 16px"
+    }
+  ],
+  "appGeometry": [
+    {
+      "className": "workspace-main",
+      "x": 244,
+      "y": 8,
+      "width": 1188,
+      "height": 984,
+      "textX": 245,
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+      "fontSize": "13px",
+      "lineHeight": "19.5px",
+      "padding": "0px"
+    },
+    {
+      "className": "document-title",
+      "x": 293,
+      "y": 106.5,
+      "width": 680.90625,
+      "height": 44,
+      "textX": 307,
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+      "fontSize": "24px",
+      "lineHeight": "32px",
+      "padding": "6px 14px"
+    },
+    {
+      "className": "tiptap ProseMirror document-description markdown",
+      "x": 293,
+      "y": 158.5,
+      "width": 680.90625,
+      "height": 74,
+      "textX": 307,
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+      "fontSize": "15px",
+      "lineHeight": "24px",
+      "padding": "10px 14px 16px"
+    },
+    {
+      "className": "detail-properties",
+      "x": 1015.90625,
+      "y": 55,
+      "width": 415.09375,
+      "height": 936,
+      "textX": 1018.90625,
+      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+      "fontSize": "11px",
+      "lineHeight": "16.5px",
+      "padding": "72px 32px 40px 3px"
+    }
+  ]
+}

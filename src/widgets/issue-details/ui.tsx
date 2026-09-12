@@ -1,5 +1,5 @@
-import { snapshotDraft as fromIssue, isDraftDirty } from './model';
-import { useEffect, useState, useRef, type FormEvent } from 'react';
+import { IssueProperties } from '@/features/issue-properties';
+import { useState, useRef } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -17,16 +17,9 @@ import {
   Layers,
 } from 'lucide-react';
 import type { IssueDetail, IssuePatch, Issue } from '@tickets/contracts';
-import { useIssue, StatusIcon, priorities } from '@/entities/issue';
-import {
-  useCatalog,
-  useMe,
-  useProjects,
-  useCycles,
-  useMilestones,
-  moduleEnabled,
-} from '@/entities/workspace';
-import { useIssueUpdate, useIssueWriteBusy } from '@/features/issue-edit';
+import { useIssue, StatusIcon } from '@/entities/issue';
+import { useCatalog, useMe, moduleEnabled } from '@/entities/workspace';
+import { useIssueUpdate, useIssueWriteBusy, useInlineDocument } from '@/features/issue-edit';
 import { CreateIssue } from '@/features/issue-create';
 import {
   Button,
@@ -34,6 +27,7 @@ import {
   Textarea,
   Picker,
   Markdown,
+  DocumentText,
   Avatar,
   ErrorState,
   Loading,
@@ -65,32 +59,12 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
   const { data: catalog } = useCatalog(),
     { data: me } = useMe(),
     client = useQueryClient();
-  const projects = useProjects(moduleEnabled(catalog, 'planning')),
-    cycles = useCycles(moduleEnabled(catalog, 'cycles')),
-    milestones = useMilestones(moduleEnabled(catalog, 'planning'));
   const draftKey = `ticket-draft:${me?.id}:${issue.workspace_id}:${issue.id}`;
 
-  function initialDraft() {
-    try {
-      const raw = JSON.parse(sessionStorage.getItem(draftKey) ?? 'null');
-      if (
-        raw &&
-        typeof raw.title === 'string' &&
-        typeof raw.description === 'string' &&
-        Number.isInteger(raw.version)
-      )
-        return {
-          ...raw,
-          baseTitle: typeof raw.baseTitle === 'string' ? raw.baseTitle : issue.title,
-          baseDescription:
-            typeof raw.baseDescription === 'string' ? raw.baseDescription : issue.description,
-        } as ReturnType<typeof fromIssue>;
-    } catch {}
-    return fromIssue(issue);
-  }
-  const [draft, setDraft] = useState(initialDraft),
-    [editing, setEditing] = useState(false),
-    [comment, setComment] = useState(''),
+  const document = useInlineDocument(issue, draftKey);
+  const draft = document.draft,
+    dirty = document.dirty;
+  const [comment, setComment] = useState(''),
     [relationOpen, setRelationOpen] = useState(false),
     [target, setTarget] = useState(''),
     [relationType, setRelationType] = useState('blocks'),
@@ -101,70 +75,36 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
     mutation = useIssueUpdate(),
     busy = useIssueWriteBusy(),
     readOnly = me?.role === 'viewer';
-  const dirty = isDraftDirty(draft),
-    propertiesDisabled = readOnly || busy || dirty;
-  useEffect(() => {
-    if (!dirty && draft.version !== issue.version) {
-      // oxlint-disable-next-line react/set-state-in-effect -- Synchronize a clean form with the external query cache; never overwrite a local edit.
-      setDraft({
-        title: issue.title,
-        description: issue.description,
-        version: issue.version,
-        baseTitle: issue.title,
-        baseDescription: issue.description,
-      });
-      try {
-        sessionStorage.removeItem(draftKey);
-      } catch {}
-    }
-  }, [issue.version, issue.title, issue.description, draft.version, dirty, draftKey]);
-  useEffect(() => {
-    try {
-      if (dirty) sessionStorage.setItem(draftKey, JSON.stringify(draft));
-    } catch {}
-  }, [draft, draftKey, dirty]);
-  useEffect(() => {
-    if (!dirty) return;
-    const stop = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', stop);
-    return () => window.removeEventListener('beforeunload', stop);
-  }, [dirty]);
-  function update(patch: Omit<IssuePatch, 'version'>) {
+  const propertyLock = useRef(false);
+  const [propertyPending, setPropertyPending] = useState(false);
+  const propertiesDisabled = readOnly || busy || propertyPending;
+  async function update(patch: Omit<IssuePatch, 'version'>) {
+    if (propertiesDisabled || propertyLock.current) return;
+    propertyLock.current = true;
+    setPropertyPending(true);
     setLocalError(null);
-    mutation.mutate({ issue, patch });
-  }
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    if (!draft.title.trim() || busy) return;
     try {
-      const result = await mutation.mutateAsync({
-        issue: { ...issue, version: draft.version },
-        patch: { title: draft.title, description: draft.description },
-      });
-      setDraft(fromIssue(result));
-      setEditing(false);
-      try {
-        sessionStorage.removeItem(draftKey);
-      } catch {}
-    } catch {
-      /* the mutation error is rendered; never replace the draft on conflict */
+      const current = await document.flush();
+      if (current) await mutation.mutateAsync({ issue: current, patch });
+    } catch (e) {
+      setLocalError(errorMessage(e));
+    } finally {
+      propertyLock.current = false;
+      setPropertyPending(false);
     }
   }
   function discard() {
-    if (dirty && !window.confirm('Discard your local title and description changes?')) return;
-    setDraft(fromIssue(issue));
-    setEditing(false);
-    try {
-      sessionStorage.removeItem(draftKey);
-    } catch {}
+    if (!dirty || window.confirm('Discard the local title and description edits?'))
+      document.discard();
   }
+  const commentRevision = useRef(0);
   const action = useMutation({
-    mutationFn: async (input: { kind: string; data?: unknown }) => {
+    mutationFn: async (input: { kind: string; data?: unknown; revision?: number }) => {
       if (input.kind === 'comment')
-        return api(`/v1/issues/${issue.id}/comments`, { method: 'POST', json: { body: comment } });
+        return api(`/v1/issues/${issue.id}/comments`, {
+          method: 'POST',
+          json: { body: input.data },
+        });
       if (input.kind === 'subscription')
         return api(`/v1/issues/${issue.id}/subscription`, {
           method: issue.subscribed ? 'DELETE' : 'POST',
@@ -183,7 +123,8 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
     onSuccess: (_result, variables) => {
       void client.invalidateQueries({ queryKey: ['issue', issue.id] });
       void client.invalidateQueries({ queryKey: ['notifications'] });
-      if (variables.kind === 'comment') setComment('');
+      if (variables.kind === 'comment' && variables.revision === commentRevision.current)
+        setComment('');
       if (variables.kind === 'relation') {
         setRelationOpen(false);
         setTarget('');
@@ -225,7 +166,6 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
     }
   }
   const [uploading, setUploading] = useState(false);
-  const none = (label: string) => ({ value: 'none', label });
   return (
     <>
       <header className="issue-detail-toolbar">
@@ -261,6 +201,15 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
       </header>
       <div className="detail-layout">
         <div className="detail-main">
+          <DocumentText
+            title={draft.title}
+            description={draft.description}
+            onChange={document.change}
+            onCommit={document.commit}
+            onEditStart={document.beginEdit}
+            onEditEnd={document.endEdit}
+            readOnly={readOnly}
+          />
           {dirty && (
             <output className="draft-banner">
               Local draft preserved.
@@ -272,79 +221,61 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
               </Button>
             </output>
           )}
-          <form onSubmit={save} className="issue-content-form">
-            <Input
-              aria-label="Title"
-              className="detail-title"
-              value={draft.title}
-              onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-              maxLength={300}
-              disabled={readOnly}
-              required
-            />
-            <div className="description-tabs">
-              <button
-                type="button"
-                className={!editing ? 'active' : ''}
-                onClick={() => setEditing(false)}
-              >
-                Preview
-              </button>
-              <button
-                type="button"
-                className={editing ? 'active' : ''}
-                onClick={() => setEditing(true)}
-                disabled={readOnly}
-              >
-                Markdown
-              </button>
-              <span>Markdown · GFM</span>
+          {(document.busy || document.error || document.storageError) && (
+            <div className="document-feedback" aria-live="polite">
+              {document.busy && <span className="muted">Saving…</span>}
+              {document.error && (
+                <>
+                  <ErrorState message={document.error} />
+                  {!document.conflict && (
+                    <Button
+                      disabled={readOnly || document.busy}
+                      variant="ghost"
+                      size="sm"
+                      onClick={document.retry}
+                    >
+                      Retry save
+                    </Button>
+                  )}
+                </>
+              )}
+              {document.storageError && (
+                <ErrorState message="Browser storage is unavailable. Keep this page open until your edits are saved." />
+              )}
             </div>
-            {editing ? (
-              <Textarea
-                aria-label="Description"
-                className="detail-description"
-                value={draft.description}
-                maxLength={100000}
-                onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-                placeholder="Add context, acceptance criteria, and links…"
-              />
-            ) : (
-              <div className="description-preview">
-                {draft.description ? (
-                  <Markdown>{draft.description}</Markdown>
-                ) : (
-                  <button
-                    type="button"
-                    className="description-empty"
-                    onClick={() => setEditing(true)}
-                    disabled={readOnly}
-                  >
-                    Add a description…
-                  </button>
-                )}
-              </div>
-            )}
-            {(dirty || editing) && (
-              <div className="save-bar">
-                <span className="muted">{dirty ? 'Unsaved changes' : 'No changes'}</span>
-                <Button size="sm" type="button" variant="ghost" onClick={discard}>
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  variant="default"
-                  type="submit"
-                  disabled={!dirty || busy || !draft.title.trim()}
-                >
-                  {busy ? 'Saving…' : 'Save changes'}
-                </Button>
-              </div>
-            )}
-          </form>
+          )}
+          {document.conflict && (
+            <section className="document-feedback" aria-label="Resolve issue conflict">
+              <h3>A newer server version exists</h3>
+              <p>
+                Your draft is kept. Server version {document.conflict.version}:{' '}
+                <strong>{document.conflict.title}</strong>
+              </p>
+              <Markdown>{document.conflict.description}</Markdown>
+              <Button disabled={document.busy} onClick={discard}>
+                Use server version
+              </Button>
+              <Button
+                disabled={readOnly || document.busy}
+                variant="ghost"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'Replace the server title and description with your local draft? Newer concurrent edits will still cause a conflict.',
+                    )
+                  )
+                    document.resolveConflict();
+                }}
+              >
+                Keep my issue draft
+              </Button>
+            </section>
+          )}
           {mutation.error && <ErrorState message={errorMessage(mutation.error)} />}{' '}
           {localError && <ErrorState message={localError} />}
-          <section className="detail-section">
+          <section
+            className={'detail-section' + (issue.children.length ? '' : ' empty-detail-section')}
+          >
             <header>
               <h3>
                 Sub-issues <span>{issue.children.length}</span>
@@ -356,7 +287,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                 disabled={readOnly}
               >
                 <Plus size={14} />
-                Add
+                Add sub-issue
               </Button>
             </header>
             {issue.children.map((child) => (
@@ -376,7 +307,9 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
               </p>
             )}
           </section>
-          <section className="detail-section">
+          <section
+            className={'detail-section' + (issue.relations.length ? '' : ' empty-detail-section')}
+          >
             <header>
               <h3>
                 Relationships <span>{issue.relations.length}</span>
@@ -425,7 +358,11 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             })}
           </section>
           {moduleEnabled(catalog, 'attachments') && (
-            <section className="detail-section">
+            <section
+              className={
+                'detail-section' + (issue.attachments.length ? '' : ' empty-detail-section')
+              }
+            >
               <header>
                 <h3>
                   Attachments <span>{issue.attachments.length}</span>
@@ -529,13 +466,21 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                 className="comment-form"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (comment.trim()) action.mutate({ kind: 'comment' });
+                  if (comment.trim())
+                    action.mutate({
+                      kind: 'comment',
+                      data: comment,
+                      revision: commentRevision.current,
+                    });
                 }}
               >
                 <Textarea
                   aria-label="Comment"
                   value={comment}
-                  onChange={(e) => setComment(e.target.value)}
+                  onChange={(e) => {
+                    commentRevision.current++;
+                    setComment(e.target.value);
+                  }}
                   placeholder="Leave a comment…"
                   maxLength={50000}
                 />
@@ -551,161 +496,11 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
           </section>
         </div>
         <aside className="detail-properties" aria-label="Issue properties">
-          <h3>Properties</h3>
-          {dirty && (
-            <p className="section-hint">Save the description before changing properties.</p>
-          )}
-          <div className="property-row">
-            <span>Status</span>
-            <Picker
-              aria-label="Status"
-              value={issue.status_id}
-              options={
-                catalog?.statuses
-                  .filter((s) => s.team_id === issue.team_id)
-                  .map((s) => ({ value: s.id, label: s.name })) ?? []
-              }
-              onChange={(status_id) => update({ status_id })}
-              disabled={propertiesDisabled}
-            />
-          </div>
-          <div className="property-row">
-            <span>Priority</span>
-            <Picker
-              aria-label="Priority"
-              value={String(issue.priority)}
-              options={priorities}
-              onChange={(v) => update({ priority: Number(v) })}
-              disabled={propertiesDisabled}
-            />
-          </div>
-          <div className="property-row">
-            <span>Assignee</span>
-            <Picker
-              aria-label="Assignee"
-              value={issue.assignee_id ?? 'none'}
-              options={[
-                none('Unassigned'),
-                ...(catalog?.people.map((p) => ({ value: p.id, label: p.name })) ?? []),
-              ]}
-              onChange={(v) => update({ assignee_id: v === 'none' ? null : v })}
-              disabled={propertiesDisabled}
-            />
-          </div>
-          <div className="property-row">
-            <span>Estimate</span>
-            <Picker
-              aria-label="Estimate"
-              value={issue.estimate === null ? 'none' : String(issue.estimate)}
-              options={[
-                none('No estimate'),
-                ...[0, 1, 2, 3, 5, 8, 13, 21].map((v) => ({
-                  value: String(v),
-                  label: String(v) + ' points',
-                })),
-                ...(![0, 1, 2, 3, 5, 8, 13, 21].includes(issue.estimate ?? -1) &&
-                issue.estimate !== null
-                  ? [{ value: String(issue.estimate), label: String(issue.estimate) + ' points' }]
-                  : []),
-              ]}
-              onChange={(v) => update({ estimate: v === 'none' ? null : Number(v) })}
-              disabled={propertiesDisabled}
-            />
-          </div>
-          <div className="property-row">
-            <span>Start date</span>
-            <Input
-              aria-label="Start date"
-              type="date"
-              value={issue.start_date ?? ''}
-              onChange={(e) => update({ start_date: e.target.value || null })}
-              disabled={propertiesDisabled}
-            />
-          </div>
-          <div className="property-row">
-            <span>Due date</span>
-            <Input
-              aria-label="Due date"
-              type="date"
-              value={issue.due_date ?? ''}
-              onChange={(e) => update({ due_date: e.target.value || null })}
-              disabled={propertiesDisabled}
-            />
-          </div>
-          {moduleEnabled(catalog, 'planning') && (
-            <>
-              <div className="property-section-title">Project</div>
-              <Picker
-                aria-label="Project"
-                value={issue.project_id ?? 'none'}
-                options={[
-                  none('No project'),
-                  ...(projects.data
-                    ?.filter((p) => p.team_ids.includes(issue.team_id))
-                    .map((p) => ({ value: p.id, label: p.name })) ?? []),
-                ]}
-                onChange={(v) =>
-                  update({ project_id: v === 'none' ? null : v, milestone_id: null })
-                }
-                disabled={propertiesDisabled}
-              />
-              {issue.project_id && (
-                <div className="property-row">
-                  <span>Milestone</span>
-                  <Picker
-                    aria-label="Milestone"
-                    value={issue.milestone_id ?? 'none'}
-                    options={[
-                      none('No milestone'),
-                      ...(milestones.data
-                        ?.filter((m) => m.project_id === issue.project_id)
-                        .map((m) => ({ value: m.id, label: m.name })) ?? []),
-                    ]}
-                    onChange={(v) => update({ milestone_id: v === 'none' ? null : v })}
-                    disabled={propertiesDisabled}
-                  />
-                </div>
-              )}
-            </>
-          )}
-          {moduleEnabled(catalog, 'cycles') && (
-            <>
-              <div className="property-section-title">Cycle</div>
-              <Picker
-                aria-label="Cycle"
-                value={issue.cycle_id ?? 'none'}
-                options={[
-                  none('No cycle'),
-                  ...(cycles.data
-                    ?.filter((c) => c.team_id === issue.team_id)
-                    .map((c) => ({ value: c.id, label: c.name })) ?? []),
-                ]}
-                onChange={(v) => update({ cycle_id: v === 'none' ? null : v })}
-                disabled={propertiesDisabled}
-              />
-            </>
-          )}
-          <div className="property-section-title">Labels</div>
-          <div className="labels-editor">
-            {catalog?.labels.map((l) => (
-              <label className="label-choice" key={l.id}>
-                <input
-                  type="checkbox"
-                  checked={issue.label_ids.includes(l.id)}
-                  disabled={propertiesDisabled}
-                  onChange={(e) =>
-                    update({
-                      label_ids: e.target.checked
-                        ? [...issue.label_ids, l.id]
-                        : issue.label_ids.filter((id) => id !== l.id),
-                    })
-                  }
-                />
-                <span style={{ color: l.color }}>●</span>
-                {l.name}
-              </label>
-            ))}
-          </div>
+          <IssueProperties
+            value={issue}
+            onChange={(patch) => void update(patch)}
+            disabled={propertiesDisabled}
+          />
           <div className="property-section-title">More</div>
           <Button
             size="sm"
@@ -719,7 +514,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                     : 'Archive this issue?',
                 )
               )
-                update({ archived: !issue.archived_at });
+                void update({ archived: !issue.archived_at });
             }}
           >
             <Archive size={14} />

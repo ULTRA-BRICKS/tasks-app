@@ -24,7 +24,16 @@ export function toType(schema) {
   throw new Error('Unrecognized request schema');
 }
 const operations = [
+  ['/v1/workspace/policy', 'get', null, 'Read workspace invitation-domain policy', 'admin'],
+  [
+    '/v1/workspace/policy',
+    'patch',
+    'WorkspacePolicyPatch',
+    'Update versioned invitation-domain policy',
+    'admin',
+  ],
   ['/health', 'get', null, 'Service health', 'public'],
+  ['/ready', 'get', null, 'Read-only schema and owner readiness', 'public'],
   ['/auth/login', 'post', 'Login', 'Create an HttpOnly session', 'public'],
   ['/auth/logout', 'post', null, 'Revoke current session', 'read'],
   ['/auth/accept-invite', 'post', 'AcceptInvite', 'Accept a single-use invitation', 'public'],
@@ -103,6 +112,7 @@ const operations = [
   ['/v1/milestones', 'get', null, 'List project milestones', 'read'],
   ['/v1/milestones', 'post', 'Milestone', 'Create project milestone', 'write'],
   ['/v1/cycles', 'get', null, 'List team cycles', 'read'],
+  ['/v1/cycles/{id}', 'patch', 'CyclePatch', 'Update cycle using expected version', 'write'],
   ['/v1/cycles', 'post', 'Cycle', 'Create time-boxed cycle', 'write'],
   ['/v1/views', 'get', null, 'List own and shared saved views', 'read'],
   ['/v1/views', 'post', 'View', 'Create a private or shared saved filter', 'write'],
@@ -220,6 +230,45 @@ export function generateOpenAPI() {
         503: { description: 'Provider or production configuration missing' },
       },
     };
+    if (path === '/ready') {
+      operation.responses[200] = {
+        description: 'Exact schema and workspace owner are ready',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['status'],
+              additionalProperties: false,
+              properties: { status: { const: 'ready' } },
+            },
+          },
+        },
+      };
+      operation.responses[503] = {
+        description:
+          'Database, migrations, or first owner still require setup; no initialization is performed',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['status', 'code'],
+              additionalProperties: false,
+              properties: {
+                status: { const: 'not_ready' },
+                code: {
+                  enum: [
+                    'MIGRATION_REQUIRED',
+                    'OWNER_SETUP_REQUIRED',
+                    'DATABASE_SETUP_REQUIRED',
+                    'PRODUCTION_CONFIG_REQUIRED',
+                  ],
+                },
+              },
+            },
+          },
+        },
+      };
+    }
     if (['public', 'webhook'].includes(scope)) operation.security = [];
     if (scope === 'worker') operation.security = [{ workerSecret: [] }];
     operation.parameters = [];
@@ -280,7 +329,7 @@ export function generateOpenAPI() {
       title: 'tickets-app API',
       version: '0.1.0',
       description:
-        'Modular workspace-scoped issue tracker. JSON snake_case fields, UUID identifiers, date-only YYYY-MM-DD values, ISO UTC timestamps. PATCH issue/project/comment requires expected version. Cookie mutations require X-Tickets-CSRF: 1 and a matching Origin when provided. Personal tokens use Authorization: Bearer. All endpoints are private except health, OpenAPI, login, invitation acceptance and signature-verified webhook receivers. Errors use {error:{code,message,details?,request_id}}. This API is not wire-compatible with Linear GraphQL.',
+        'Modular workspace-scoped issue tracker. JSON snake_case fields, UUID identifiers, date-only YYYY-MM-DD values, ISO UTC timestamps. PATCH issue/project/comment requires expected version. Cookie mutations require X-Tickets-CSRF: 1 and a matching Origin when provided. Personal tokens use Authorization: Bearer. All endpoints are private except health, readiness, OpenAPI, login, invitation acceptance and signature-verified webhook receivers. Errors use {error:{code,message,details?,request_id}}. This API is not wire-compatible with Linear GraphQL.',
     },
     servers: [{ url: '/api' }],
     security: [{ sessionCookie: [] }, { bearer: [] }],
@@ -299,7 +348,7 @@ export function outputs() {
   return {
     'docs/openapi.json': JSON.stringify(generateOpenAPI(), null, 2) + '\n',
     'packages/contracts/request-types.ts':
-      '// Generated from schemas.mjs. Run npm run api:generate.\n' +
+      '// Generated from schemas.mjs. Run bun run api:generate.\n' +
       Object.entries(schemas)
         .map(([name, schema]) => `export type ${name} = ${toType(schema)};`)
         .join('\n') +

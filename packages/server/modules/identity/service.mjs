@@ -1,3 +1,4 @@
+import { assertEmailAllowed } from './policy.mjs';
 import { id, now, secret, sha256, hashPassword, verifyPassword } from '../../core/crypto.mjs';
 import { assert, requirePermission, missing } from '../../core/errors.mjs';
 import { MODULES } from '../../core/modules.mjs';
@@ -200,6 +201,8 @@ export async function authenticate(tx, { bearer, cookie }) {
 export async function invite(tx, actor, input) {
   requirePermission(actor, 'admin');
   const email = input.email.trim().toLowerCase();
+  await tx.lock(actor.workspace_id);
+  await assertEmailAllowed(tx, actor.workspace_id, email);
   assert(
     !(await tx.one(
       'SELECT u.id FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=? AND u.email=?',
@@ -226,6 +229,19 @@ export async function invite(tx, actor, input) {
   return { ...invitation, token }; // returned once; never logged, never stored as plaintext
 }
 export async function acceptInvite(db, input) {
+  // Reject invalid/disallowed tokens before expensive password work, then recheck
+  // inside the write transaction because policies and token state can change.
+  await db.transaction(
+    async (tx) => {
+      const invite = await tx.one(
+        'SELECT * FROM invitations WHERE hash=? AND used_at IS NULL AND expires_at>?',
+        [sha256(input.token), now()],
+      );
+      assert(invite, 410, 'INVITE_EXPIRED', 'Invitation is invalid, expired, or already used');
+      await assertEmailAllowed(tx, invite.workspace_id, invite.email);
+    },
+    { readOnly: true },
+  );
   const passwordHash = await hashPassword(input.password);
   return db.transaction(async (tx) => {
     await tx.lock('tickets-app:accept-invite');
@@ -234,6 +250,8 @@ export async function acceptInvite(db, input) {
       [sha256(input.token), now()],
     );
     assert(invitation, 410, 'INVITE_EXPIRED', 'Invitation is invalid, expired, or already used');
+    await tx.lock(invitation.workspace_id);
+    await assertEmailAllowed(tx, invitation.workspace_id, invitation.email);
     const existing = await tx.one('SELECT * FROM users WHERE email=?', [invitation.email]);
     // An invitation is never allowed to reset an existing account password.
     assert(

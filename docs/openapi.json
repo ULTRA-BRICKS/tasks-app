@@ -3,7 +3,7 @@
   "info": {
     "title": "tickets-app API",
     "version": "0.1.0",
-    "description": "Modular workspace-scoped issue tracker. JSON snake_case fields, UUID identifiers, date-only YYYY-MM-DD values, ISO UTC timestamps. PATCH issue/project/comment requires expected version. Cookie mutations require X-Tickets-CSRF: 1 and a matching Origin when provided. Personal tokens use Authorization: Bearer. All endpoints are private except health, OpenAPI, login, invitation acceptance and signature-verified webhook receivers. Errors use {error:{code,message,details?,request_id}}. This API is not wire-compatible with Linear GraphQL."
+    "description": "Modular workspace-scoped issue tracker. JSON snake_case fields, UUID identifiers, date-only YYYY-MM-DD values, ISO UTC timestamps. PATCH issue/project/comment requires expected version. Cookie mutations require X-Tickets-CSRF: 1 and a matching Origin when provided. Personal tokens use Authorization: Bearer. All endpoints are private except health, readiness, OpenAPI, login, invitation acceptance and signature-verified webhook receivers. Errors use {error:{code,message,details?,request_id}}. This API is not wire-compatible with Linear GraphQL."
   },
   "servers": [
     {
@@ -19,6 +19,94 @@
     }
   ],
   "paths": {
+    "/v1/workspace/policy": {
+      "get": {
+        "summary": "Read workspace invitation-domain policy",
+        "operationId": "get_v1_workspace_policy",
+        "x-required-scope": "admin",
+        "tags": [
+          "workspace"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "parameters": []
+      },
+      "patch": {
+        "summary": "Update versioned invitation-domain policy",
+        "operationId": "patch_v1_workspace_policy",
+        "x-required-scope": "admin",
+        "tags": [
+          "workspace"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspacePolicyPatch"
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Service health",
@@ -54,6 +142,88 @@
           },
           "503": {
             "description": "Provider or production configuration missing"
+          }
+        },
+        "security": [],
+        "parameters": []
+      }
+    },
+    "/ready": {
+      "get": {
+        "summary": "Read-only schema and owner readiness",
+        "operationId": "get_ready",
+        "x-required-scope": "public",
+        "tags": [
+          "ready"
+        ],
+        "responses": {
+          "200": {
+            "description": "Exact schema and workspace owner are ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": {
+                      "const": "ready"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Database, migrations, or first owner still require setup; no initialization is performed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "code"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": {
+                      "const": "not_ready"
+                    },
+                    "code": {
+                      "enum": [
+                        "MIGRATION_REQUIRED",
+                        "OWNER_SETUP_REQUIRED",
+                        "DATABASE_SETUP_REQUIRED",
+                        "PRODUCTION_CONFIG_REQUIRED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "security": [],
@@ -1766,6 +1936,66 @@
         }
       }
     },
+    "/v1/cycles/{id}": {
+      "patch": {
+        "summary": "Update cycle using expected version",
+        "operationId": "patch_v1_cycles__id_",
+        "x-required-scope": "write",
+        "tags": [
+          "cycles"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Resource identifier"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CyclePatch"
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/views": {
       "get": {
         "summary": "List own and shared saved views",
@@ -2654,6 +2884,29 @@
       }
     },
     "schemas": {
+      "WorkspacePolicyPatch": {
+        "type": "object",
+        "properties": {
+          "allowed_email_domains": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253
+            },
+            "maxItems": 50
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "allowed_email_domains",
+          "version"
+        ],
+        "additionalProperties": false
+      },
       "IssueCreate": {
         "type": "object",
         "properties": {
@@ -3570,6 +3823,32 @@
         "required": [
           "project_id",
           "name"
+        ],
+        "additionalProperties": false
+      },
+      "CyclePatch": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "version"
         ],
         "additionalProperties": false
       },

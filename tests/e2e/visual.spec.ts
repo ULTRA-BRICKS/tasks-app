@@ -22,6 +22,7 @@ test('issue detail — long description and property rail', async ({ page }) => 
   await login(page);
   await page.getByRole('button', { name: /Preserve drafts when switching/ }).click();
   await expect(page.getByLabel('Title', { exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Description', exact: true })).toBeVisible();
   await expect(page).toHaveScreenshot('issue-detail.png');
 });
 test('issue list — narrow viewport', async ({ page }) => {
@@ -29,9 +30,11 @@ test('issue list — narrow viewport', async ({ page }) => {
   await login(page);
   await expect(page).toHaveScreenshot('issues-mobile.png');
 });
-test('new issue — dialog', async ({ page }) => {
+test('new issue — inline document page', async ({ page }) => {
   await login(page);
   await page.getByRole('button', { name: 'New issue', exact: true }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page).toHaveURL(/\/issues\/new$/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('.document-description[contenteditable=true]')).toBeVisible();
   await expect(page).toHaveScreenshot('create-issue.png');
 });

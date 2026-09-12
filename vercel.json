@@ -8,13 +8,22 @@
   "regions": ["fra1"],
   "functions": {
     "api/index.mjs": {
-      "maxDuration": 30,
-      "includeFiles": "{packages/db/*.sql,packages/linear/schema.graphql,docs/openapi.json}"
+      "maxDuration": 60,
+      "includeFiles": "{packages/db/migrations/*.sql,packages/linear/schema.graphql,docs/openapi.json}"
     }
   },
   "rewrites": [
-    { "source": "/graphql", "destination": "/api/index" },
-    { "source": "/api/:path*", "destination": "/api/index" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/graphql",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

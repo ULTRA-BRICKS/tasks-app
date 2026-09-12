@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { resolveDevelopment } from '../config/development.mjs';
 import { parseArgs } from 'node:util';
 import { readFile, writeFile, mkdir, chmod } from 'node:fs/promises';
 import { homedir } from 'node:os';
@@ -96,7 +97,8 @@ async function main() {
     return;
   }
   const config = await load(),
-    url = o.url || process.env.TICKETS_URL || config.url || 'http://localhost:8787';
+    url =
+      o.url || process.env.TICKETS_URL || config.url || resolveDevelopment(process.env).apiTarget;
   if (p[0] === 'auth' && p[1] === 'login') {
     if (process.stdin.isTTY)
       throw new Error('Pipe a personal API token from Settings → API tokens into this command.');

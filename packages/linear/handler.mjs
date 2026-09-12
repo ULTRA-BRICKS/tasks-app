@@ -1,3 +1,4 @@
+import { applicationOrigin, isAllowedOrigin } from '../config/development.mjs';
 import {
   buildSchema,
   parse,
@@ -470,10 +471,10 @@ function budgeted(tx) {
 }
 export function withLinear(app, { db, env = process.env }) {
   const secret = env.AUTH_SECRET ?? crypto.randomUUID();
-  const origin = new URL(env.APP_URL ?? 'http://localhost:5173').origin;
+  const origin = applicationOrigin(env);
   return {
     async fetch(request) {
-      if (new URL(request.url).pathname.replace(/\/$/, '') !== '/graphql')
+      if (!['/graphql', '/api/graphql'].includes(new URL(request.url).pathname.replace(/\/$/, '')))
         return app.fetch(request);
       let status = 200,
         result;
@@ -489,7 +490,7 @@ export function withLinear(app, { db, env = process.env }) {
         const bearer = authorization?.replace(/^Bearer /, '');
         if (!bearer) {
           assert(
-            !request.headers.get('origin') || request.headers.get('origin') === origin,
+            !request.headers.get('origin') || isAllowedOrigin(request.headers.get('origin'), env),
             403,
             'ORIGIN_NOT_ALLOWED',
             'Origin is not allowed',

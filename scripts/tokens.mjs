@@ -111,7 +111,7 @@ export function generate(tree) {
     JSON.stringify(manifest, null, 2) +
     ' as const;\nexport type TokenName = keyof typeof tokens;\n';
   const md =
-    '# Generated token reference\n\nSource: `tokens/tickets.tokens.json`. Run `npm run tokens:build`.\n\n| Token | Type | CSS |\n|---|---|---|\n' +
+    '# Generated token reference\n\nSource: `tokens/tickets.tokens.json`. Run `bun run tokens:build`.\n\n| Token | Type | CSS |\n|---|---|---|\n' +
     [...tokens].map(([p, t]) => `| \`${p}\` | ${t.type} | \`${t.css}\` |`).join('\n') +
     '\n';
   return {

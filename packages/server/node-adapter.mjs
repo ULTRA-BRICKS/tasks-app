@@ -1,5 +1,6 @@
 import { Readable } from 'node:stream';
-export function nodeHandler(app, baseUrl = 'http://localhost:8787') {
+import { resolveDevelopment } from '../config/development.mjs';
+export function nodeHandler(app, baseUrl = resolveDevelopment(process.env).apiTarget) {
   return async function (req, res) {
     try {
       const method = req.method ?? 'GET';
