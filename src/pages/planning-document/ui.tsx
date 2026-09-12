@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { mergeVersioned } from '@/shared/lib/versioned';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, Folder, CalendarRange } from 'lucide-react';
@@ -32,6 +33,24 @@ interface Draft {
   version: number;
   attempt?: { key: string; input: Record<string, unknown> };
 }
+function planDraft(server: Plan | undefined, team = ''): Draft {
+  return {
+    name: server?.name ?? '',
+    description: server?.description ?? '',
+    team: server?.team_id ?? server?.team_ids?.[0] ?? team,
+    start: server?.start_date ?? '',
+    end: server?.target_date ?? server?.end_date ?? '',
+    status: server?.status ?? 'planned',
+    health: server?.health ?? 'on_track',
+    lead: server?.lead_id ?? null,
+    version: server?.version ?? 0,
+  };
+}
+function sameDraft(a: Draft, b: Draft) {
+  return (
+    ['name', 'description', 'team', 'start', 'end', 'status', 'health', 'lead'] as const
+  ).every((k) => a[k] === b[k]);
+}
 export function PlanningDocumentPage({ kind }: { kind: 'projects' | 'cycles' }) {
   const { id } = useParams(),
     { data: catalog } = useCatalog();
@@ -47,6 +66,21 @@ export function PlanningDocumentPage({ kind }: { kind: 'projects' | 'cycles' }) 
     return <ErrorState message="This item was not found in your workspace." />;
   return <PlanEditor key={kind + id} kind={kind} existing={existing} />;
 }
+function serverPlan(server: Plan, current: Draft): Draft {
+  return {
+    ...current,
+    name: server.name,
+    description: server.description ?? '',
+    team: server.team_id ?? server.team_ids?.[0] ?? current.team,
+    start: server.start_date ?? '',
+    end: server.target_date ?? server.end_date ?? '',
+    status: server.status ?? 'planned',
+    health: server.health ?? 'on_track',
+    lead: server.lead_id ?? null,
+    version: server.version,
+    attempt: undefined,
+  };
+}
 function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?: Plan }) {
   const { data: catalog } = useCatalog(),
     { data: me } = useMe(),
@@ -55,17 +89,7 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
   const noun = kind === 'projects' ? 'project' : 'cycle',
     readonly = me?.role === 'viewer';
   const storageKey = `plan-draft:${me?.workspace_id}:${me?.id}:${kind}:${existing?.id ?? 'new'}`;
-  const initial: Draft = {
-    name: existing?.name ?? '',
-    description: existing?.description ?? '',
-    team: existing?.team_id ?? existing?.team_ids?.[0] ?? catalog?.teams[0]?.id ?? '',
-    start: existing?.start_date ?? '',
-    end: existing?.target_date ?? existing?.end_date ?? '',
-    status: existing?.status ?? 'planned',
-    health: existing?.health ?? 'on_track',
-    lead: existing?.lead_id ?? null,
-    version: existing?.version ?? 0,
-  };
+  const initial = planDraft(existing, catalog?.teams[0]?.id ?? '');
   const [draft, setDraft] = useState<Draft>(() => {
     try {
       const saved = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null') as Draft | null;
@@ -79,16 +103,42 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
     } catch {}
     return initial;
   });
+  const base = useRef(initial);
   const current = useRef(draft),
     version = useRef(draft.version),
     lock = useRef(false),
-    requested = useRef(false);
+    requested = useRef(false),
+    unsaved = useRef(!sameDraft(draft, initial)),
+    editing = useRef(false),
+    latestServer = useRef(existing);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<string | null>(null),
     [conflict, setConflict] = useState<Plan | null>(null),
     [storageError, setStorageError] = useState(false);
+  const syncClean = useCallback(() => {
+    const server = latestServer.current;
+    if (
+      !server ||
+      server.version <= version.current ||
+      unsaved.current ||
+      editing.current ||
+      lock.current
+    )
+      return;
+    const next = serverPlan(server, current.current);
+    base.current = next;
+    version.current = server.version;
+    current.current = next;
+    setDraft(next);
+  }, []);
+  useEffect(() => {
+    if (existing && (!latestServer.current || existing.version >= latestServer.current.version))
+      latestServer.current = existing;
+    syncClean();
+  }, [existing, syncClean]);
   function change(patch: Partial<Draft>) {
     const next = { ...current.current, ...patch };
+    unsaved.current = !sameDraft(next, base.current);
     current.current = next;
     setDraft(next);
     try {
@@ -118,6 +168,10 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
   }
   async function save() {
     if (readonly) return;
+    if (existing && !unsaved.current) {
+      syncClean();
+      return;
+    }
     requested.current = true;
     if (lock.current) return;
     lock.current = true;
@@ -144,19 +198,31 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
             json: existing ? { ...input, version: version.current } : input,
             ...(key ? { headers: { 'idempotency-key': key } } : {}),
           });
-          version.current = result.version;
-          change({ version: result.version });
+          if (!latestServer.current || result.version >= latestServer.current.version)
+            latestServer.current = result;
+          version.current = Math.max(version.current, result.version);
+          base.current = planDraft(result, sent.team);
+          change({ version: version.current });
           setError(null);
           setConflict(null);
           const unchanged =
             JSON.stringify(payload(current.current)) === JSON.stringify(payload(sent));
+          if (unchanged) unsaved.current = false;
           if (unchanged)
             try {
               sessionStorage.removeItem(storageKey);
             } catch {
               setStorageError(true);
             }
-          await client.invalidateQueries({ queryKey: [kind] });
+          // Preserve list statistics/team membership and reject older acknowledgements.
+          client.setQueryData<Plan[]>([kind], (old) =>
+            old
+              ? existing
+                ? old.map((p) => (p.id === result.id ? mergeVersioned(p, result) : p))
+                : [result, ...old.filter((p) => p.id !== result.id)]
+              : old,
+          );
+          void client.invalidateQueries({ queryKey: [kind], refetchType: 'none' });
           if (!existing) {
             void navigate('/' + kind + '/' + result.id, { replace: true });
             break;
@@ -183,13 +249,17 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
     } finally {
       lock.current = false;
       setBusy(false);
+      syncClean();
     }
   }
   function applyServerVersion(server: Plan) {
     if (busy || !window.confirm('Discard these local edits and use the current server version?'))
       return;
     version.current = server.version;
+    latestServer.current = server;
+    base.current = planDraft(server, current.current.team);
     change({
+      team: server.team_id ?? server.team_ids?.[0] ?? current.current.team,
       name: server.name,
       description: server.description ?? '',
       start: server.start_date ?? '',
@@ -205,6 +275,7 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
     } catch {
       setStorageError(true);
     }
+    unsaved.current = false;
     setConflict(null);
     setError(null);
   }
@@ -268,6 +339,15 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
           {kind === 'projects' ? (
             <DocumentText
               title={draft.name}
+              titlePlaceholder="Project name"
+              titleMaxLength={200}
+              onEditStart={() => {
+                editing.current = true;
+              }}
+              onEditEnd={() => {
+                editing.current = false;
+                syncClean();
+              }}
               description={draft.description}
               onChange={(field, value) =>
                 change({ [field === 'title' ? 'name' : 'description']: value })
@@ -281,6 +361,14 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
             <InlineTitle
               value={draft.name}
               placeholder="Cycle name"
+              maxLength={200}
+              onEditStart={() => {
+                editing.current = true;
+              }}
+              onEditEnd={() => {
+                editing.current = false;
+                syncClean();
+              }}
               onChange={(name) => change({ name })}
               onCommit={() => {
                 if (existing) void save();

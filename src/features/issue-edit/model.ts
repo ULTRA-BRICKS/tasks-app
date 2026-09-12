@@ -1,3 +1,4 @@
+import { mergeVersioned } from '@/shared/lib/versioned';
 import {
   useMutation,
   useQueryClient,
@@ -32,11 +33,36 @@ export function useIssueUpdate() {
       );
       return { lists };
     },
-    onError: (_error, _variables, context) =>
-      context?.lists.forEach(([key, data]) => client.setQueryData(key, data)),
+    onError: (_error, { issue, patch }, context) => {
+      context?.lists.forEach(([key, previous]) => {
+        const original = previous?.pages.flatMap((p) => p.data).find((row) => row.id === issue.id);
+        const serializedPatch = Object.entries(patch).map(([key, value]) => [
+          key,
+          JSON.stringify(value),
+        ]);
+        client.setQueryData<InfiniteData<Page<Issue>>>(key, (current) =>
+          current
+            ? {
+                ...current,
+                pages: current.pages.map((p) => ({
+                  ...p,
+                  data: p.data.map((row) => {
+                    if (row.id !== issue.id || row.version !== issue.version) return row;
+                    const stillOurPatch = serializedPatch.every(
+                      ([key, value]) =>
+                        JSON.stringify((row as unknown as Record<string, unknown>)[key]) === value,
+                    );
+                    return stillOurPatch ? (original ?? row) : row;
+                  }),
+                })),
+              }
+            : current,
+        );
+      });
+    },
     onSuccess: (updated) => {
       client.setQueryData<IssueDetail>(['issue', updated.id], (old) =>
-        old ? { ...old, ...updated } : old,
+        old ? mergeVersioned(old, updated) : old,
       );
     },
     onSettled: () => {

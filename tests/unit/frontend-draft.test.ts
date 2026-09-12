@@ -1,3 +1,4 @@
+import { mergeVersioned } from '../../src/shared/lib/versioned';
 import { test, expect } from 'bun:test';
 import {
   freshDraft,
@@ -36,4 +37,14 @@ test('corrupt or oversized browser drafts cannot break issue rendering', () => {
   expect(restoreDocument(JSON.stringify({ ...freshDraft(base), title: 'Local' }), base).title).toBe(
     'Local',
   );
+});
+
+test('delayed write responses cannot regress a newer cached version', () => {
+  const current = { version: 3, title: 'Remote update', description: 'Keep me' };
+  expect(mergeVersioned(current, { version: 2, title: 'Old response' })).toBe(current);
+  expect(mergeVersioned(current, { version: 4, title: 'Latest' })).toEqual({
+    ...current,
+    version: 4,
+    title: 'Latest',
+  });
 });

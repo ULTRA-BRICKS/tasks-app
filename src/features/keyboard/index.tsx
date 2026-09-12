@@ -11,14 +11,22 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
   useEffect(() => {
     let chordUntil = 0;
     const listener = (e: KeyboardEvent) => {
-      if (shortcutGuard(e)) return;
+      if (e.defaultPrevented || e.isComposing) return;
+      if (document.querySelector('[role="dialog"],[role="menu"],[role="listbox"]')) return;
       const key = e.key.toLowerCase();
-      if ((e.metaKey || e.ctrlKey) && key === 'k') {
+      if (
+        !e.isComposing &&
+        !e.defaultPrevented &&
+        (e.metaKey || e.ctrlKey) &&
+        key === 'k' &&
+        !document.querySelector('[role=dialog],[role=menu],[role=listbox]')
+      ) {
         e.preventDefault();
+        e.stopPropagation();
         onSearch();
         return;
       }
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (shortcutGuard(e) || e.metaKey || e.ctrlKey || e.altKey) return;
       if (chordUntil > Date.now() && navigationChords[key]) {
         e.preventDefault();
         chordUntil = 0;
@@ -45,6 +53,7 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
         void navigate(location.state?.from ?? '/issues');
         return;
       }
+      if (!['j', 'k', 'arrowdown', 'arrowup', 'x'].includes(key)) return;
       const rows = Array.from(
         document.querySelectorAll<HTMLButtonElement>('.issue-list .issue-open'),
       ).filter((row) => row.getClientRects().length);
@@ -73,8 +82,8 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
           ?.click();
       }
     };
-    window.addEventListener('keydown', listener);
-    return () => window.removeEventListener('keydown', listener);
+    window.addEventListener('keydown', listener, true);
+    return () => window.removeEventListener('keydown', listener, true);
   }, [me?.role, navigate, location, onSearch]);
   return (
     <Modal open={help} onOpenChange={setHelp} title="Keyboard shortcuts">

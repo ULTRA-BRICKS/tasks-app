@@ -213,11 +213,22 @@ test('focused clean description keeps its original version through a remote refe
   await refresh;
   await editor.fill('My local edit from the previous version');
   await page.getByRole('textbox', { name: 'Title', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Retry save', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Keep my draft and retry', exact: true }),
+  ).toBeVisible();
   expect((await (await page.request.get('/api/v1/issues/' + id)).json()).description).toBe(
     'New text from another user',
   );
   await expect(editor).toHaveText('My local edit from the previous version');
+  page.once('dialog', (d) => d.accept());
+  const resolved = page.waitForResponse(
+    (r) => r.request().method() === 'PATCH' && r.url().endsWith('/api/v1/issues/' + id) && r.ok(),
+  );
+  await page.getByRole('button', { name: 'Keep my draft and retry', exact: true }).click();
+  await resolved;
+  expect((await (await page.request.get('/api/v1/issues/' + id)).json()).description).toBe(
+    'My local edit from the previous version',
+  );
 });
 test('opening extended Markdown and editing only the title never rewrites the body', async ({
   page,
@@ -295,4 +306,163 @@ test('logout clears planning drafts as well as issue drafts', async ({ page }) =
     ),
   ).toBe(false);
   savedCookies = undefined;
+});
+
+test('command menu works inside text editors without treating ordinary letters as commands', async ({
+  page,
+}) => {
+  await login(page);
+  await newIssue(page, 'Editor command menu');
+  const title = page.getByRole('textbox', { name: 'Title', exact: true });
+  await title.focus();
+  await page.keyboard.press('Control+k');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(title).toHaveValue('Editor command menu');
+});
+test('Escape restores extended Markdown without committing the canceled source', async ({
+  page,
+}) => {
+  await login(page);
+  const catalog = await (await page.request.get('/api/v1/catalog')).json();
+  const description = 'Before\n\n[guide]: https://example.com\n\nAfter';
+  const created = await page.request.post('/api/v1/issues', {
+    headers: { 'x-tickets-csrf': '1' },
+    data: { title: 'Cancel extended Markdown', description, team_id: catalog.teams[0].id },
+  });
+  const issue = await created.json();
+  await page.goto('/issues/' + issue.id);
+  const body = page.getByRole('textbox', { name: 'Description', exact: true });
+  await expect(body).toHaveValue(description);
+  await body.fill(description + '\n\nCanceled edit');
+  await body.press('Escape');
+  await expect(body).toHaveValue(description);
+  await page.getByRole('textbox', { name: 'Title', exact: true }).click();
+  expect((await (await page.request.get('/api/v1/issues/' + issue.id)).json()).description).toBe(
+    description,
+  );
+});
+test('a clean project follows a refetch before the next inline edit', async ({ page }) => {
+  await login(page);
+  await page.goto('/projects/new');
+  const title = page.getByRole('textbox', { name: 'Title', exact: true });
+  await expect(title).toHaveAttribute('maxlength', '200');
+  await title.fill('Clean project synchronization');
+  await page.getByRole('button', { name: 'Create project', exact: true }).click();
+  await expect(page).toHaveURL(/\/projects\/(?!new)[^/]+$/);
+  const id = new URL(page.url()).pathname.split('/').at(-1);
+  const item = (await (await page.request.get('/api/v1/projects')).json()).find(
+    (p: { id: string }) => p.id === id,
+  );
+  const r = await page.request.patch('/api/v1/projects/' + id, {
+    headers: { 'x-tickets-csrf': '1' },
+    data: { version: item.version, name: 'Newer server project' },
+  });
+  expect(r.ok()).toBeTruthy();
+  await page.clock.install();
+  await page.clock.fastForward(20000);
+  const refresh = page.waitForResponse(
+    (r) => r.url().endsWith('/api/v1/projects') && r.request().method() === 'GET',
+  );
+  await page.evaluate(() => window.dispatchEvent(new Event('visibilitychange')));
+  await refresh;
+  await expect(title).toHaveValue('Newer server project');
+  await title.fill('Next edit uses the refreshed version');
+  const saved = page.waitForResponse(
+    (r) => r.url().endsWith('/api/v1/projects/' + id) && r.request().method() === 'PATCH',
+  );
+  await title.press('Enter');
+  expect((await saved).status()).toBe(200);
+});
+
+test('a posted comment response does not erase the next comment being typed', async ({ page }) => {
+  await login(page);
+  await newIssue(page, 'Concurrent comments');
+  await page.getByRole('button', { name: 'Create issue', exact: true }).click();
+  await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  let release: () => void = () => {},
+    reached = false;
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/v1/issues/*/comments', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    const response = await route.fetch();
+    reached = true;
+    await waiting;
+    await route.fulfill({ response });
+  });
+  const comment = page.getByRole('textbox', { name: 'Comment', exact: true });
+  await comment.fill('First comment');
+  await page.getByRole('button', { name: 'Comment', exact: true }).click();
+  await expect.poll(() => reached).toBe(true);
+  await comment.fill('The next comment, not yet sent');
+  release();
+  await expect(page.getByRole('button', { name: 'Comment', exact: true })).toBeEnabled();
+  await expect(comment).toHaveValue('The next comment, not yet sent');
+});
+
+test('issue text conflict can be resolved explicitly without endless stale retries', async ({
+  page,
+}) => {
+  await login(page);
+  await newIssue(page, 'Conflict fixture');
+  await page.getByRole('button', { name: 'Create issue', exact: true }).click();
+  await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  const id = new URL(page.url()).pathname.split('/').at(-1);
+  const current = await (await page.request.get('/api/v1/issues/' + id)).json();
+  const remote = await page.request.patch('/api/v1/issues/' + id, {
+    headers: { 'x-tickets-csrf': '1' },
+    data: { version: current.version, title: 'Remote writer' },
+  });
+  expect(remote.ok()).toBeTruthy();
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Local draft retained');
+  await page.getByRole('textbox', { name: 'Title', exact: true }).press('Enter');
+  await expect(page.getByRole('region', { name: 'Resolve issue conflict' })).toBeVisible();
+  await expect(page.getByText('Remote writer', { exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(
+    'Local draft retained',
+  );
+  page.once('dialog', (dialog) => void dialog.accept());
+  const saved = page.waitForResponse(
+    (r) =>
+      r.request().method() === 'PATCH' &&
+      r.url().endsWith('/api/v1/issues/' + id) &&
+      r.status() === 200,
+  );
+  await page.getByRole('button', { name: 'Keep my draft and retry', exact: true }).click();
+  await saved;
+  await expect(page.getByRole('region', { name: 'Resolve issue conflict' })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(
+    'Local draft retained',
+  );
+});
+test('extended Markdown Escape cancels and command menu works from the source editor', async ({
+  page,
+}) => {
+  await login(page);
+  const catalog = await (await page.request.get('/api/v1/catalog')).json();
+  const description = '[reference]: https://example.org/\n\nA [reference] remains literal.';
+  const created = await page.request.post('/api/v1/issues', {
+    headers: { 'x-tickets-csrf': '1' },
+    data: { title: 'Extended Markdown', description, team_id: catalog.teams[0].id },
+  });
+  expect(created.status()).toBe(201);
+  const issue = await created.json();
+  await page.goto('/issues/' + issue.id);
+  const editor = page.getByRole('textbox', { name: 'Description', exact: true });
+  await expect(editor).toHaveValue(description);
+  await editor.fill(description + ' Unsaved text');
+  await editor.press('Escape');
+  await expect(editor).toHaveValue(description);
+  await editor.focus();
+  await editor.press('Control+k');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect((await (await page.request.get('/api/v1/issues/' + issue.id)).json()).description).toBe(
+    description,
+  );
 });

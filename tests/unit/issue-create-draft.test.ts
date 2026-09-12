@@ -49,6 +49,7 @@ test('issue and epic drafts cannot collide across users, workspaces or creation 
   for (const input of [
     { kind: 'epic' as const },
     { team_id: 't' },
+    { status_id: 's' },
     { project_id: 'p' },
     { parent_id: 'i' },
     { cycle_id: 'c' },
@@ -56,4 +57,10 @@ test('issue and epic drafts cannot collide across users, workspaces or creation 
     expect(issueDraftKey('w', 'u', input)).not.toBe(base);
   expect(issueDraftKey('other', 'u', {})).not.toBe(base);
   expect(issueDraftKey('w', 'other', {})).not.toBe(base);
+});
+
+test('creation from different status columns does not restore the wrong status draft', () => {
+  expect(issueDraftKey('w', 'u', { team_id: 't', status_id: 'backlog' })).not.toBe(
+    issueDraftKey('w', 'u', { team_id: 't', status_id: 'done' }),
+  );
 });

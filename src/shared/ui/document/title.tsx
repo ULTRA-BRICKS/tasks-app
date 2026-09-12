@@ -7,6 +7,7 @@ export function InlineTitle({
   onEditEnd,
   readOnly = false,
   placeholder = 'Issue title',
+  maxLength = 300,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -15,6 +16,7 @@ export function InlineTitle({
   onEditEnd?: () => void;
   readOnly?: boolean;
   placeholder?: string;
+  maxLength?: number;
 }) {
   const input = useRef<HTMLTextAreaElement>(null),
     original = useRef(value),
@@ -34,7 +36,7 @@ export function InlineTitle({
       placeholder={placeholder}
       value={value}
       readOnly={readOnly}
-      maxLength={300}
+      maxLength={maxLength}
       onFocus={() => {
         onEditStart?.();
         original.current = value;
