@@ -22,11 +22,11 @@ export function postgresParameters(sql) {
   return output;
 }
 
-// Leave two thirds of the 30-second serverless budget for useful database work.
+// Leave half of the 60-second serverless budget for useful database work.
 export const POSTGRES_POOL_OPTIONS = Object.freeze({
   max: 4,
   idleTimeoutMillis: 5000,
-  connectionTimeoutMillis: 10000,
+  connectionTimeoutMillis: 30000,
 });
 
 export async function createDatabase({

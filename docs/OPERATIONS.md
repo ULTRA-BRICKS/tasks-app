@@ -45,3 +45,5 @@ Before treating the deployment as fully accepted, sign in at the canonical origi
 At this bounded file size downloads currently buffer content. Uploads still hold a workspace write transaction while the private storage PUT completes. These are documented throughput limitations, not claims of unlimited upload concurrency. Moving upload I/O outside a transaction requires a durable claim/finalize protocol and should not be done as an untested last-minute refactor.
 
 External Slack/GitHub provider round-trips require separately configured provider credentials. Their mock-transport acceptance tests do not imply a live integration is connected. Forgejo is the code host, not a newly implemented ticket-import provider.
+
+The function deadline is 60 seconds and pool acquisition remains capped at 30 seconds. Reducing acquisition to 10 seconds reproduced a concurrent-create failure over the real Neon connection; the release preserves the working burst behavior while reserving half the function budget for execution.
