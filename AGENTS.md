@@ -38,3 +38,9 @@ Do not describe this design contract or the old green screenshots as a completed
 Active source: `https://git.hyperide.ai/ultrabricks/tickets-app`. Use the authorized `fj` account and normal Git credentials; never extract stored tokens or bypass a git review hook. The GitHub publisher and source-recovery workflows are retired. `scripts/configure-deploy.mjs` now refuses CLI writes; its pure legacy functions remain only for regression compatibility.
 
 Read `docs/OPERATIONS.md` for the exact existing Vercel project and explicit Neon initialization boundary. Do not create a second project or publish an old GitHub snapshot. `health` is liveness; `ready` requires the exact schema and an owner. Never claim a successful build or candidate URL is an authenticated working service. Production migrations/bootstrap await explicit operator approval; no demo accounts or user-data resets in production.
+
+## Mandatory session continuity
+
+Before every new user request, including «продолжай», read `docs/AGENT-SESSION-SAFETY.md` and `docs/WORK-CHECKPOINT.md`. They distinguish observed connector/test failures from unproven causes of `Thinking failed` and identify the current worktree and next incomplete gate.
+
+Use one writer and one active browser suite per worktree. Keep outputs bounded, persist verification/checkpoint evidence, honor tool denials without workarounds, and avoid rapid retries after throttling. Follow review → fix → verify → merge → deploy → canonical-service verification. Never treat an interrupted command, old green test run or readiness endpoint as completed acceptance.
