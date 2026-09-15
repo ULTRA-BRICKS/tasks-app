@@ -1,14 +1,15 @@
 {
-  "name": "tickets-app",
+  "name": "tasks-app",
   "version": "0.2.0",
   "private": true,
   "description": "Modular, API-first issue tracking for small teams. React + Base UI; PostgreSQL in production.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://git.hyperide.ai/ultrabricks/tickets-app.git"
+    "url": "https://git.hyperide.ai/ultrabricks/tasks-app.git"
   },
   "bin": {
+    "tasks-app": "packages/cli/tickets.mjs",
     "tickets": "packages/cli/tickets.mjs"
   },
   "type": "module",

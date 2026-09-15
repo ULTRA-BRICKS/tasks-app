@@ -3,9 +3,9 @@
 ## Current service
 
 Production origin: **https://tickets-ultrabricks.vercel.app**.
-Source of truth: **https://git.hyperide.ai/ultrabricks/tickets-app**.
+Source of truth: **https://git.hyperide.ai/ultrabricks/tasks-app**.
 
-The existing Vercel project is `tickets-app` (`prj_BicxQsqDlb394HzvMuXZKB883EdY`), under `inventorems-projects`. No second Vercel project was created. The Neon production schema and owner already exist: the public `/api/ready` endpoint returns HTTP 200 with `{"status":"ready"}`. This supersedes the earlier empty-database observation.
+The existing Vercel project is `tasks-app` (renamed from `tickets-app`, ID unchanged) (`prj_BicxQsqDlb394HzvMuXZKB883EdY`), under `inventorems-projects`. No second Vercel project was created. The Neon production schema and owner already exist: the public `/api/ready` endpoint returns HTTP 200 with `{"status":"ready"}`. This supersedes the earlier empty-database observation.
 
 The former `tickets-app-sandy.vercel.app` address belongs to a different project. It is not a valid address for this release. `APP_URL` is now the canonical origin above. Do not weaken exact Origin/CSRF validation to accommodate unrelated preview URLs.
 

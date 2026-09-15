@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "tickets-app",
+      "name": "tasks-app",
       "dependencies": {
         "@aws-sdk/client-s3": "^3.800.0",
         "@aws-sdk/s3-request-presigner": "^3.800.0",

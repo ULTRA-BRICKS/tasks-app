@@ -20,7 +20,7 @@ export function LoginPage() {
         <span className="auth-logo">
           <img src="/favicon.svg" width="40" height="40" alt="" />
         </span>
-        <span className="eyebrow">TICKETS</span>
+        <span className="eyebrow">TASKS</span>
         <h1>
           A little less noise.
           <br />A lot more progress.
