@@ -1,8 +1,8 @@
-# tickets-app
+# tasks-app
 
 Modular, keyboard-first issue tracking for a small team. React + Base UI, Bun, Oxc, PostgreSQL, private attachments, a CLI and a schema-checked subset of Linear GraphQL.
 
-**[Open Tickets](https://tickets-ultrabricks.vercel.app)** · **[Release verification](docs/RELEASE-2026-09-13.md)** · **[Source: Forgejo](https://git.hyperide.ai/ultrabricks/tickets-app)** · **[Operations](docs/OPERATIONS.md)** · **[Design](DESIGN.md)** · **[GraphQL schema](packages/linear/schema.graphql)**
+**[Open Tasks](https://tickets-ultrabricks.vercel.app)** · **[Release verification](docs/RELEASE-2026-09-13.md)** · **[Source: Forgejo](https://git.hyperide.ai/ultrabricks/tasks-app)** · **[Operations](docs/OPERATIONS.md)** · **[Design](DESIGN.md)** · **[GraphQL schema](packages/linear/schema.graphql)**
 
 **Release status (13 September 2026):** deployed to the existing Vercel project, with production PostgreSQL schema/owner readiness confirmed and anonymous workspace access denied. Local browser and PostgreSQL acceptance pass. Authenticated production browser and live private-Blob acceptance are still explicitly pending; see the [current release report](docs/RELEASE-2026-09-13.md). Public application access never makes workspace data public.
 
@@ -43,8 +43,8 @@ This is not a claim of 100% parity: font rendering, navigation modules, data, av
 ## Run locally
 
 ```sh
-git clone https://git.hyperide.ai/ultrabricks/tickets-app.git
-cd tickets-app
+git clone https://git.hyperide.ai/ultrabricks/tasks-app.git
+cd tasks-app
 bun install --frozen-lockfile
 bun run setup -- --demo --port 8888
 bun run dev

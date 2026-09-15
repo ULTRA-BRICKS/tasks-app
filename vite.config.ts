@@ -14,7 +14,7 @@ const proxy: ProxyOptions = {
         JSON.stringify({
           error: {
             code: 'API_UNAVAILABLE',
-            message: `Tickets API is unavailable at ${config.apiTarget}. Check the API terminal.`,
+            message: `Tasks API is unavailable at ${config.apiTarget}. Check the API terminal.`,
           },
         }),
       );

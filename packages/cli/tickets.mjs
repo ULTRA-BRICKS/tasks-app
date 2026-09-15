@@ -1,25 +1,26 @@
 #!/usr/bin/env bun
+import { PRODUCT_NAME, PRODUCT_VERSION } from '../config/product.mjs';
 import { resolveDevelopment } from '../config/development.mjs';
 import { parseArgs } from 'node:util';
 import { readFile, writeFile, mkdir, chmod } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { TicketsClient } from '../sdk/index.mjs';
-const usage = `tickets-app CLI 0.1.0
+const usage = `${PRODUCT_NAME} CLI ${PRODUCT_VERSION}
 
-  tickets auth login --url https://tickets.example.com < token.txt
-  tickets auth logout
-  tickets issues list [--q TEXT] [--assignee me] [--status UUID] [--json] [--all]
-  tickets issues get TKT-1
-  tickets issues create --team TKT --title TEXT [--body-file FILE] [--idempotency-key KEY]
-  tickets issues update TKT-1 --version 3 [--status UUID] [--priority 1] [--due YYYY-MM-DD]
-  tickets issues archive|restore TKT-1 --version 3
-  tickets issues comment TKT-1 --body-file FILE
-  tickets issues link TKT-1 --target TKT-2 --type blocks
-  tickets projects list|create [--name TEXT] [--team TKT]
-  tickets cycles list|create --name TEXT --team TKT --start YYYY-MM-DD --end YYYY-MM-DD
-  tickets catalog
-  tickets api GET /api/v1/issues [--data JSON]
+  tasks-app auth login --url https://tickets.example.com < token.txt
+  tasks-app auth logout
+  tasks-app issues list [--q TEXT] [--assignee me] [--status UUID] [--json] [--all]
+  tasks-app issues get TKT-1
+  tasks-app issues create --team TKT --title TEXT [--body-file FILE] [--idempotency-key KEY]
+  tasks-app issues update TKT-1 --version 3 [--status UUID] [--priority 1] [--due YYYY-MM-DD]
+  tasks-app issues archive|restore TKT-1 --version 3
+  tasks-app issues comment TKT-1 --body-file FILE
+  tasks-app issues link TKT-1 --target TKT-2 --type blocks
+  tasks-app projects list|create [--name TEXT] [--team TKT]
+  tasks-app cycles list|create --name TEXT --team TKT --start YYYY-MM-DD --end YYYY-MM-DD
+  tasks-app catalog
+  tasks-app api GET /api/v1/issues [--data JSON]
 
 Global: --url URL --json --help. Environment: TICKETS_URL, TICKETS_TOKEN.
 Token login reads stdin, never a command-line argument. No automatic write retries.

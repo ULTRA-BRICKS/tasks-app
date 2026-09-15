@@ -1,3 +1,4 @@
+import { PRODUCT_NAME, PRODUCT_VERSION } from '../packages/config/product.mjs';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
@@ -326,8 +327,8 @@ export function generateOpenAPI() {
   return {
     openapi: '3.1.0',
     info: {
-      title: 'tickets-app API',
-      version: '0.1.0',
+      title: PRODUCT_NAME + ' API',
+      version: PRODUCT_VERSION,
       description:
         'Modular workspace-scoped issue tracker. JSON snake_case fields, UUID identifiers, date-only YYYY-MM-DD values, ISO UTC timestamps. PATCH issue/project/comment requires expected version. Cookie mutations require X-Tickets-CSRF: 1 and a matching Origin when provided. Personal tokens use Authorization: Bearer. All endpoints are private except health, readiness, OpenAPI, login, invitation acceptance and signature-verified webhook receivers. Errors use {error:{code,message,details?,request_id}}. This API is not wire-compatible with Linear GraphQL.',
     },

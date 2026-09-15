@@ -17,7 +17,7 @@ const server = Bun.serve({
   fetch: (request) => app.fetch(request),
   idleTimeout: 30,
 });
-console.log(`Tickets API ${server.url}`);
+console.log(`Tasks API ${server.url}`);
 for (const signal of ['SIGINT', 'SIGTERM'])
   process.on(signal, async () => {
     await server.stop(true);

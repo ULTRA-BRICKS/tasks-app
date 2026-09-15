@@ -36,7 +36,7 @@ try {
     try {
       const r = await fetch(config.apiTarget + '/api/health', { signal: AbortSignal.timeout(800) });
       const health = r.ok ? await r.json() : null;
-      if (health?.service === 'tickets-app' && health.instance === instance) {
+      if (['tasks-app', 'tickets-app'].includes(health?.service) && health.instance === instance) {
         ready = true;
         break;
       }
@@ -48,7 +48,7 @@ try {
   if (!stopped && !ready)
     throw new Error(`API failed to start at ${config.apiTarget}. See its error above.`);
   if (!stopped) {
-    console.log(`Tickets UI: ${config.appUrl}\nAPI: ${config.apiTarget}`);
+    console.log(`Tasks UI: ${config.appUrl}\nAPI: ${config.apiTarget}`);
     start(['run', 'dev:web']);
   }
 } catch (error) {

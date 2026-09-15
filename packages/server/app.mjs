@@ -1,3 +1,4 @@
+import { PRODUCT_NAME, PRODUCT_VERSION } from '../config/product.mjs';
 import { inspectReadiness } from './readiness.mjs';
 import { createIdempotently } from './core/idempotency.mjs';
 import * as workspacePolicy from './modules/identity/policy.mjs';
@@ -138,8 +139,8 @@ export function createApp({ db, env = process.env, storage, logger = console } =
       } else if (path === '/api/health' && method === 'GET')
         response = json({
           status: 'ok',
-          service: 'tickets-app',
-          version: '0.2.0',
+          service: PRODUCT_NAME,
+          version: PRODUCT_VERSION,
           ...(env.DEV_INSTANCE_ID && !production ? { instance: env.DEV_INSTANCE_ID } : {}),
         });
       else if (path === '/api/openapi.json' && method === 'GET')
