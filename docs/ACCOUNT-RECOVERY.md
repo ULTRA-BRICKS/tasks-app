@@ -51,3 +51,13 @@ The reset transaction remains fail-closed if its confirmation cannot be durably 
 Current live configuration check: RESEND_API_KEY and MAIL_FROM are absent; the requested ultra@glide.vc account has no membership. A forgot-password form does not create an account. No real message was sent. These are release dependencies, not hidden successful actions.
 
 Migration4 was prepared and verified only on a temporary Neon branch. It adds two empty tables plus indexes/constraints; production is still version3. Applying or discarding the prepared migration requires the user's confirmation through the migration tool. Exact context is recorded in account-migration-prepared.json.
+
+## Reviewed release evidence — 15 September 2026
+
+Application commit: `1dc8432b8d59f3a04daa4b1e1b0431c0f9e8b9a9`. Normal TASKS-ACCOUNT-ORIGIN review gate passed two completed iterations across security, correctness and performance roles; the final review found no blocking defect. An intermediate OpenCode database-lock failure was not counted as approval. No hook or quota override was used.
+
+Latest checks:165 unit tests and source/type/build checks;92 Chromium/WebKit scenarios;87 isolated PostgreSQL cases, including successful request/mock-delivery/consume/session-revocation/replay/new-password-login and mail-queue cancellation/expiry tests. Secret scan passed. No real emails or production password changes were executed.
+
+Storybook's normal concurrent run had17passed/1failed in the existing capsule-menu Escape interaction; the subsequent explicitly sequential run passed18/18. The untouched test is timing-sensitive under concurrent stories; this is recorded, not described as a fixed application bug or a disabled accessibility rule.
+
+This is committed/reviewed source, NOT a completed live recovery service. Production schema is still3; migration4 is prepared and checked on a temporary Neon branch and requires user confirmation to apply. Production MAIL_FROM and RESEND_API_KEY remain absent. The current public tasks-ultrabricks domain serves the renamed main application until the authorized migration/configuration/promotion gates complete.
