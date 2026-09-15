@@ -82,7 +82,7 @@ export function SettingsPage() {
         const r = await api<{
           token: string;
         }>('/v1/invitations', { method: 'POST', json: { email, role: inviteRole } });
-        setInviteLink(window.location.origin + '/invite?token=' + encodeURIComponent(r.token));
+        setInviteLink(window.location.origin + '/invite#token=' + encodeURIComponent(r.token));
         return r;
       }
       if (data.type === 'token') {

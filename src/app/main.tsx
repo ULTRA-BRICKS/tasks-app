@@ -14,7 +14,7 @@ import { IssuesPage } from '@/pages/issues';
 import { PlanningPage } from '@/pages/planning';
 import { InboxPage } from '@/pages/inbox';
 import { SettingsPage } from '@/pages/settings';
-import { LoginPage, InvitePage } from '@/pages/auth';
+import { LoginPage, InvitePage, ForgotPasswordPage, ResetPasswordPage } from '@/pages/auth';
 import { ErrorState, Loading } from '@/shared/ui';
 import { ApiError, errorMessage } from '@/shared/api/client';
 import './styles.css';
@@ -128,6 +128,8 @@ createRoot(document.getElementById('root')!).render(
         <BrowserRouter>
           <Routes>
             <Route path="/invite" element={<InvitePage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="*" element={<Workspace />} />
           </Routes>
         </BrowserRouter>

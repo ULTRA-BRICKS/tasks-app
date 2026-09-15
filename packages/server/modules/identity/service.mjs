@@ -155,6 +155,14 @@ export async function login(db, input, clientKey) {
     : await verifyPassword(input.password, await hashPassword(secret()));
   assert(valid && user, 401, 'INVALID_CREDENTIALS', 'Invalid email or password');
   return db.transaction(async (tx) => {
+    await tx.lock('identity:user:' + user.id);
+    const current = await tx.one('SELECT password_hash FROM users WHERE id=?', [user.id]);
+    assert(
+      current?.password_hash === user.password_hash,
+      401,
+      'INVALID_CREDENTIALS',
+      'Invalid email or password',
+    );
     const membership = await tx.one(
       `SELECT m.*,w.slug FROM memberships m JOIN workspaces w ON w.id=m.workspace_id WHERE m.user_id=? ${input.workspace_slug ? 'AND w.slug=?' : ''} ORDER BY w.created_at LIMIT 1`,
       input.workspace_slug ? [user.id, input.workspace_slug] : [user.id],

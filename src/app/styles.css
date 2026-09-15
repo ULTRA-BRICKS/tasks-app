@@ -3399,3 +3399,24 @@ button,
     min-height: var(--mobile-tap);
   }
 }
+
+.account-recovery > p,
+.account-recovery > output {
+  display: block;
+  margin: 16px 0;
+}
+.account-recovery .input,
+.account-recovery .button {
+  min-height: 44px;
+}
+.account-recovery a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: underline;
+}
+@media (max-width: 767px) {
+  .account-recovery input {
+    font-size: 16px;
+  }
+}

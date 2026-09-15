@@ -8,4 +8,4 @@ Production readiness is checked with `/api/ready`, separately from `/api/health`
 
 For Vercel Blob use `STORAGE_DRIVER=blob` and server-only `BLOB_READ_WRITE_TOKEN` from a private store. S3/R2 uses `STORAGE_DRIVER=s3` and the S3 settings from `.env.example`. Local disk storage is development-only.
 
-Current canonical production URL: **https://tickets-ultrabricks.vercel.app**. [Release verification](RELEASE-2026-09-12.md).
+Current canonical production URL: **https://tasks-ultrabricks.vercel.app**. [Release verification](RELEASE-2026-09-12.md).
