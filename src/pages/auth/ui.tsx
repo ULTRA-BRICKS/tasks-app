@@ -1,6 +1,7 @@
+import { useEphemeralLinkToken } from './password-reset';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
 import { Button, Input, ErrorState } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
@@ -60,6 +61,9 @@ export function LoginPage() {
             <ArrowRight size={16} />
           </Button>
         </form>
+        <p>
+          <Link to="/forgot-password">Forgot password?</Link>
+        </p>
         <div className="auth-footer">
           <ShieldCheck size={14} />
           <span>Invite-only workspace. Ask an owner for access.</span>
@@ -76,14 +80,14 @@ export function LoginPage() {
   );
 }
 export function InvitePage() {
-  const [params] = useSearchParams(),
+  const token = useEphemeralLinkToken(),
     [name, setName] = useState(''),
     [password, setPassword] = useState('');
   const mutation = useMutation({
     mutationFn: () =>
       api('/auth/accept-invite', {
         method: 'POST',
-        json: { token: params.get('token'), name, password },
+        json: { token: token, name, password },
       }),
   });
   return (
@@ -131,11 +135,7 @@ export function InvitePage() {
               Use at least 12 characters. Existing members must use their existing account password.
             </p>
             {mutation.error && <ErrorState message={errorMessage(mutation.error)} />}
-            <Button
-              variant="default"
-              type="submit"
-              disabled={mutation.isPending || !params.get('token')}
-            >
+            <Button variant="default" type="submit" disabled={mutation.isPending || !token}>
               Accept invitation
             </Button>
           </form>

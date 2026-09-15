@@ -83,6 +83,21 @@ export const StatusPicker: Story = {
     // The portalled popup mounts asynchronously after the trigger event.
     await userEvent.click(await page.findByRole('option', { name: 'Done' }));
     await waitFor(() => expect(canvas.getByTestId('selected-status')).toHaveTextContent('done'));
+    // Select may keep its options mounted. Hidden + inert, not DOM removal, defines closure.
+    await waitFor(() => expect(page.queryByRole('listbox')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        canvasElement.ownerDocument.querySelector('.picker-popup')?.closest('.popover-positioner'),
+      ).toHaveAttribute('hidden'),
+    );
+    await waitFor(() =>
+      expect(canvasElement.ownerDocument.querySelector('[data-base-ui-focus-guard]')).toBeNull(),
+    );
+    await waitFor(() => expect(canvas.getByRole('combobox', { name: 'Status' })).toHaveFocus());
+    await expect(canvas.getByRole('combobox', { name: 'Status' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
   },
 };
 function DialogExample() {

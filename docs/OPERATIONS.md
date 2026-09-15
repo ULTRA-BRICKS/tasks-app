@@ -2,7 +2,7 @@
 
 ## Current service
 
-Production origin: **https://tickets-ultrabricks.vercel.app**.
+Production origin: **https://tasks-ultrabricks.vercel.app**.
 Source of truth: **https://git.hyperide.ai/ultrabricks/tasks-app**.
 
 The existing Vercel project is `tasks-app` (renamed from `tickets-app`, ID unchanged) (`prj_BicxQsqDlb394HzvMuXZKB883EdY`), under `inventorems-projects`. No second Vercel project was created. The Neon production schema and owner already exist: the public `/api/ready` endpoint returns HTTP 200 with `{"status":"ready"}`. This supersedes the earlier empty-database observation.

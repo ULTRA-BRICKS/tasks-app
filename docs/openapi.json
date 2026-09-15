@@ -31,6 +31,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -45,6 +48,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -69,6 +75,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -83,6 +92,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -119,6 +131,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -133,6 +148,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -176,6 +194,9 @@
               }
             }
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -190,6 +211,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -230,10 +254,10 @@
         "parameters": []
       }
     },
-    "/auth/login": {
-      "post": {
-        "summary": "Create an HttpOnly session",
-        "operationId": "post_auth_login",
+    "/auth/options": {
+      "get": {
+        "summary": "Read available account recovery options",
+        "operationId": "get_auth_options",
         "x-required-scope": "public",
         "tags": [
           "auth"
@@ -241,6 +265,9 @@
         "responses": {
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
           },
           "400": {
             "description": "Malformed request"
@@ -256,6 +283,176 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "security": [],
+        "parameters": []
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "summary": "Queue a reset email; same 202 response for known and unknown emails",
+        "operationId": "post_auth_forgot_password",
+        "x-required-scope": "public",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "201": {
+            "description": "Created"
+          },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPassword"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "summary": "Consume single-use proof, change password and revoke all sessions and API tokens",
+        "operationId": "post_auth_reset_password",
+        "x-required-scope": "public",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "201": {
+            "description": "Created"
+          },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "security": [],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPassword"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Create an HttpOnly session",
+        "operationId": "post_auth_login",
+        "x-required-scope": "public",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -293,6 +490,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -307,6 +507,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -336,6 +539,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -350,6 +556,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -387,6 +596,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -401,6 +613,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -427,6 +642,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -441,6 +659,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -470,6 +691,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -484,6 +708,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -523,6 +750,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -537,6 +767,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -576,6 +809,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -590,6 +826,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -629,6 +868,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -643,6 +885,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -679,6 +924,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -693,6 +941,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -739,6 +990,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -753,6 +1007,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -780,6 +1037,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -794,6 +1054,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -830,6 +1093,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -844,6 +1110,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -880,6 +1149,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -894,6 +1166,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1060,6 +1335,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1074,6 +1352,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1120,6 +1401,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1134,6 +1418,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1168,6 +1455,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1182,6 +1472,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1228,6 +1521,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1242,6 +1538,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1281,6 +1580,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1295,6 +1597,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1341,6 +1646,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1355,6 +1663,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1404,6 +1715,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1418,6 +1732,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1464,6 +1781,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1478,6 +1798,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1517,6 +1840,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1531,6 +1857,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1565,6 +1894,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1579,6 +1911,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1615,6 +1950,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1629,6 +1967,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1656,6 +1997,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1670,6 +2014,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1706,6 +2053,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1720,6 +2070,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1766,6 +2119,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1780,6 +2136,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1807,6 +2166,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1821,6 +2183,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1857,6 +2222,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1871,6 +2239,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1898,6 +2269,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1912,6 +2286,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -1948,6 +2325,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -1962,6 +2342,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2008,6 +2391,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2022,6 +2408,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2049,6 +2438,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2063,6 +2455,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2099,6 +2494,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2113,6 +2511,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2149,6 +2550,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2163,6 +2567,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2192,6 +2599,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2206,6 +2616,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2242,6 +2655,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2256,6 +2672,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2305,6 +2724,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2319,6 +2741,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2365,6 +2790,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2379,6 +2807,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "413": {
             "description": "Maximum 3 MiB; reservation byte count must match"
@@ -2427,6 +2858,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2441,6 +2875,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2477,6 +2914,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2491,6 +2931,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2527,6 +2970,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2541,6 +2987,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2567,6 +3016,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2581,6 +3033,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2617,6 +3072,9 @@
           "200": {
             "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2631,6 +3089,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2670,6 +3131,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2684,6 +3148,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2723,6 +3190,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2737,6 +3207,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2777,6 +3250,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2791,6 +3267,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -2831,6 +3310,9 @@
           "201": {
             "description": "Created"
           },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
           "400": {
             "description": "Malformed request"
           },
@@ -2845,6 +3327,9 @@
           },
           "409": {
             "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
           },
           "422": {
             "description": "Validation error"
@@ -3438,6 +3923,42 @@
         },
         "required": [
           "email",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "ForgotPassword": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 254,
+            "format": "email"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
+      "ResetPassword": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 43,
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "token",
           "password"
         ],
         "additionalProperties": false

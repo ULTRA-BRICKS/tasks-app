@@ -1,4 +1,10 @@
 import { PRODUCT_NAME, PRODUCT_VERSION } from '../config/product.mjs';
+import { requestPasswordReset, resetPassword } from './modules/identity/password-reset.mjs';
+import {
+  emailConfiguration,
+  enqueueAccountEmail,
+  deliverAccountEmails,
+} from './modules/email/service.mjs';
 import { inspectReadiness } from './readiness.mjs';
 import { createIdempotently } from './core/idempotency.mjs';
 import * as workspacePolicy from './modules/identity/policy.mjs';
@@ -66,7 +72,14 @@ async function body(request, schema) {
   }
   return validate(value, schema);
 }
-export function createApp({ db, env = process.env, storage, logger = console } = {}) {
+export function createApp({
+  db,
+  env = process.env,
+  storage,
+  logger = console,
+  mailTransport,
+  defer,
+} = {}) {
   assert(db, 500, 'CONFIG', 'Database is required');
   const production = env.NODE_ENV === 'production' || Boolean(env.VERCEL);
   assert(
@@ -78,6 +91,14 @@ export function createApp({ db, env = process.env, storage, logger = console } =
   const signingKey = env.AUTH_SECRET || secret();
   const origin = applicationOrigin(env);
   const store = () => (storage ??= files.createStorage(env));
+  const dispatchMail = () => {
+    if (defer)
+      defer(
+        deliverAccountEmails(db, env, { transport: mailTransport, limit: 1 }).catch(() =>
+          logger.error?.({ code: 'ACCOUNT_MAIL_WORKER_FAILED' }),
+        ),
+      );
+  };
   async function handle(request) {
     const requestId = id(),
       url = new URL(request.url),
@@ -148,7 +169,38 @@ export function createApp({ db, env = process.env, storage, logger = console } =
           await readFile(new URL('../../docs/openapi.json', import.meta.url)),
           { headers: { 'content-type': 'application/json' } },
         );
-      else if (path === '/api/auth/login' && method === 'POST') {
+      else if (path === '/api/auth/options' && method === 'GET') {
+        response = json({ passwordReset: emailConfiguration(env).configured });
+      } else if (path === '/api/auth/forgot-password' && method === 'POST') {
+        const input = await body(request, schemas.ForgotPassword);
+        response = json(
+          await requestPasswordReset(
+            db,
+            env,
+            input,
+            env.VERCEL ? (request.headers.get('x-vercel-forwarded-for') ?? 'unknown') : 'local',
+          ),
+          202,
+        );
+        dispatchMail();
+      } else if (path === '/api/auth/reset-password' && method === 'POST') {
+        const input = await body(request, schemas.ResetPassword);
+        response = json(
+          await resetPassword(
+            db,
+            env,
+            input,
+            env.VERCEL ? (request.headers.get('x-vercel-forwarded-for') ?? 'unknown') : 'local',
+          ),
+          200,
+          {
+            'set-cookie':
+              'tickets_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0' +
+              (production ? '; Secure' : ''),
+          },
+        );
+        dispatchMail();
+      } else if (path === '/api/auth/login' && method === 'POST') {
         const input = await body(request, schemas.Login);
         // Only trust the provider's source-IP header on Vercel. Never trust arbitrary X-Forwarded-For locally.
         const source = env.VERCEL
@@ -265,7 +317,27 @@ export function createApp({ db, env = process.env, storage, logger = console } =
         );
       } else if (path === '/api/v1/invitations' && method === 'POST') {
         const input = await body(request, schemas.Invite);
-        response = json(await run(false, (tx, a) => identity.invite(tx, a, input)), 201);
+        response = json(
+          await run(false, async (tx, a) => {
+            const invitation = await identity.invite(tx, a, input);
+            const configured = emailConfiguration(env).configured;
+            if (configured) {
+              const link = new URL('/invite', origin);
+              link.hash = new URLSearchParams({ token: invitation.token }).toString();
+              await enqueueAccountEmail(tx, env, {
+                kind: 'invitation',
+                workspaceId: a.workspace_id,
+                to: invitation.email,
+                subject: 'You are invited to Tasks',
+                expiresAt: new Date(Date.now() + 12 * 3600000).toISOString(),
+                text: `You have been invited to a Tasks workspace.\n\nChoose your password and accept the invitation: ${link.href}\n\nThe invitation expires in seven days. Existing accounts must use their existing password.\n`,
+              });
+            }
+            return { ...invitation, email_queued: configured };
+          }),
+          201,
+        );
+        dispatchMail();
       } else if (/^\/api\/v1\/members\/[^/]+$/.test(path) && method === 'PATCH') {
         const input = await body(request, schemas.MemberRole);
         response = json(
@@ -344,7 +416,19 @@ export function createApp({ db, env = process.env, storage, logger = console } =
       } else if (/^\/api\/v1\/issues\/[^/]+\/comments$/.test(path) && method === 'POST') {
         const input = await body(request, schemas.Comment);
         response = json(
-          await run(false, (tx, a) => tickets.addComment(tx, a, path.split('/')[4], input.body)),
+          await run(false, (tx, a) =>
+            createIdempotently(
+              tx,
+              a,
+              {
+                key: request.headers.get('idempotency-key'),
+                operation: 'comment:create',
+                module: 'tickets',
+                input: { issue: path.split('/')[4], ...input },
+              },
+              () => tickets.addComment(tx, a, path.split('/')[4], input.body),
+            ),
+          ),
           201,
         );
       } else if (/^\/api\/v1\/comments\/[^/]+$/.test(path) && method === 'PATCH') {
@@ -704,6 +788,16 @@ export function createApp({ db, env = process.env, storage, logger = console } =
                 ...result,
               })
             : json(result, 202);
+      } else if (path === '/api/internal/account-email' && method === 'GET') {
+        assert(
+          env.CRON_SECRET && constantEqual(bearer ?? '', env.CRON_SECRET),
+          401,
+          'UNAUTHENTICATED',
+          'Worker credential required',
+        );
+        response = json(
+          await deliverAccountEmails(db, env, { transport: mailTransport, limit: 3 }),
+        );
       } else if (path === '/api/internal/jobs' && method === 'POST') {
         assert(
           env.CRON_SECRET && constantEqual(bearer ?? '', env.CRON_SECRET),
@@ -711,7 +805,13 @@ export function createApp({ db, env = process.env, storage, logger = console } =
           'UNAUTHENTICATED',
           'Worker credential required',
         );
-        response = json(await integrations.runWorker(db, env, { limit: 5 }));
+        response = json({
+          ...(await integrations.runWorker(db, env, { limit: 5 })),
+          account_email: await deliverAccountEmails(db, env, {
+            transport: mailTransport,
+            limit: 3,
+          }),
+        });
       }
       if (!response) throw missing('Endpoint');
     } catch (error) {

@@ -108,6 +108,11 @@ export const schemas = {
     },
     ['email', 'password'],
   ),
+  ForgotPassword: object({ email: { ...text(254, 3), format: 'email' } }, ['email']),
+  ResetPassword: object(
+    { token: { ...text(43, 43), pattern: '^[A-Za-z0-9_-]{43}$' }, password: text(256, 12) },
+    ['token', 'password'],
+  ),
   Invite: object(
     { email: { ...text(254, 3), format: 'email' }, role: enumeration('admin', 'member', 'viewer') },
     ['email', 'role'],
