@@ -87,6 +87,7 @@ test('recovery link uses muted text without losing its tap target', async ({ pag
   await page.setViewportSize({ width: 393, height: 852 });
   await page.goto('/login');
   const link = page.getByRole('link', { name: 'Forgot password?', exact: true });
+  await expect(link).toBeVisible();
   const colors = await page.evaluate(() => ({
     link: getComputedStyle(document.querySelector('.auth-recovery-link')!).color,
     secondary: getComputedStyle(document.querySelector('.auth-intro')!).color,
