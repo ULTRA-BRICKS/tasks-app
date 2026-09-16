@@ -15,7 +15,7 @@ Reset proofs contain 256 random bits, are stored only as hashes, expire after 30
 
 Resend is called only from the backend at `https://api.resend.com/emails`; redirects are refused and each send has an eight-second deadline. A stable job-specific Idempotency-Key accompanies every retry. Pending message bodies are encrypted with AES-GCM under a key derived from AUTH_SECRET, bound to their job ID. They are scrubbed after acceptance, terminal failure or expiry. Provider error bodies are not logged.
 
-The worker leases a job before network I/O and never holds a transaction across Resend. It retries transient failures at most five times and only within the job expiry. Vercel uses waitUntil for prompt delivery; the existing authenticated `/api/internal/jobs` endpoint and `bun run worker` drain durable retry jobs. The deployment config now schedules an authenticated GET /api/internal/account-email every minute. The existing CRON_SECRET must remain configured.
+The worker leases a job before network I/O and never holds a transaction across Resend. It retries transient failures at most five times and only within the job expiry. Vercel uses waitUntil for prompt delivery; the existing authenticated `/api/internal/jobs` endpoint and `bun run worker` drain durable retry jobs. On the existing Hobby plan, the deployment config schedules an authenticated GET /api/internal/account-email once daily at 00:00 UTC for housekeeping; it is not a timely retry scheduler for 30-minute reset links. The existing CRON_SECRET must remain configured.
 
 Links put their proof in a URL fragment. The UI reads it only into component memory and removes it from browser history. Passwords and account-link proofs never use the draft journal. Reset emails contain a link, not a password; the confirmation email contains no password. Old query-string invitations remain readable for compatibility.
 
@@ -61,3 +61,9 @@ Latest checks:165 unit tests and source/type/build checks;92 Chromium/WebKit sce
 Storybook's normal concurrent run had17passed/1failed in the existing capsule-menu Escape interaction; the subsequent explicitly sequential run passed18/18. The untouched test is timing-sensitive under concurrent stories; this is recorded, not described as a fixed application bug or a disabled accessibility rule.
 
 This is committed/reviewed source, NOT a completed live recovery service. Production schema is still3; migration4 is prepared and checked on a temporary Neon branch and requires user confirmation to apply. Production MAIL_FROM and RESEND_API_KEY remain absent. The current public tasks-ultrabricks domain serves the renamed main application until the authorized migration/configuration/promotion gates complete.
+
+## Actual hosting-plan compatibility — 16 September 2026
+
+Vercel rejected the minute cron at deployment because this project uses the Hobby plan. The release now schedules the existing authenticated account-email route once daily at 00:00 UTC. User-triggered account messages continue to dispatch immediately through waitUntil. The daily tick is cleanup/maintenance, not a promise to retry a 30-minute reset link every minute. The explicit worker/API drain remains available; during a provider outage the user may need to request another link once service recovers. No paid-plan upgrade or external scheduler was installed.
+
+The prepared migration is additive; it must be completed before promoting this version. No real reset request is sent during publication.
