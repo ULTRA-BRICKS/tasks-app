@@ -896,5 +896,36 @@
         "unit": "ms"
       }
     }
+  },
+  "auth": {
+    "$description": "Shared authentication geometry for login, recovery and invitations.",
+    "contentWidth": {
+      "$type": "dimension",
+      "$value": {
+        "value": 384,
+        "unit": "px"
+      }
+    },
+    "controlHeight": {
+      "$type": "dimension",
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      }
+    },
+    "brandSize": {
+      "$type": "dimension",
+      "$value": {
+        "value": 32,
+        "unit": "px"
+      }
+    },
+    "titleSize": {
+      "$type": "dimension",
+      "$value": {
+        "value": 28,
+        "unit": "px"
+      }
+    }
   }
 }

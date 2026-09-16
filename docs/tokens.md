@@ -141,3 +141,7 @@ Source: `tokens/tickets.tokens.json`. Run `bun run tokens:build`.
 | `mobile.body` | dimension | `16px` |
 | `mobile.surfaceEnter` | duration | `180ms` |
 | `mobile.surfaceExit` | duration | `120ms` |
+| `auth.contentWidth` | dimension | `384px` |
+| `auth.controlHeight` | dimension | `48px` |
+| `auth.brandSize` | dimension | `32px` |
+| `auth.titleSize` | dimension | `28px` |

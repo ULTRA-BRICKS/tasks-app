@@ -1446,6 +1446,38 @@ export const tokens = {
       "unit": "ms"
     },
     "css": "120ms"
+  },
+  "auth.contentWidth": {
+    "type": "dimension",
+    "value": {
+      "value": 384,
+      "unit": "px"
+    },
+    "css": "384px"
+  },
+  "auth.controlHeight": {
+    "type": "dimension",
+    "value": {
+      "value": 48,
+      "unit": "px"
+    },
+    "css": "48px"
+  },
+  "auth.brandSize": {
+    "type": "dimension",
+    "value": {
+      "value": 32,
+      "unit": "px"
+    },
+    "css": "32px"
+  },
+  "auth.titleSize": {
+    "type": "dimension",
+    "value": {
+      "value": 28,
+      "unit": "px"
+    },
+    "css": "28px"
   }
 } as const;
 export type TokenName = keyof typeof tokens;
