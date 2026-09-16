@@ -1,5 +1,6 @@
+import { AuthShell } from './shell';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, Input, ErrorState } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
@@ -18,28 +19,48 @@ export function useEphemeralLinkToken() {
   }, []);
   return token;
 }
-function AccountPage({ title, children }: { title: string; children: ReactNode }) {
+function AccountPage({
+  title,
+  children,
+  email = '',
+  description,
+}: {
+  title: string;
+  children: ReactNode;
+  email?: string;
+  description?: string;
+}) {
   return (
-    <main className="auth-page">
-      <div className="auth-card account-recovery">
-        <img src="/favicon.svg" width="40" height="40" alt="" />
-        <h1>{title}</h1>
-        {children}
-        <p>
-          <Link to="/login">Back to sign in</Link>
-        </p>
-      </div>
-    </main>
+    <AuthShell
+      title={title}
+      description={description}
+      footer={
+        <Link className="auth-back-link" to="/login" state={{ email }}>
+          Back to sign in
+        </Link>
+      }
+    >
+      {children}
+    </AuthShell>
   );
 }
 export function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const [email, setEmail] = useState(() =>
+    typeof location.state?.email === 'string' ? location.state.email.slice(0, 254) : '',
+  );
   const mutation = useMutation({
     mutationFn: () =>
       api('/auth/forgot-password', { method: 'POST', json: { email: email.trim() } }),
   });
   return (
-    <AccountPage title="Forgot your password?">
+    <AccountPage
+      title="Forgot your password?"
+      email={email}
+      description={
+        mutation.isSuccess ? undefined : 'We’ll send a secure link to your account email.'
+      }
+    >
       {mutation.isSuccess ? (
         <output>
           If an account exists for this email, a reset link will arrive shortly. Check your inbox
@@ -47,7 +68,6 @@ export function ForgotPasswordPage() {
         </output>
       ) : (
         <>
-          <p>Enter your account email. We will send a single-use link, not your password.</p>
           <form
             className="stack-form"
             onSubmit={(e) => {
@@ -143,7 +163,9 @@ export function ResetPasswordPage() {
           {mutation.error && (
             <>
               <ErrorState message={errorMessage(mutation.error)} />
-              <Link to="/forgot-password">Request a new reset link</Link>
+              <Link className="auth-back-link" to="/forgot-password">
+                Request a new reset link
+              </Link>
             </>
           )}
           <Button type="submit" variant="default" disabled={mutation.isPending || mismatch}>

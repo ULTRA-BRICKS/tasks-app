@@ -101,6 +101,10 @@
   --mobile-body: 16px;
   --mobile-surface-enter: 180ms;
   --mobile-surface-exit: 120ms;
+  --auth-content-width: 384px;
+  --auth-control-height: 48px;
+  --auth-brand-size: 32px;
+  --auth-title-size: 28px;
 }
 :root, [data-theme="dark"] {
   --color-canvas: rgb(17 17 17 / 1);
