@@ -33,7 +33,7 @@
   "crons": [
     {
       "path": "/api/internal/account-email",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
