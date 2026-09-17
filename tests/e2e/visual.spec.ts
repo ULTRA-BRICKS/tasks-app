@@ -38,3 +38,22 @@ test('new issue — inline document page', async ({ page }) => {
   await expect(page.locator('.document-description[contenteditable=true]')).toBeVisible();
   await expect(page).toHaveScreenshot('create-issue.png');
 });
+
+test('issue list — touch phone keeps readable text and separators', async ({
+  browser,
+  baseURL,
+}) => {
+  const context = await browser.newContext({
+    baseURL,
+    viewport: { width: 393, height: 852 },
+    hasTouch: true,
+  });
+  try {
+    const page = await context.newPage();
+    await login(page);
+    expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+    await expect(page).toHaveScreenshot('issues-touch.png');
+  } finally {
+    await context.close();
+  }
+});

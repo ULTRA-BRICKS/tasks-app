@@ -88,13 +88,15 @@ export function IssueRow({
     >
       <div className={'issue-row' + (selected ? ' is-selected' : '')} data-testid="issue-row">
         {canSelect && onSelect ? (
-          <input
-            type="checkbox"
-            className="issue-checkbox"
-            checked={Boolean(selected)}
-            onChange={onSelect}
-            aria-label={`Select ${issue.key}`}
-          />
+          <label className="issue-selection">
+            <input
+              type="checkbox"
+              className="issue-checkbox"
+              checked={Boolean(selected)}
+              onChange={onSelect}
+              aria-label={`Select ${issue.key}`}
+            />
+          </label>
         ) : (
           <span />
         )}

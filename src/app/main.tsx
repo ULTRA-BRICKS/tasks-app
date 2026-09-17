@@ -64,7 +64,8 @@ function Workspace() {
     [searchOpen, setSearchOpen] = useState(false);
   useEffect(() => {
     document.documentElement.dataset.theme = prefs.theme;
-  }, [prefs.theme]);
+    document.documentElement.dataset.density = prefs.density ?? 'auto';
+  }, [prefs.theme, prefs.density]);
   if (me.isPending)
     return (
       <div className="app-loading">

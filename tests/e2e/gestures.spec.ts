@@ -194,18 +194,38 @@ test('mobile capsule menu supports filters and keyboard dismissal without firing
   await expect(page.getByRole('combobox', { name: 'Filter by team', exact: true })).toBeVisible();
 });
 
-test('mobile capsule and preview actions have at least 44px hit areas', async ({ page }) => {
-  await page.setViewportSize({ width: 393, height: 852 });
-  for (const element of [
-    page.getByRole('button', { name: 'New issue', exact: true }),
-    page.getByRole('button', { name: 'Issue actions', exact: true }),
-    page.getByRole('button', { name: /^Preview / }).first(),
-  ]) {
-    const box = (await element.boundingBox())!;
-    expect(box.width).toBeGreaterThanOrEqual(44);
-    expect(box.height).toBeGreaterThanOrEqual(44);
+test('mobile capsule and preview actions have at least 44px hit areas', async ({
+  browser,
+  page: loggedInPage,
+  baseURL,
+}) => {
+  // Width alone is a narrow desktop. Test a real coarse-pointer context here.
+  const context = await browser.newContext({
+    baseURL,
+    viewport: { width: 393, height: 852 },
+    hasTouch: true,
+  });
+  try {
+    await context.addCookies(await loggedInPage.context().cookies());
+    const page = await context.newPage();
+    await page.goto('/issues');
+    await expect(page.getByTestId('issue-row').first()).toBeVisible();
+    expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+    for (const element of [
+      page.getByRole('button', { name: 'New issue', exact: true }),
+      page.getByRole('button', { name: 'Issue actions', exact: true }),
+      page.getByRole('button', { name: /^Preview / }).first(),
+    ]) {
+      const box = (await element.boundingBox())!;
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+  } finally {
+    await context.close();
   }
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test('only one issue preview is open and its own content can scroll', async ({ page }) => {

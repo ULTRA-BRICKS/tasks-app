@@ -829,7 +829,7 @@ kbd {
 }
 .issue-row {
   display: grid;
-  grid-template-columns: 16px 16px 66px minmax(100px, 1fr) auto 60px 22px;
+  grid-template-columns: var(--list-select-size, 16px) 16px 66px minmax(100px, 1fr) auto 60px 22px;
   gap: var(--space-12);
   align-items: center;
   min-height: var(--size-row);
@@ -2269,7 +2269,7 @@ kbd {
     grid-template-columns: minmax(300px, 1fr) 280px;
   }
   .issue-row {
-    grid-template-columns: 16px 16px 72px minmax(100px, 1fr) auto 72px 22px;
+    grid-template-columns: var(--list-select-size, 16px) 16px 72px minmax(100px, 1fr) auto 72px 22px;
   }
 }
 @media (max-width: 1150px) {
@@ -2278,7 +2278,7 @@ kbd {
   }
   .issue-row {
     gap: var(--space-8);
-    grid-template-columns: 14px 15px 61px minmax(100px, 1fr) auto 50px 22px;
+    grid-template-columns: var(--list-select-size, 16px) 15px 61px minmax(100px, 1fr) auto 50px 22px;
     padding-inline: var(--space-16);
   }
   .detail-layout {
@@ -2305,7 +2305,7 @@ kbd {
     display: none;
   }
   .issue-row {
-    grid-template-columns: 14px 15px 60px minmax(100px, 1fr) 48px 22px;
+    grid-template-columns: var(--list-select-size, 16px) 15px 60px minmax(100px, 1fr) 48px 22px;
   }
   .settings-layout {
     display: flex;
@@ -2425,7 +2425,7 @@ kbd {
   }
   .issue-row {
     padding-inline: var(--space-12);
-    grid-template-columns: 14px 14px 57px minmax(70px, 1fr) 22px;
+    grid-template-columns: var(--list-select-size, 16px) 14px 57px minmax(70px, 1fr) 22px;
     gap: var(--space-6);
     min-height: 48px;
   }
@@ -3610,5 +3610,96 @@ button,
 @media (max-width: 767px) {
   .knowledge-editor-label {
     display: none;
+  }
+}
+
+/* Width controls available columns; primary input controls row density. */
+:root {
+  --list-row-height: var(--density-desktop);
+  --list-action-size: var(--density-pointer-action);
+  --list-title-font: var(--font-size-12);
+  --list-select-size: 24px;
+}
+:root[data-density='compact'] {
+  --list-row-height: var(--density-compact);
+}
+:root[data-density='comfortable'] {
+  --list-row-height: var(--density-touch);
+  --list-action-size: var(--density-touch-action);
+  --list-title-font: var(--font-size-14);
+}
+.issue-list .peek-anchor > .issue-row {
+  min-height: var(--list-row-height);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  padding-right: calc(var(--list-action-size) + var(--space-8));
+}
+.issue-list .issue-open {
+  min-height: calc(var(--list-row-height) - 1px);
+}
+.issue-list .issue-open > span {
+  font-size: var(--list-title-font);
+}
+.issue-list .peek-trigger {
+  width: var(--list-action-size);
+  height: var(--list-action-size);
+}
+.issue-selection {
+  display: grid;
+  place-items: center;
+  width: var(--list-select-size);
+  min-height: var(--list-action-size);
+  cursor: pointer;
+}
+@media (pointer: coarse) {
+  :root {
+    --list-row-height: var(--density-touch);
+    --list-action-size: var(--density-touch-action);
+    --list-title-font: var(--font-size-14);
+    --list-select-size: 44px;
+  }
+  :root[data-density='compact'] {
+    --list-row-height: var(--density-touch-compact);
+  }
+  .issue-list .issue-checkbox {
+    opacity: 1;
+    width: 16px;
+    height: 16px;
+  }
+  .issue-list .peek-trigger {
+    opacity: 1;
+  }
+  .issue-list .issue-row {
+    grid-template-columns: 44px 16px 66px minmax(70px, 1fr) auto 60px 22px;
+  }
+}
+@media (pointer: coarse) and (max-width: 1150px) {
+  .issue-list .issue-row {
+    grid-template-columns: 44px 15px 61px minmax(70px, 1fr) auto 50px 22px;
+  }
+}
+@media (pointer: coarse) and (max-width: 900px) {
+  .issue-list .issue-row {
+    grid-template-columns: 44px 15px 60px minmax(70px, 1fr) 48px 22px;
+  }
+}
+@media (pointer: coarse) and (max-width: 767px) {
+  .issue-list .issue-row {
+    grid-template-columns: 44px 14px 57px minmax(70px, 1fr) 22px;
+  }
+}
+@media (max-width: 767px) and (pointer: fine) {
+  .page-toolbar {
+    min-height: 56px;
+    padding-block: var(--space-8);
+  }
+  .page-heading h1 {
+    font-size: 24px;
+  }
+  .group-heading {
+    padding-block: 0;
+    height: 36px;
+  }
+  .group-heading > button {
+    min-height: 32px;
   }
 }

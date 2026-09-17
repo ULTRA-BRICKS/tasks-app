@@ -105,6 +105,12 @@
   --auth-control-height: 48px;
   --auth-brand-size: 32px;
   --auth-title-size: 28px;
+  --density-compact: 36px;
+  --density-desktop: 42px;
+  --density-touch: 56px;
+  --density-touch-compact: 48px;
+  --density-pointer-action: 32px;
+  --density-touch-action: 44px;
 }
 :root, [data-theme="dark"] {
   --color-canvas: rgb(17 17 17 / 1);
