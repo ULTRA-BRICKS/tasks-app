@@ -1,0 +1,26 @@
+{
+  "package": "@ultrabricks/state-lib",
+  "version": "0.1.0-pilot.1",
+  "sourceRepository": "hyperide/hyper-saas",
+  "sourceBase": "5f2790d8f0ee88c9b303a506b4a766e1d2c4f420",
+  "sourceIsUncommittedCandidate": true,
+  "sourceFiles": {
+    "package.json": "b124416bfa436e472c6f921e3ba3f924ae7b87e170c93f4abe5643e622d3ca8d",
+    "src/index.ts": "c66d347a1d4ffcd9f7f8ef9eb7c5c5175962c43b3c83686a44981121fb5cd0db",
+    "src/core.ts": "52c63aaaa59353d42bf7d295c3cdcbaebb7a3c67587a72c618bfc30ac000b82b",
+    "src/latest-task.ts": "026f458af5faf9f66877af08b0220791d3b55b7ebb11c84d91170c5b0d00ac7b",
+    "src/external-store.ts": "b7455c5b6b6cc2312ec75765d2c7f356198033d98b28ccee6daddbfcbad87e57",
+    "tsconfig.build.json": "aae9d2739688b029b939309290383f010b63c642aebcaf73dd046dfb8f0ffb70"
+  },
+  "builtFiles": {
+    "dist/core.d.ts": "950fe95e889836db830bcd41ed7bd8e93b3c9ba8c99c4f5e80b60d3856c67101",
+    "dist/core.js": "786b3ca1d1f17667409f71588adcfe3c571aa42c7c014fc6a18ed17b89b69fe0",
+    "dist/external-store.d.ts": "cd2e6541f07b66627c8191d529289c44321b00874e12ab9569b60fca3e65eafd",
+    "dist/external-store.js": "7742fb0b3007b2506c28c49e219a3268a9a9a62c50cb651ff0b90fd6f868ee48",
+    "dist/index.d.ts": "c66d347a1d4ffcd9f7f8ef9eb7c5c5175962c43b3c83686a44981121fb5cd0db",
+    "dist/index.js": "fb30c11aaffdab27822d2fca100accc352fabd7218548d8a553af1e50631bb11",
+    "dist/latest-task.d.ts": "36cd64be0517c16c99348e6897c5673275046b9ff1df40ff2e82207c961d2115",
+    "dist/latest-task.js": "08689b0a444ce16329df0e41ea94288faada6921570b04d2aca7977f896a4167"
+  },
+  "scope": "Synchronous TS runtime, latest-result task and framework-neutral snapshot adapters. No normalized structural-store, distributed undo, query cache, FSM or Wasm equivalence claim."
+}
