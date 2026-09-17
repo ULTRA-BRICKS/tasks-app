@@ -48,7 +48,59 @@ const issueFields = {
   due_date: nullable(date),
   label_ids: stringArray(),
 };
+const documentFields = {
+  title: text(300, 1),
+  body: text(500000),
+  project_id: nullable(uuid),
+  initiative_id: nullable(uuid),
+};
+const initiativeFields = {
+  name: text(200, 1),
+  description: text(100000),
+  status: enumeration('planned', 'active', 'completed', 'canceled'),
+  owner_id: nullable(uuid),
+  target_date: nullable(date),
+  project_ids: stringArray(uuid, 100),
+};
+const versioned = (fields) =>
+  object({ ...fields, version: { type: 'integer', minimum: 1 }, archived: { type: 'boolean' } }, [
+    'version',
+  ]);
 export const schemas = {
+  DocumentCreate: object(documentFields, ['title']),
+  DocumentPatch: versioned(documentFields),
+  InitiativeCreate: object(initiativeFields, ['name']),
+  InitiativePatch: versioned(initiativeFields),
+  LinearFileUnavailable: object({ source_status: { type: 'integer', enum: [404, 410] } }, [
+    'source_status',
+  ]),
+  LinearImportCreate: object({ manifest: { type: 'object', additionalProperties: true } }, [
+    'manifest',
+  ]),
+  LinearImportBatch: object(
+    {
+      collection: text(40, 1),
+      records: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 100,
+        items: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: uuid },
+          additionalProperties: true,
+        },
+      },
+    },
+    ['collection', 'records'],
+  ),
+  LinearImportApply: object(
+    {
+      plan_hash: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+      accept_missing_source_files: { type: 'boolean' },
+    },
+    ['plan_hash'],
+  ),
   WorkspacePolicyPatch: object(
     {
       allowed_email_domains: { type: 'array', items: text(253, 1), maxItems: 50 },

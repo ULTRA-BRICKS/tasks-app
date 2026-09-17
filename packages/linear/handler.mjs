@@ -339,7 +339,15 @@ async function resolve(source, args, c, info) {
       projectMilestone: ['ProjectMilestone', 'milestone_id'],
       parent: ['Issue', 'parent_id'],
     };
-    if (refs[name]) return get(...[refs[name][0], source[refs[name][1]]]);
+    if (refs[name])
+      return get(
+        refs[name][0],
+        name === 'assignee'
+          ? (source.assignee_id ?? source.assignee_source_id)
+          : name === 'creator'
+            ? (source.creator_source_id ?? source.creator_id)
+            : source[refs[name][1]],
+      );
     if (name === 'priorityLabel') return priorities[source.priority];
     if (name === 'url') return c.origin + '/issues/' + encodeURIComponent(source.id);
     if (name === 'labelIds')
@@ -385,7 +393,7 @@ async function resolve(source, args, c, info) {
   if (type === 'User') {
     if (name === 'displayName') return source.name;
     if (name === 'isMe') return source.id === c.actor.id;
-    if (name === 'active') return true;
+    if (name === 'active') return !source.imported;
     if (name === 'admin') return ['admin', 'owner'].includes(source.role);
     if (name === 'owner') return source.role === 'owner';
     if (name === 'organization') return organization();
@@ -394,14 +402,16 @@ async function resolve(source, args, c, info) {
         'Issue',
         args,
         extra(
-          `r.${name === 'assignedIssues' ? 'assignee_id' : 'creator_id'}=?`,
+          name === 'assignedIssues'
+            ? 'COALESCE(r.assignee_id,r.assignee_source_id)=?'
+            : 'COALESCE(r.creator_source_id,r.creator_id)=?',
           [source.id],
           'user:' + source.id + ':' + name,
         ),
       );
   }
   if (type === 'WorkflowState') {
-    if (name === 'type') return source.category;
+    if (name === 'type') return source.source_type ?? source.category;
     if (name === 'team') return get('Team', source.team_id);
     if (name === 'issues')
       return list('Issue', args, extra('r.status_id=?', [source.id], 'state:' + source.id));
@@ -421,7 +431,7 @@ async function resolve(source, args, c, info) {
       );
   }
   if (type === 'Project') {
-    if (name === 'lead') return get('User', source.lead_id);
+    if (name === 'lead') return get('User', source.lead_id ?? source.lead_source_id);
     if (name === 'url') return c.origin + '/issues?project_id=' + encodeURIComponent(source.id);
     if (name === 'issues' || name === 'projectMilestones')
       return list(
@@ -443,7 +453,7 @@ async function resolve(source, args, c, info) {
   if (type === 'ProjectMilestone' && name === 'project') return get('Project', source.project_id);
   if (type === 'Comment') {
     if (name === 'issue') return get('Issue', source.issue_id);
-    if (name === 'user') return get('User', source.author_id);
+    if (name === 'user') return get('User', source.author_source_id ?? source.author_id);
     if (name === 'url') return c.origin + '/issues/' + source.issue_id + '#comment-' + source.id;
   }
   if (type === 'IssueRelation') {

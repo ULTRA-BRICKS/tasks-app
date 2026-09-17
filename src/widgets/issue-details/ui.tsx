@@ -1,3 +1,4 @@
+import { ImportedSourceLink } from '@/shared/ui';
 import { IssueProperties } from '@/features/issue-properties';
 import { useState, useRef } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
@@ -413,16 +414,10 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             <section className="detail-section">
               <h3>External links</h3>
               {issue.links.map((l) => (
-                <a
-                  className="attachment-row"
-                  key={l.id}
-                  href={l.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <ImportedSourceLink className="attachment-row" key={l.id} url={l.url}>
                   <ExternalLink size={14} />
                   <span>{l.title}</span>
-                </a>
+                </ImportedSourceLink>
               ))}
             </section>
           )}

@@ -1,3 +1,4 @@
+import { resolvePerson } from '../../core/source-people.mjs';
 import { id, now } from '../../core/crypto.mjs';
 import { assert, missing, conflict, requirePermission } from '../../core/errors.mjs';
 import { assertModule } from '../../core/modules.mjs';
@@ -23,6 +24,7 @@ export async function listProjects(tx, actor) {
   }
   return projects.map((p) => ({
     ...p,
+    lead_id: p.lead_id ?? p.lead_source_id,
     total: Number(totalsByProject.get(p.id)?.total ?? 0),
     completed: Number(totalsByProject.get(p.id)?.completed ?? 0),
     team_ids: teamsByProject.get(p.id) ?? [],
@@ -41,16 +43,9 @@ async function checkProject(tx, actor, input) {
     'INVALID_DATES',
     'Target date must not precede start date',
   );
-  if (input.lead_id)
-    assert(
-      await tx.one('SELECT user_id FROM memberships WHERE workspace_id=? AND user_id=?', [
-        actor.workspace_id,
-        input.lead_id,
-      ]),
-      422,
-      'INVALID_LEAD',
-      'Lead must be a workspace member',
-    );
+  const lead = await resolvePerson(tx, actor, input.lead_id ?? input.lead_source_id);
+  input.lead_id = lead.member;
+  input.lead_source_id = lead.source;
 }
 export async function createProject(tx, actor, input) {
   requirePermission(actor, 'write');
@@ -76,6 +71,7 @@ export async function createProject(tx, actor, input) {
       status: input.status ?? 'planned',
       health: input.health ?? 'on_track',
       lead_id: input.lead_id ?? null,
+      lead_source_id: input.lead_source_id ?? null,
       start_date: input.start_date ?? null,
       target_date: input.target_date ?? null,
       version: 1,
@@ -117,7 +113,9 @@ export async function updateProject(tx, actor, projectId, input) {
   ];
   const next = { ...current };
   for (const f of fields) if (Object.hasOwn(input, f)) next[f] = input[f];
+  if (Object.hasOwn(input, 'lead_id')) next.lead_source_id = null;
   await checkProject(tx, actor, next);
+  fields.push('lead_source_id');
   if (Object.hasOwn(input, 'archived')) next.archived_at = input.archived ? now() : null;
   await tx.exec(
     `UPDATE projects SET ${fields.map((f) => f + '=?').join(',')},archived_at=?,version=version+1,updated_at=? WHERE workspace_id=? AND id=?`,

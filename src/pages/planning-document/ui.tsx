@@ -493,6 +493,10 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
                   options={[
                     { value: 'none', label: 'No lead' },
                     ...(catalog?.people.map((p) => ({ value: p.id, label: p.name })) ?? []),
+                    ...(catalog?.source_people?.map((p) => ({
+                      value: p.id,
+                      label: p.name + ' · imported',
+                    })) ?? []),
                   ]}
                   onChange={(lead) => property({ lead: lead === 'none' ? null : lead })}
                   disabled={frozen || busy}

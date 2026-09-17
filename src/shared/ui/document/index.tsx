@@ -1,3 +1,4 @@
+import { ImportedFileLinks } from '../imported-files';
 import { lazy, Suspense } from 'react';
 import { InlineTitle } from './title';
 const RichDescription = lazy(() => import('./rich-description'));
@@ -11,6 +12,7 @@ export function DocumentText({
   readOnly,
   titlePlaceholder,
   titleMaxLength,
+  descriptionMaxLength,
 }: {
   title: string;
   description: string;
@@ -21,6 +23,7 @@ export function DocumentText({
   readOnly?: boolean;
   titlePlaceholder?: string;
   titleMaxLength?: number;
+  descriptionMaxLength?: number;
 }) {
   return (
     <div className="document-text">
@@ -42,6 +45,7 @@ export function DocumentText({
         }
       >
         <RichDescription
+          maxLength={descriptionMaxLength}
           value={description}
           onChange={(v) => onChange('description', v)}
           onCommit={onCommit}
@@ -50,6 +54,7 @@ export function DocumentText({
           readOnly={readOnly}
         />
       </Suspense>
+      <ImportedFileLinks text={description} />
     </div>
   );
 }

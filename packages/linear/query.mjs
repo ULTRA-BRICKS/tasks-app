@@ -24,8 +24,8 @@ const defs = {
     columns: { id: 'id', key: 'key', name: 'name' },
   },
   User: {
-    from: 'users r JOIN memberships m ON m.user_id=r.id',
-    scope: 'm.workspace_id',
+    from: 'workspace_people r',
+    scope: 'r.workspace_id',
     time: 'created_at',
     columns: { id: 'id', name: 'name', email: 'email' },
   },
@@ -141,18 +141,24 @@ export function compileFilter(type, filter, ctx, alias = 'r', counter = { n: 0 }
       team: ['Team', 'teams', 'team_id'],
       state: ['WorkflowState', 'statuses', 'status_id'],
       project: ['Project', 'projects', 'project_id'],
-      assignee: ['User', 'users', 'assignee_id'],
-      creator: ['User', 'users', 'creator_id'],
+      assignee: ['User', 'workspace_people', 'assignee_id'],
+      creator: ['User', 'workspace_people', 'creator_id'],
     };
     if (type === 'Issue' && relations[key]) {
       const [related, table, fk] = relations[key];
+      const reference =
+        key === 'assignee'
+          ? `COALESCE(${alias}.assignee_id,${alias}.assignee_source_id)`
+          : key === 'creator'
+            ? `COALESCE(${alias}.creator_source_id,${alias}.creator_id)`
+            : `${alias}.${fk}`;
       const nullable = (f) => {
         const clauses = [],
           params = [];
         for (const [k, v] of Object.entries(f)) {
           if (v == null) continue;
           if (k === 'null') {
-            clauses.push(`${alias}.${fk} IS ${v ? '' : 'NOT '}NULL`);
+            clauses.push(`${reference} IS ${v ? '' : 'NOT '}NULL`);
             continue;
           }
           if (k === 'and' || k === 'or') {
@@ -171,7 +177,7 @@ export function compileFilter(type, filter, ctx, alias = 'r', counter = { n: 0 }
           const a = 'f' + ++counter.n,
             sub = compileFilter(related, { [k]: v }, ctx, a, counter);
           clauses.push(
-            `EXISTS(SELECT 1 FROM ${table} ${a} WHERE ${a}.id=${alias}.${fk} AND (${sub.sql}))`,
+            `EXISTS(SELECT 1 FROM ${table} ${a} WHERE ${a}.id=${reference} AND ${a}.workspace_id=${alias}.workspace_id AND (${sub.sql}))`,
           );
           params.push(...sub.args);
         }
@@ -248,7 +254,13 @@ export function compileFilter(type, filter, ctx, alias = 'r', counter = { n: 0 }
           vs,
         );
       }
-    } else compare(`${alias}.${column}`, value);
+    } else
+      compare(
+        type === 'WorkflowState' && key === 'type'
+          ? `COALESCE(${alias}.source_type,${alias}.category)`
+          : `${alias}.${column}`,
+        value,
+      );
   }
   return { sql: parts.length ? '(' + parts.join(' AND ') + ')' : '1=1', args };
 }
@@ -267,7 +279,7 @@ export async function getRecord(type, id, ctx) {
   const d = defs[type];
   if (d.module) await assertModule(ctx.tx, ctx.actor.workspace_id, d.module);
   const row = await ctx.tx.one(
-    `SELECT r.*${type === 'User' ? ',m.role' : ''} FROM ${d.from} WHERE ${d.scope}=? AND r.id=? ${liveReferences(type)}`,
+    `SELECT r.* FROM ${d.from} WHERE ${d.scope}=? AND r.id=? ${liveReferences(type)}`,
     [ctx.actor.workspace_id, id],
   );
   if (!row) throw missing(type);
@@ -357,7 +369,7 @@ export async function connection(
     }
   const base = `FROM ${d.from} WHERE ${where.join(' AND ')}`;
   let rows = await ctx.tx.all(
-    `SELECT r.*${type === 'User' ? ',m.role' : ''} ${base}${bounds.length ? ' AND ' + bounds.join(' AND ') : ''} ORDER BY r.${order} ${back ? 'ASC' : 'DESC'},r.id ${back ? 'ASC' : 'DESC'} LIMIT ?`,
+    `SELECT r.* ${base}${bounds.length ? ' AND ' + bounds.join(' AND ') : ''} ORDER BY r.${order} ${back ? 'ASC' : 'DESC'},r.id ${back ? 'ASC' : 'DESC'} LIMIT ?`,
     [...values, ...boundValues, limit + 1],
   );
   const more = rows.length > limit;
