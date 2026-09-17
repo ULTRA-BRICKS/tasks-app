@@ -41,7 +41,13 @@ export const KeyboardAndSelection: Story = {
     );
     await userEvent.click(item);
     await waitFor(() => expect(canvas.getByRole('status')).toHaveTextContent('Refreshed'));
+    // Finish the close transition before beginning a separate keyboard-dismiss interaction.
+    await waitFor(() => expect(page.queryByRole('menu')).not.toBeInTheDocument());
+    await waitFor(() => expect(trigger).toHaveFocus());
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
     await userEvent.click(trigger);
+    await page.findByRole('menu');
+    await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'true'));
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('menu')).not.toBeInTheDocument());
     await waitFor(() => expect(trigger).toHaveFocus());
