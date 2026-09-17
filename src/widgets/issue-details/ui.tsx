@@ -440,9 +440,16 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
               .map((a) => (
                 <div className="activity-event" key={a.id}>
                   <span className="activity-dot" />
-                  <span>
-                    <strong>{a.actor_name}</strong> {a.action}
-                  </span>
+                  <div className="activity-message">
+                    <div>
+                      <strong>{a.actor_name}</strong> {a.summary ?? 'updated the issue'}
+                    </div>
+                    {a.details?.map((detail, index) => (
+                      <div className="activity-detail" key={index}>
+                        {detail}
+                      </div>
+                    ))}
+                  </div>
                   <time dateTime={a.created_at}>{formatDate(a.created_at)}</time>
                 </div>
               ))}
