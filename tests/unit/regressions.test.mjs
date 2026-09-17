@@ -18,7 +18,7 @@ test('numbered migrations include avatar metadata and reject an unknown newer sc
   const f = await fixture();
   try {
     const current = await migrate(f.db);
-    assert.equal(current.version, 4);
+    assert.equal(current.version, 7);
     assert.equal(current.applied, false);
     await f.db.transaction((tx) =>
       tx.all('SELECT hash,user_id,expires_at,used_at FROM password_reset_tokens'),

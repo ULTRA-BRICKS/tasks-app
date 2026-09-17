@@ -1,3 +1,4 @@
+import { ImportedFileLinks, useImportedFiles, fileHref } from './imported-files';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -37,6 +38,11 @@ function labelMarkdownTasks() {
   };
 }
 export function Markdown({ children }: { children: string }) {
+  const files = useImportedFiles();
+  const resolveHref = (href: string | undefined) => {
+    const found = files.find((file) => file.source_url === href && file.status === 'ready');
+    return found ? fileHref(found) : href;
+  };
   return (
     <div className="markdown">
       <ReactMarkdown
@@ -45,13 +51,17 @@ export function Markdown({ children }: { children: string }) {
         skipHtml
         components={{
           a: ({ href, children }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer">
+            <a href={resolveHref(href)} target="_blank" rel="noopener noreferrer">
               {children}
             </a>
           ),
           // External images are not loaded automatically: avoids tracking pixels and arbitrary remote requests.
           img: ({ alt, src }) => (
-            <a href={src} target="_blank" rel="noopener noreferrer">
+            <a
+              href={typeof src === 'string' ? resolveHref(src) : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               [Image: {alt || 'Open image'}]
             </a>
           ),
@@ -59,6 +69,7 @@ export function Markdown({ children }: { children: string }) {
       >
         {children}
       </ReactMarkdown>
+      <ImportedFileLinks text={children} />
     </div>
   );
 }

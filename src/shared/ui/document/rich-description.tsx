@@ -29,6 +29,7 @@ export interface DescriptionProps {
   onEditEnd?: () => void;
   readOnly?: boolean;
   placeholder?: string;
+  maxLength?: number;
 }
 export default function RichDescription(props: DescriptionProps) {
   // Preserve unsupported markup literally rather than silently losing it on a rich-text edit.

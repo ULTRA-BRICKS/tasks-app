@@ -3505,3 +3505,101 @@ button,
       max(var(--space-24), env(safe-area-inset-bottom));
   }
 }
+
+.knowledge-list {
+  padding: var(--space-24);
+  overflow: auto;
+  flex: 1;
+}
+.knowledge-list .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
+  margin-bottom: var(--space-24);
+}
+.knowledge-list h1 {
+  font-size: var(--font-size-24);
+  margin: 0;
+}
+.knowledge-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: var(--mobile-tap);
+  padding: var(--space-12);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+}
+.knowledge-row:hover {
+  background: var(--color-hover);
+}
+.knowledge-row span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.knowledge-row small {
+  color: var(--color-muted);
+}
+.issue-detail-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.knowledge-document {
+  padding: var(--space-24);
+  width: min(100%, 880px);
+  margin-inline: auto;
+}
+.knowledge-properties {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+  margin-top: var(--space-24);
+}
+.knowledge-project {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.knowledge-document .draft-banner pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 320px;
+  overflow: auto;
+}
+@media (max-width: 767px) {
+  .knowledge-list,
+  .knowledge-document {
+    padding: var(--space-16);
+  }
+  .knowledge-document .button,
+  .knowledge-document .picker {
+    min-height: var(--mobile-tap);
+  }
+  .knowledge-list .page-header {
+    flex-wrap: wrap;
+  }
+}
+
+.imported-file-links {
+  margin-top: var(--space-16);
+  padding-block: var(--space-12);
+  font-size: var(--font-size-12);
+  border-top: 1px solid var(--color-border);
+}
+.imported-file-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--mobile-tap);
+  color: var(--color-muted);
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .knowledge-editor-label {
+    display: none;
+  }
+}

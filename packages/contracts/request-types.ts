@@ -1,4 +1,12 @@
 // Generated from schemas.mjs. Run bun run api:generate.
+export type DocumentCreate = { "title": string; "body"?: string; "project_id"?: string | null; "initiative_id"?: string | null };
+export type DocumentPatch = { "title"?: string; "body"?: string; "project_id"?: string | null; "initiative_id"?: string | null; "version": number; "archived"?: boolean };
+export type InitiativeCreate = { "name": string; "description"?: string; "status"?: "planned" | "active" | "completed" | "canceled"; "owner_id"?: string | null; "target_date"?: string | null; "project_ids"?: Array<string> };
+export type InitiativePatch = { "name"?: string; "description"?: string; "status"?: "planned" | "active" | "completed" | "canceled"; "owner_id"?: string | null; "target_date"?: string | null; "project_ids"?: Array<string>; "version": number; "archived"?: boolean };
+export type LinearFileUnavailable = { "source_status": 404 | 410 };
+export type LinearImportCreate = { "manifest": {  } };
+export type LinearImportBatch = { "collection": string; "records": Array<{ "id": string }> };
+export type LinearImportApply = { "plan_hash": string; "accept_missing_source_files"?: boolean };
 export type WorkspacePolicyPatch = { "allowed_email_domains": Array<string>; "version": number };
 export type IssueCreate = { "title": string; "description"?: string; "kind"?: "issue" | "epic"; "status_id"?: string; "priority"?: number; "assignee_id"?: string | null; "project_id"?: string | null; "cycle_id"?: string | null; "milestone_id"?: string | null; "parent_id"?: string | null; "estimate"?: number | null; "start_date"?: string | null; "due_date"?: string | null; "label_ids"?: Array<string>; "team_id": string };
 export type IssuePatch = { "title"?: string; "description"?: string; "kind"?: "issue" | "epic"; "status_id"?: string; "priority"?: number; "assignee_id"?: string | null; "project_id"?: string | null; "cycle_id"?: string | null; "milestone_id"?: string | null; "parent_id"?: string | null; "estimate"?: number | null; "start_date"?: string | null; "due_date"?: string | null; "label_ids"?: Array<string>; "version": number; "archived"?: boolean; "deleted"?: boolean; "position"?: number };

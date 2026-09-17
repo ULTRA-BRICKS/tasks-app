@@ -1,3 +1,5 @@
+import { ImportedFilesProvider } from '@/shared/ui';
+import { KnowledgeListPage, KnowledgePage } from '@/pages/knowledge';
 import { PlanningDocumentPage } from '@/pages/planning-document';
 import { WorkspaceKeyboard } from '@/features/keyboard';
 import { NewIssuePage } from '@/pages/issue-new';
@@ -5,7 +7,7 @@ import React, { useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useMe } from '@/entities/workspace';
+import { useMe, useCatalog } from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
 import { CreateIssue } from '@/features/issue-create';
 import { CommandMenu } from '@/features/command-menu';
@@ -54,6 +56,7 @@ class Boundary extends React.Component<
   }
 }
 function Workspace() {
+  const { data: catalog } = useCatalog();
   const me = useMe(),
     prefs = usePreferences(),
     navigate = useNavigate(),
@@ -76,49 +79,55 @@ function Workspace() {
       </div>
     );
   return (
-    <div className="app-shell">
-      <a href="#main-content" className="skip-link">
-        Skip to content
-      </a>
-      <Navigation onCreate={() => setCreateOpen(true)} onSearch={() => setSearchOpen(true)} />
-      <main id="main-content" className="workspace-main">
-        <Routes>
-          <Route path="/" element={<Navigate to="/issues" replace />} />
-          <Route path="/login" element={<Navigate to="/issues" replace />} />
-          <Route path="/issues" element={<IssuesPage />} />
-          <Route path="/issues/new" element={<NewIssuePage />} />
-          <Route path="/issues/:issueId" element={<IssuesPage />} />
-          <Route path="/my-issues" element={<IssuesPage />} />
-          <Route path="/epics" element={<IssuesPage />} />
-          <Route path="/archive" element={<IssuesPage />} />
-          <Route path="/projects" element={<PlanningPage kind="projects" />} />
-          <Route path="/cycles" element={<PlanningPage kind="cycles" />} />
-          <Route path="/projects/:id" element={<PlanningDocumentPage kind="projects" />} />
-          <Route path="/cycles/:id" element={<PlanningDocumentPage kind="cycles" />} />
-          <Route path="/inbox" element={<InboxPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+    <ImportedFilesProvider files={catalog?.imported_files ?? []}>
+      <div className="app-shell">
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
+        <Navigation onCreate={() => setCreateOpen(true)} onSearch={() => setSearchOpen(true)} />
+        <main id="main-content" className="workspace-main">
+          <Routes>
+            <Route path="/" element={<Navigate to="/issues" replace />} />
+            <Route path="/login" element={<Navigate to="/issues" replace />} />
+            <Route path="/issues" element={<IssuesPage />} />
+            <Route path="/issues/new" element={<NewIssuePage />} />
+            <Route path="/issues/:issueId" element={<IssuesPage />} />
+            <Route path="/my-issues" element={<IssuesPage />} />
+            <Route path="/epics" element={<IssuesPage />} />
+            <Route path="/archive" element={<IssuesPage />} />
+            <Route path="/projects" element={<PlanningPage kind="projects" />} />
+            <Route path="/documents" element={<KnowledgeListPage kind="documents" />} />
+            <Route path="/documents/:id" element={<KnowledgePage kind="documents" />} />
+            <Route path="/initiatives" element={<KnowledgeListPage kind="initiatives" />} />
+            <Route path="/initiatives/:id" element={<KnowledgePage kind="initiatives" />} />
+            <Route path="/cycles" element={<PlanningPage kind="cycles" />} />
+            <Route path="/projects/:id" element={<PlanningDocumentPage kind="projects" />} />
+            <Route path="/cycles/:id" element={<PlanningDocumentPage kind="cycles" />} />
+            <Route path="/inbox" element={<InboxPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
 
-          <Route
-            path="*"
-            element={
-              <div className="empty-state">
-                <h1>Page not found</h1>
-                <button className="button button-secondary" onClick={() => navigate('/issues')}>
-                  Back to issues
-                </button>
-              </div>
-            }
-          />
-        </Routes>
-      </main>
-      {createOpen && <CreateIssue open={createOpen} onOpenChange={setCreateOpen} />}
-      <WorkspaceKeyboard onSearch={() => setSearchOpen(true)} />
-      <CommandMenu
-        open={searchOpen}
-        onOpenChange={setSearchOpen}
-        onCreate={() => setCreateOpen(true)}
-      />
-    </div>
+            <Route
+              path="*"
+              element={
+                <div className="empty-state">
+                  <h1>Page not found</h1>
+                  <button className="button button-secondary" onClick={() => navigate('/issues')}>
+                    Back to issues
+                  </button>
+                </div>
+              }
+            />
+          </Routes>
+        </main>
+        {createOpen && <CreateIssue open={createOpen} onOpenChange={setCreateOpen} />}
+        <WorkspaceKeyboard onSearch={() => setSearchOpen(true)} />
+        <CommandMenu
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          onCreate={() => setCreateOpen(true)}
+        />
+      </div>
+    </ImportedFilesProvider>
   );
 }
 createRoot(document.getElementById('root')!).render(

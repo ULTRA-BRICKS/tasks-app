@@ -281,6 +281,10 @@ export function IssuesPage() {
               { value: 'me', label: 'Assigned to me' },
               { value: 'unassigned', label: 'Unassigned' },
               ...(catalog?.people.map((p) => ({ value: p.id, label: p.name })) ?? []),
+              ...(catalog?.source_people?.map((p) => ({
+                value: p.id,
+                label: p.name + ' · imported',
+              })) ?? []),
             ]}
             onChange={(v) => setFilter('assignee_id', v)}
           />

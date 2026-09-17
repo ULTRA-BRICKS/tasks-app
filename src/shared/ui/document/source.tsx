@@ -7,6 +7,7 @@ export interface SourceProps {
   onEditEnd?: () => void;
   readOnly?: boolean;
   placeholder?: string;
+  maxLength?: number;
 }
 /** Used by extended Markdown and the lazy-editor fallback alike. */
 export function SourceEditor({
@@ -17,6 +18,7 @@ export function SourceEditor({
   onEditEnd,
   readOnly,
   placeholder = 'Add description…',
+  maxLength = 100000,
 }: SourceProps) {
   const original = useRef(value),
     canceled = useRef(false);
@@ -27,7 +29,7 @@ export function SourceEditor({
       placeholder={placeholder}
       value={value}
       readOnly={readOnly}
-      maxLength={100000}
+      maxLength={maxLength}
       onChange={(e) => onChange(e.target.value)}
       onFocus={() => {
         original.current = value;
