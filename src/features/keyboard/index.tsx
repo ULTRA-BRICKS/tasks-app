@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMe } from '@/entities/workspace';
 import { Modal } from '@/shared/ui';
@@ -8,8 +8,11 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
     navigate = useNavigate(),
     location = useLocation();
   const [help, setHelp] = useState(false);
+  const chordUntil = useRef(0);
   useEffect(() => {
-    let chordUntil = 0;
+    chordUntil.current = 0;
+  }, [location.pathname, location.search]);
+  useEffect(() => {
     const listener = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       // Deliberate exception: command search works inside editors; ordinary keys do not.
@@ -27,15 +30,15 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
         return;
       }
       if (shortcutGuard(e) || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (chordUntil > Date.now() && navigationChords[key]) {
+      if (chordUntil.current > Date.now() && navigationChords[key]) {
         e.preventDefault();
-        chordUntil = 0;
+        chordUntil.current = 0;
         void navigate(navigationChords[key]);
         return;
       }
-      chordUntil = 0;
+      chordUntil.current = 0;
       if (key === 'g') {
-        chordUntil = Date.now() + 1000;
+        chordUntil.current = Date.now() + 1000;
         return;
       }
       if ((key === 'c' || key === 'v') && !e.repeat && me?.role !== 'viewer') {

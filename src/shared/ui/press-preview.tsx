@@ -13,7 +13,7 @@ type PreviewAction = { label: string; run: () => void | Promise<void> };
 const selectedText = () => Boolean(window.getSelection()?.toString());
 const textTarget = (target: Element) =>
   target.closest(
-    '[data-selectable], input, textarea, select, [contenteditable="true"], a, .drag-handle',
+    '[data-selectable], input, textarea, select, [contenteditable="true"], a, .drag-handle, .issue-selection',
   );
 
 /** Hold on the action affordance/row whitespace; text keeps its native selection gesture. */

@@ -202,6 +202,10 @@ export function IssuesPage() {
                 label: filterOpen ? 'Hide filters' : 'Show filters',
                 onSelect: () => setFilterOpen((o) => !o),
               },
+              ...(['auto', 'compact', 'comfortable'] as const).map((value) => ({
+                label: (prefs.density === value ? '✓ ' : '') + 'Density: ' + value,
+                onSelect: () => prefs.setDensity(value),
+              })),
               {
                 label: 'Select loaded issues',
                 onSelect: () => setSelected(new Set(issues.map((i) => i.id))),

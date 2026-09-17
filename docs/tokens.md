@@ -145,3 +145,9 @@ Source: `tokens/tickets.tokens.json`. Run `bun run tokens:build`.
 | `auth.controlHeight` | dimension | `48px` |
 | `auth.brandSize` | dimension | `32px` |
 | `auth.titleSize` | dimension | `28px` |
+| `density.compact` | dimension | `36px` |
+| `density.desktop` | dimension | `42px` |
+| `density.touch` | dimension | `56px` |
+| `density.touchCompact` | dimension | `48px` |
+| `density.pointerAction` | dimension | `32px` |
+| `density.touchAction` | dimension | `44px` |
