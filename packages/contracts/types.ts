@@ -131,6 +131,8 @@ export interface Attachment {
   created_at: string;
 }
 export interface Activity {
+  summary?: string;
+  details?: string[];
   id: Id;
   actor_name: string;
   action: string;

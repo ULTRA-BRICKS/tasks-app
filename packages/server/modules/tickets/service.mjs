@@ -1,3 +1,4 @@
+import { presentActivity } from './activity.mjs';
 import { resolvePerson } from '../../core/source-people.mjs';
 import { id, now, sha256, hmac, constantEqual } from '../../core/crypto.mjs';
 import { assert, missing, conflict, requirePermission } from '../../core/errors.mjs';
@@ -589,7 +590,7 @@ export async function issueDetails(tx, actor, key) {
   return {
     ...issue,
     comments,
-    activity: activity.map((a) => ({ ...a, data: JSON.parse(a.data) })),
+    activity: await presentActivity(tx, actor.workspace_id, issue.id, activity, links),
     relations,
     children,
     attachments,

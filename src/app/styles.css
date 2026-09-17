@@ -1329,11 +1329,19 @@ kbd {
 }
 .activity-event {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--space-8);
   font-size: var(--font-size-11);
-  color: var(--color-subtle);
+  color: var(--color-muted);
   padding: var(--space-6) 0;
+}
+.activity-message {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.activity-detail {
+  margin-top: var(--space-4);
 }
 .activity-event strong {
   font-weight: 500;
@@ -1345,6 +1353,7 @@ kbd {
   white-space: nowrap;
 }
 .activity-dot {
+  flex-shrink: 0;
   width: 5px;
   height: 5px;
   border-radius: 50%;
