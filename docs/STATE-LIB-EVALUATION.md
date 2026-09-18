@@ -6,7 +6,7 @@
 
 **State-lib теперь обслуживает настоящий inline issue editor, а не только тему/плотность.** Сохранение, ввод во время запроса, refetch, конфликты и восстановление черновиков прошли реальный UI в Chromium и WebKit. Ошибки сохранения настроек теперь видны пользователю; проверена межвкладочная синхронизация и сохранность неизвестной версии настроек.
 
-**Заявление о большей скорости не подтвердилось, упрощение прикладного кода тоже. Полная приёмка пока не пройдена:** один новый unit-тест обнаруживает неправильную очистку контроллера, если `dispose()` вызван из subscriber. Он оставлен активным и красным. Попытки исправить порядок cleanup были отклонены инструментом, изменение не записано. Ни benchmark, ни успешная сборка не заменяют этот незакрытый критерий.
+**Заявление о большей скорости не подтвердилось, упрощение прикладного кода тоже. Конкретный lifecycle gate HYP-1499 теперь исправлен и проверен:** Runtime освобождается до изменения локальных флагов контроллера. Исходный RED сохранён и проходит; четыре дополнительные проверки защищают публикацию, подписки, активное сохранение и отказ из transaction/derive. Общая unit-suite — 215/215; реальные browser-сценарии повторены для обоих backend. Это закрывает конкретный дефект, но не является разрешением на production promotion и не доказывает остальные целевые свойства библиотеки.
 
 ## Реальное изменение архитектуры
 
@@ -28,23 +28,23 @@ React binding подписывается через external-store, отзыв �
 
 | Группа | Фактический результат |
 |---|---|
-| Общая unit-suite | **210 passed / 1 failed**, 211 тестов, 32 файла. |
-| Редакторский controller | 11 passed / 1 failed; первоначальные 9 требований прошли missing-module RED → GREEN, затем выявлен новый lifecycle-контрпример. |
+| Общая unit-suite | **215 passed / 0 failed**, 215 тестов, 33 файла; после HYP-1499. |
+| Редакторский controller | 16 passed / 0 failed: все 12 прежних контролей и четыре новых lifecycle-контракта. До исправления эта группа дала 11 pass / 5 fail. |
 | Preferences + persistence | 16 passed: старые 9 контрактов плюс 7 новых storage/cross-tab проверок; последние сначала дали 0/6. |
 | Общие браузерные сценарии | 40/40 state-lib и 40/40 baseline, Chromium/WebKit. |
 | Новые storage UI-сценарии | 4/4, Chromium/WebKit: quota warning/retry/reload и настоящая вторая вкладка. |
 | Браузерные benchmark-запуски | 9/9 baseline + 9/9 state-lib, Chromium. |
-| Type-aware проверка | Последний запуск прошёл; build обоих выбранных backend прошёл. Это не зелёный общий check из-за unit failure. |
+| Type-aware проверка | Полный bun run check прошёл: генерация, lint/FSD, типы, unit и сборка. Ранее сборки обоих backend проходили отдельно; сейчас также повторены реальные A/B browser-сценарии. |
 
 В общую browser-suite входят поздний save response поверх нового ввода, focused Markdown/refetch, явное разрешение version conflict, Escape без перезаписи Markdown, properties после flush, сохранность следующего комментария и logout. Часть этих гарантий уже была в baseline; state-lib сохраняет совместимость, а не «изобретает» их заново.
 
 Первый запуск новых storage UI-тестов упал из-за чтения страницы до завершения login; helper теперь ждёт реального heading/сессии. Аналогичная гонка сохранения cookie была исправлена в benchmark helper. Эти исправления тестового стенда не считаются эффектом библиотеки. Неуспешные первичные прогоны не подменяют финальные результаты.
 
-## Незакрытый lifecycle-дефект
+## Исправленный lifecycle-дефект HYP-1499
 
 Последовательность: subscriber вызывает `controller.dispose()` во время публикации. Runtime правильно отвергает освобождение на notification boundary; но controller успевает выставить локальные `disposed=true`/`active=false`. Последующая нормальная попытка dispose ничего не делает, и Runtime с графом остаётся жив. Это нарушение cleanup/ownership, а не доказательство потери текста в каждом обычном редактировании.
 
-Независимый тест: `disposal attempted during notification does not poison subsequent controller cleanup` в `tests/unit/state-lib-document.test.ts`. Ожидается сохранить committed state после отвергнутой операции, затем корректно закрыть Runtime обычным вызовом. Нельзя отключать этот тест ради зелёного статуса. До исправления задача интеграции остаётся In Progress, production promotion не разрешается.
+Независимый тест: `disposal attempted during notification does not poison subsequent controller cleanup` в `tests/unit/state-lib-document.test.ts`. Ожидается сохранить committed state после отвергнутой операции, затем корректно закрыть Runtime обычным вызовом. Нельзя отключать этот тест ради зелёного статуса. В текущем исправлении этот тест проходит без изменения ожиданий. Повторное освобождение после отказа работает; повтор после успешного освобождения идемпотентен. Runtime/vendor не менялись. Общая задача интеграции остаётся In Progress: её последующие цели и production promotion этим исправлением не утверждаются.
 
 ## Измерения ввода в настоящем редакторе
 
@@ -73,7 +73,7 @@ Median JS heap после GC для description 100/10 000/50 000: baseline пр
 | Цель | Вывод по этой интеграции |
 |---|---|
 | Корректные staged snapshots и сохранность обычного ввода | Проверены реальные рабочие пути и совместимость. |
-| Безопасность по умолчанию без lifecycle-ошибок | Не достигнута полностью: 1 активный RED cleanup-test. |
+| Безопасность по умолчанию без lifecycle-ошибок | Конкретный cleanup-дефект исправлен; проверка не означает отсутствия всех lifecycle-ошибок в приложении. |
 | Улучшенная персистентность/UX ошибок | Добавлено и проверено в app-adapter; атомарное cross-tab соглашение не реализовано. |
 | Быстрее React/старого hook | Не показано: measured typing примерно на уровне baseline. |
 | Меньше памяти/JS | Не показано; JS вырос на 3.36 KB gzip. |
@@ -82,9 +82,9 @@ Median JS heap после GC для description 100/10 000/50 000: baseline пр
 
 ## Воспроизведение и следующая исследовательская работа
 
-`bun test tests/unit` должен пока явно показывать один дефект. Для браузерного сравнения запустить `bun --bun playwright test tests/e2e/inline.spec.ts tests/e2e/state-lib-pilot.spec.ts --project=chromium --project=webkit` поочерёдно с `VITE_STATE_BACKEND=baseline` и `state-lib`. Для candidate отдельно — `state-lib-persistence.spec.ts`. Benchmark: `state-lib-benchmark.spec.ts --project=chromium --repeat-each=3`; выделить уникальные output directories, API_PORT/WEB_PORT/APP_URL. Ни один из этих тестов не должен использовать production DB.
+`bun test tests/unit` после HYP-1499 проходит все 215 тестов. Для отдельного воспроизведения границ: `bun test tests/unit/state-lib-document.test.ts tests/unit/state-lib-document-lifecycle.test.ts`. Для браузерного сравнения запустить `bun --bun playwright test tests/e2e/inline.spec.ts tests/e2e/state-lib-pilot.spec.ts --project=chromium --project=webkit` поочерёдно с `VITE_STATE_BACKEND=baseline` и `state-lib`. Для candidate отдельно — `state-lib-persistence.spec.ts`. Benchmark: `state-lib-benchmark.spec.ts --project=chromium --repeat-each=3`; выделить уникальные output directories, API_PORT/WEB_PORT/APP_URL. Ни один из этих тестов не должен использовать production DB.
 
-Raw data: `tasks-browser-evaluation.json`, `tasks-build-comparison.json`, логи `tasks-full-unit.log`, `tasks-full-browser-*.log`, `tasks-persistence-browser.log`. Приоритеты: сначала закрыть воспроизведённый lifecycle-дефект; затем исследовать общий ownership/persistence module, адресные subscriptions/rendering и нормализованные структуры. Успех исследования требует повторить эти сценарии, сравнить размеры/память/latency и подтвердить, что уменьшение кода не достигается удалением защит и ошибок из тестов.
+Raw data: `tasks-browser-evaluation.json`, `tasks-build-comparison.json`, логи `tasks-full-unit.log`, `tasks-full-browser-*.log`, `tasks-persistence-browser.log`. После исправления lifecycle-дефекта приоритет — исследовать общий ownership/persistence module, адресные subscriptions/rendering и нормализованные структуры. Успех исследования требует повторить эти сценарии, сравнить размеры/память/latency и подтвердить, что уменьшение кода не достигается удалением защит и ошибок из тестов.
 
 Main/production не изменяются; старые worktrees сохранены. Полная программа целей state-lib и все требования первоначального запроса ещё не закрыты.
 
@@ -97,10 +97,10 @@ Main/production не изменяются; старые worktrees сохране
 - **HYP-1501** — Исследовать гранулярные подписки state-lib: убрать полный redraw и задержку кадра.
 - **HYP-1502** — Исследовать общий scope/persistence API state-lib вместо разросшейся app-обвязки.
 
-HYP-1499 — конкретный невыполненный correction gate, остальные три — исследовательские задачи с исходными цифрами, предложенными критериями, ограничениями и проверками без потери гарантий. Создание задач не считается выполнением исследований.
+HYP-1499 — исправленный и проверенный correction gate, остальные три — исследовательские задачи с исходными цифрами, предложенными критериями, ограничениями и проверками без потери гарантий. Создание задач не считается выполнением исследований.
 
 ## Результат дополнительного review/fix
-Независимое correctness-ревью нашло ещё один сценарий: совместимое внешнее событие могло заменить несохранённый выбор, запись которого была заблокирована будущей схемой (а не quota error). Новый RED воспроизвёл потерю light→dark. Guard теперь защищает любой unsaved local choice; совместимая схема восстанавливает возможность записи, но пользователю нужен явный Retry. Тест старой ветки дополнен более сильными ожиданиями conflict/local-retention и explicit retry, а не отключён. Все 7 persistence unit-контрактов и 4 реальные cross-tab/quota browser-проверки прошли. HYP-1499 остаётся отдельным незакрытым lifecycle-дефектом.
+Независимое correctness-ревью нашло ещё один сценарий: совместимое внешнее событие могло заменить несохранённый выбор, запись которого была заблокирована будущей схемой (а не quota error). Новый RED воспроизвёл потерю light→dark. Guard теперь защищает любой unsaved local choice; совместимая схема восстанавливает возможность записи, но пользователю нужен явный Retry. Тест старой ветки дополнен более сильными ожиданиями conflict/local-retention и explicit retry, а не отключён. Все 7 persistence unit-контрактов и 4 реальные cross-tab/quota browser-проверки прошли. Этот исторический review предшествовал исправлению HYP-1499; актуальная проверка приведена выше.
 
 Замечание о бесконечной загрузке identity проверено по текущему Workspace: он уже обрабатывает pending/401/прочие ошибки useMe до монтирования IssueDetails. В текущем маршруте этот дополнительный дефект не подтверждён; standalone-компонент вне Workspace не заявляется проверенным.
 
@@ -108,6 +108,10 @@ HYP-1499 — конкретный невыполненный correction gate, о
 
 ## Публикация исходников и статус
 
-Измеренная интеграция опубликована отдельным экспериментальным коммитом **`b66348cda1e8c1e7730a7374b0e7bde031aa3fbd`**; SHA удалённой ветки прочитан после push. Полный staged review выполнен по correctness/performance/quality, обычные Git hooks пройдены. Это не отменяет **HYP-1499**: Tasks имеет 210 passed/1 failed в последнем полном check; общая приёмка не пройдена, production не изменён.
+Измеренная интеграция опубликована отдельным экспериментальным коммитом **`b66348cda1e8c1e7730a7374b0e7bde031aa3fbd`**; SHA удалённой ветки прочитан после push. Полный staged review выполнен по correctness/performance/quality, обычные Git hooks пройдены. На том историческом источнике HYP-1499 давал 210 pass/1 fail. Ниже зафиксировано его последующее исправление и новый полный зелёный check; это не переписывает старые benchmark-результаты и не меняет production.
 
 README reference-runtime сам не обещает универсального выигрыша скорости. Отчёты проверяют целевые свойства пользователя и продуктовые намерения, а не приписывают ядру несделанные обещания. Runtime vendor не изменён; новые document/persistence гарантии принадлежат прикладным адаптерам. В Boards используется полное копирование/заморозка, не COW. Дополнительная проверка не-продвигающегося server acknowledgement в Tasks — намеренное усиление защит относительно baseline, а не чистый benchmark одного ядра. Обычные измеренные ответы сервера продвигают версию в обоих вариантах.
+
+## Проверка исправления HYP-1499 — 18 сентября
+
+База этого небольшого изменения — d307911d408c75bec7c886270f57e3fa51a520ef. Исходный дефект воспроизведён, затем дополнительная группа дала 5 failures. После изменения порядка dispose:16/16 controller tests,215/215 unit tests,0warnings/errors в source/type/FSD проверках и build. На synthetic HTTP API повторены40state-lib и40baseline сценариев Chromium/WebKit. Корректный отказ оставляет committed draft и sibling notification, не обрывает очередь сохранения, не меняет авторитет контроллера из transaction или pure derive. Файлы доказательств: ../state-lifecycle-20260918/run-98379b7d7f/. Измерения latency/heap/size в этом отчёте относятся к прежнему benchmark run: новый benchmark здесь не запускался и улучшение скорости не заявляется.

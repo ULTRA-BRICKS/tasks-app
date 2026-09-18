@@ -156,12 +156,14 @@ export function createDocumentController<T extends ServerDocument>(options: Opti
   }
   function dispose() {
     if (disposed) return;
+    // The kernel may reject cleanup during a transaction, read or notification.
+    // Revoke controller authority only after teardown actually succeeds.
+    runtime.dispose();
     active = false;
     disposed = true;
     generation++;
     requested = false;
     inFlight = null;
-    runtime.dispose();
   }
   return {
     subscribe: (notify: () => void) => external.subscribe(notify),

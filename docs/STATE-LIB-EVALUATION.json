@@ -6,12 +6,7 @@
     "bun": "1.4.2"
   },
   "releaseAccepted": false,
-  "knownGateFailure": {
-    "app": "tasks",
-    "test": "disposal attempted during notification does not poison subsequent controller cleanup",
-    "effect": "local disposed flag is set before Runtime rejects notification-boundary disposal; subsequent cleanup no-ops",
-    "attemptedFix": "ordinary correction was rejected by remote tool; unchanged and still red"
-  },
+  "knownGateFailure": null,
   "verification": {
     "boardsUnit": {
       "passed": 117,
@@ -19,8 +14,8 @@
     },
     "boardsRealBrowserCombinations": 4,
     "tasksUnit": {
-      "passed": 210,
-      "failed": 1
+      "passed": 215,
+      "failed": 0
     },
     "tasksCommonBrowser": {
       "state-libPassed": 40,
@@ -118,5 +113,32 @@
   "buildNotes": [
     "Build explicitly used --emptyOutDir for each owned measurement directory. A discarded intermediate run retained old hashed chunks and was invalid.",
     "Same selected-backend build, maps excluded; sum of per-asset gzip is not initial-route transfer."
-  ]
+  ],
+  "resolvedGateFailure": {
+    "issue": "HYP-1499",
+    "previous": {
+      "app": "tasks",
+      "test": "disposal attempted during notification does not poison subsequent controller cleanup",
+      "effect": "local disposed flag is set before Runtime rejects notification-boundary disposal; subsequent cleanup no-ops",
+      "attemptedFix": "ordinary correction was rejected by remote tool; unchanged and still red"
+    },
+    "fix": "Runtime.dispose precedes controller authority revocation; kernel guards unchanged",
+    "tests": {
+      "controller": {
+        "passed": 16,
+        "failed": 0
+      },
+      "unit": {
+        "passed": 215,
+        "failed": 0
+      },
+      "browser": {
+        "state-libPassed": 40,
+        "baselinePassed": 40
+      }
+    },
+    "base": "d307911d408c75bec7c886270f57e3fa51a520ef",
+    "evidence": "state-lifecycle-20260918/run-98379b7d7f",
+    "benchmarkRepeated": false
+  }
 }

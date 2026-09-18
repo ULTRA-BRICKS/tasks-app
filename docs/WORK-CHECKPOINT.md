@@ -79,3 +79,13 @@ Tasks source b66348cda1e8c1e7730a7374b0e7bde031aa3fbd is pushed to feat/state-li
 Final Tasks full-check is RED:210 passed/1 failed out of211, HYP-1499. Do not report release acceptance. Extra review found a future-schema→compatible-event unsaved-preference overwrite; a new RED→GREEN and stronger existing oracle fixed it, and4 actual cross-tab/quota browser cases passed. All7 persistence contracts plus9 preferences pass. Common browser40+40, benchmark9+9 passed; clean selected builds remeasured with --emptyOutDir.
 
 Reports docs/STATE-LIB-EVALUATION.md distinguish benchmark revisions and measurements from unimplemented goals. Actual research cards HYP-1500/1501/1502 and bugHYP-1499 are in state-lib underHYP-1464. Main/production and old dirty worktrees remain untouched. Preserve .serena/.metadata_never_index untracked metadata. The pending .txt draft contract was a historical source of requirements; its tests and real controller are now implemented, with the specific cleanup exception above.
+
+## 2026-09-18 — HYP-1499 lifecycle correction
+
+Current source remains feat/state-lib-HYP-1497 in tasks-app-state-lib-HYP-1497, based on d307911d408c75bec7c886270f57e3fa51a520ef. Preserved .serena/ and .metadata_never_index; original worktrees, boards-app and vendored Runtime are unchanged. Tracker HYP-1499 was resolved through the configured tasks-app CLI (not Linear) and set In Progress at version3.
+
+The previous rejected correction was freshly approved in normal scope0a5e8956ce8e. Actual RED: retained controller test failed; with four added regressions the group was11pass/5fail. Only successful Runtime.dispose now revokes controller active/disposed/generation/requested/inFlight state. A rejected call from a notification, transaction or pure derivation leaves the controller usable and preserves subscriptions and the pending save queue. Core protections were not changed.
+
+Focused tests16/16, full unit215/215, complete bun run check (generation, lint/FSD, type-aware checking, unit, build) passed. On a separate synthetic local HTTP instance, all40state-lib and40baseline editor/preferences/navigation/Markdown/conflict/reload/logout Chromium/WebKit cases passed. These are correctness reruns, not new speed/heap measurements. Eight vendor output hashes still match provenance.
+
+Evidence and active owners: ../state-lifecycle-20260918/run-98379b7d7f/CHECKPOINT.md. Next: review the exact staged correction, normal commit/push to this experiment branch, update PR12 and tracker with confirmed SHA. Do not merge app main or deploy production automatically. The completed website feedback release is independent and must not be repeated. After this bug, HYP-1500/1501/1502 remain the measured next work; no blanket bug-free/production-ready claim.
