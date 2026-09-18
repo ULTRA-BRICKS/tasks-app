@@ -1,5 +1,6 @@
-import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { copyActions } from '@/shared/lib/copy-formats';
+import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileText, Flag } from 'lucide-react';
 import { api, errorMessage } from '@/shared/api/client';
 import {
@@ -12,11 +13,13 @@ import {
   DocumentText,
 } from '@/shared/ui';
 import { useCatalog, useMe, useProjects } from '@/entities/workspace';
-import { useKnowledgeDraft, type Knowledge, type Kind } from './model';
+import { useKnowledgeDraft, setKnowledgeArchive, type Knowledge, type Kind } from './model';
 
 const noun = (kind: Kind) => (kind === 'documents' ? 'document' : 'initiative');
 export function KnowledgeListPage({ kind }: { kind: Kind }) {
   const [parameters, setParameters] = useSearchParams();
+  const navigate = useNavigate(),
+    client = useQueryClient();
   const archived = parameters.get('archived') === 'true';
   const query = useQuery({
     queryKey: [kind, { archived }],
@@ -49,13 +52,49 @@ export function KnowledgeListPage({ kind }: { kind: Kind }) {
         />
       ) : (
         <div className="knowledge-rows">
-          {query.data.map((row) => (
-            <Link key={row.id} to={'/' + kind + '/' + row.id} className="knowledge-row">
-              {kind === 'documents' ? <FileText size={18} /> : <Flag size={18} />}
-              <span>{row.title ?? row.name}</span>
-              <small>{row.status?.replace('_', ' ') ?? 'Document'}</small>
-            </Link>
-          ))}
+          {query.data.map((row) => {
+            const path = '/' + kind + '/' + row.id,
+              title = row.title ?? row.name ?? noun(kind);
+            return (
+              <div className="knowledge-context-row" key={row.id}>
+                <Link to={path} className="knowledge-row">
+                  {kind === 'documents' ? <FileText size={18} /> : <Flag size={18} />}
+                  <span>{title}</span>
+                  <small>{row.status?.replace('_', ' ') ?? 'Document'}</small>
+                </Link>
+                <ActionMenu
+                  label={'Actions for ' + title}
+                  items={[
+                    {
+                      label: 'Open ' + noun(kind),
+                      onSelect: () => {
+                        void navigate(path);
+                      },
+                    },
+                    ...copyActions({
+                      title,
+                      body: row.body ?? row.description,
+                      path,
+                      kind: noun(kind),
+                    }),
+                    {
+                      label: (row.archived_at ? 'Restore ' : 'Archive ') + noun(kind),
+                      disabled: me?.role === 'viewer',
+                      separatorBefore: true,
+                      onSelect: async () => {
+                        if (
+                          !window.confirm((row.archived_at ? 'Restore ' : 'Archive ') + title + '?')
+                        )
+                          return;
+                        await setKnowledgeArchive(kind, row.id, row.version, !row.archived_at);
+                        await client.invalidateQueries({ queryKey: [kind] });
+                      },
+                    },
+                  ]}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
     </section>
@@ -122,13 +161,19 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
             {model.busy ? 'Saving…' : model.dirty ? 'Unsaved changes' : 'Saved'}
           </output>
         )}
-        {row && !readOnly && (
+        {row && (
           <ActionMenu
             label={noun(kind) + ' actions'}
             items={[
+              ...copyActions({
+                title: model.draft.title,
+                body: model.draft.body,
+                path: '/' + kind + '/' + row.id,
+                kind: noun(kind),
+              }),
               {
                 label: (row.archived_at ? 'Restore ' : 'Archive ') + noun(kind),
-                disabled: model.dirty || model.busy,
+                disabled: readOnly || model.dirty || model.busy || model.archiving,
                 onSelect: () => void model.archive(!row.archived_at),
               },
             ]}

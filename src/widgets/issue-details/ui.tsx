@@ -1,3 +1,4 @@
+import { copyActions } from '@/shared/lib/copy-formats';
 import { ImportedSourceLink } from '@/shared/ui';
 import { IssueProperties } from '@/features/issue-properties';
 import { useState, useRef } from 'react';
@@ -24,6 +25,7 @@ import { useIssueUpdate, useIssueWriteBusy, useInlineDocument } from '@/features
 import { CreateIssue } from '@/features/issue-create';
 import {
   Button,
+  ActionMenu,
   Input,
   Textarea,
   Picker,
@@ -177,6 +179,16 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
           <span>{issue.key}</span>
         </div>
         <div className="toolbar-actions">
+          <ActionMenu
+            label="Issue actions"
+            items={copyActions({
+              title: draft.title,
+              body: draft.description,
+              key: issue.key,
+              path: '/issues/' + issue.id,
+              kind: 'issue',
+            })}
+          />
           <Button
             variant="ghost"
             size="icon"

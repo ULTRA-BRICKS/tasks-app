@@ -63,6 +63,9 @@ function restore(key: string, row?: Knowledge) {
   } catch {}
   return fromServer(row);
 }
+export function setKnowledgeArchive(kind: Kind, id: string, version: number, archived: boolean) {
+  return api('/v1/' + kind + '/' + id, { method: 'PATCH', json: { archived, version } });
+}
 export function useKnowledgeDraft(kind: Kind, key: string, row?: Knowledge) {
   const [draft, setDraft] = useState(() => restore(key, row)),
     [dirty, setDirty] = useState(() => draftPersistence.getItem(key) !== null);
@@ -222,10 +225,7 @@ export function useKnowledgeDraft(kind: Kind, key: string, row?: Knowledge) {
     setBusy(true);
     setArchiving(true);
     try {
-      await api('/v1/' + kind + '/' + row.id, {
-        method: 'PATCH',
-        json: { archived, version: current.current.version },
-      });
+      await setKnowledgeArchive(kind, row.id, current.current.version, archived);
       void client.invalidateQueries({ queryKey: [kind] });
       if (mounted.current) void navigate('/' + kind);
     } catch (failure) {
