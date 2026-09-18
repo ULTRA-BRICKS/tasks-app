@@ -56,3 +56,10 @@ Evidence remains at `../state-app-migrations-20260918/`; see tasks-candidate-equ
 HYP-1498 is a distinct newly reproduced persistence issue, successfully created in state-lib and related to HYP-1464. Its app-adapter protection is now implemented, but shared persistence API/UI diagnostics remain open. HYP-1497 is In Progress. The earlier four denied issue creations and denied Boards/Tasks editor wiring were not retried.
 
 Published Boards source: 8909dbcc83bc4bcf743e40409e4f3621653a830d; report update: 90859a8f5647503e106e1c1f830dc604168b3a02, PR9. Tasks next gate: review the actual ~90 KB pilot diff, commit/push a non-draft comparison PR, update reports and both task cards, read back all remote SHAs. A prior patch attempt failed because the user's Git config emits no a/b prefixes; explicit src-prefix/dst-prefix fixed it with a clean-index check and full file equivalence validation.
+
+## Published continuation — final source gate
+Source `ee0d530df2f095f0fa2a7e6bd7b6edb1f2ec24e2` is pushed to `origin/feat/state-lib-HYP-1497`; normal PR12 is open against main. Full staged Sonnet review produced usable correctness/performance/quality verdicts, exit 0; ordinary Git hooks passed. The earlier Opus timeout was not treated as approval. No production merge/deploy.
+
+Validation: 192 unit tests, 9 preference contracts, full lint/FSD/types/build; 6+6 core browser scenarios and 12+12 density scenarios all pass on the final implementation. Four current Tasks screenshot pairs are pixel-identical. Evidence: tasks-final-sonnet-review.log, tasks-isolated-commit.log, tasks-isolated-push.log, tasks-isolated-pr.log, final-comparison-evidence.json.
+
+HYP-1497 and HYP-1498 remain In Progress: Boards document-store is still unwired, Tasks issue-editor remains unimplemented, and shared persistence/UI diagnostics/cross-tab contracts remain unfinished. Original pilot worktree/index hash is unchanged. Resume from this new branch, not from the preserved large in-progress merge. Source reviews and browser suites are complete; next work must address an actual remaining feature/permission boundary rather than blindly repeating the release chain.
