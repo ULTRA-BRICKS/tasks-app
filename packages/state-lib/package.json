@@ -1,0 +1,12 @@
+{
+  "name": "@ultrabricks/state-lib",
+  "version": "0.1.0-pilot.1",
+  "private": true,
+  "type": "module",
+  "description": "Source-pinned state-lib pilot runtime; not a stable API v1 release",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  },
+  "files": ["dist", "README.md", "PROVENANCE.json"],
+  "sideEffects": false
+}
