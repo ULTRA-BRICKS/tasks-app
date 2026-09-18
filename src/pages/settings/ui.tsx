@@ -14,7 +14,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { useCatalog, useMe } from '@/entities/workspace';
-import { usePreferences } from '@/features/preferences';
+import { usePreferences, usePreferencePersistence } from '@/features/preferences';
 import { Button, Input, Textarea, Picker, Avatar, ErrorState, Loading } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
@@ -45,6 +45,7 @@ export function SettingsPage() {
   const { data: catalog } = useCatalog(),
     { data: me } = useMe(),
     prefs = usePreferences(),
+    persistence = usePreferencePersistence(),
     client = useQueryClient();
   const [tab, setTab] = useState('appearance'),
     [email, setEmail] = useState(''),
@@ -166,6 +167,21 @@ export function SettingsPage() {
           ))}
         </nav>
         <div className="settings-content">
+          {persistence.kind !== 'ready' && (
+            <section
+              aria-label="Settings persistence"
+              aria-live="polite"
+              className="notice"
+              data-testid="preference-persistence-status"
+            >
+              <strong>Settings are not saved on this device.</strong>
+              <p>{persistence.message}</p>
+              <p>Your current choices remain available in this tab.</p>
+              <Button variant="secondary" onClick={() => persistence.retry()}>
+                Retry saving settings
+              </Button>
+            </section>
+          )}
           {tab === 'security' && admin && <WorkspacePolicySettings />}
           {tab === 'appearance' && (
             <>

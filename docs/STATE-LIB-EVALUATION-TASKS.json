@@ -1,0 +1,38 @@
+[
+  {
+    "slug": "lifecycle-bug",
+    "key": "HYP-1499",
+    "id": "a01672c5-fbd3-4abd-92c2-acedc1564241",
+    "title": "state-lib: устранить незакрытый Runtime после dispose из subscriber",
+    "project": "state-lib",
+    "status": "Todo",
+    "version": 2
+  },
+  {
+    "slug": "research-structural",
+    "key": "HYP-1500",
+    "id": "9bb7ea2a-782f-495a-8316-39302c6e8641",
+    "title": "Исследовать state-lib COW/normalization: убрать тройную цену обычного edit",
+    "project": "state-lib",
+    "status": "Todo",
+    "version": 2
+  },
+  {
+    "slug": "research-rendering",
+    "key": "HYP-1501",
+    "id": "6eb8a585-0a6d-4ebf-8ccb-802b345becb2",
+    "title": "Исследовать гранулярные подписки state-lib: убрать полный redraw и задержку кадра",
+    "project": "state-lib",
+    "status": "Todo",
+    "version": 2
+  },
+  {
+    "slug": "research-ownership",
+    "key": "HYP-1502",
+    "id": "e7cf33c7-b4e9-4b01-92b3-b699bb4f6a1f",
+    "title": "Исследовать общий scope/persistence API state-lib вместо разросшейся app-обвязки",
+    "project": "state-lib",
+    "status": "Todo",
+    "version": 2
+  }
+]

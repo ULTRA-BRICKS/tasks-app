@@ -38,9 +38,10 @@ import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
 export function IssueDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const query = useIssue(id);
+  const { data: identity } = useMe();
   return (
     <section className="issue-detail-panel" aria-label="Issue details">
-      {query.isPending ? (
+      {query.isPending || !identity ? (
         <Loading label="Loading issue" />
       ) : query.error ? (
         <>
@@ -51,7 +52,11 @@ export function IssueDetails({ id, onClose }: { id: string; onClose: () => void 
           <ErrorState message={errorMessage(query.error)} retry={() => void query.refetch()} />
         </>
       ) : query.data ? (
-        <Editor key={query.data.id} issue={query.data} onClose={onClose} />
+        <Editor
+          key={`${identity.id}:${query.data.workspace_id}:${query.data.id}`}
+          issue={query.data}
+          onClose={onClose}
+        />
       ) : null}
     </section>
   );

@@ -1,0 +1,122 @@
+{
+  "machine": {
+    "cpu": "Apple M4 Pro",
+    "ramBytes": 25769803776,
+    "node": "v26.7.0",
+    "bun": "1.4.2"
+  },
+  "releaseAccepted": false,
+  "knownGateFailure": {
+    "app": "tasks",
+    "test": "disposal attempted during notification does not poison subsequent controller cleanup",
+    "effect": "local disposed flag is set before Runtime rejects notification-boundary disposal; subsequent cleanup no-ops",
+    "attemptedFix": "ordinary correction was rejected by remote tool; unchanged and still red"
+  },
+  "verification": {
+    "boardsUnit": {
+      "passed": 117,
+      "failed": 0
+    },
+    "boardsRealBrowserCombinations": 4,
+    "tasksUnit": {
+      "passed": 210,
+      "failed": 1
+    },
+    "tasksCommonBrowser": {
+      "state-libPassed": 40,
+      "baselinePassed": 40
+    },
+    "tasksPersistenceBrowserPassed": 4,
+    "tasksBenchmarkRuns": {
+      "baselinePassed": 9,
+      "state-libPassed": 9
+    }
+  },
+  "browser": [
+    {
+      "backend": "baseline",
+      "descriptionCharacters": 100,
+      "pageReplicates": 3,
+      "events": 120,
+      "handlerMedianMs": 3.5,
+      "handlerP95Ms": 12.599999994039536,
+      "nextFrameMedianMs": 16.549999997019768,
+      "nextFrameP95Ms": 18.400000005960464,
+      "usedJSHeapMedianBytes": 30501272
+    },
+    {
+      "backend": "state-lib",
+      "descriptionCharacters": 100,
+      "pageReplicates": 3,
+      "events": 120,
+      "handlerMedianMs": 3.699999988079071,
+      "handlerP95Ms": 12.699999988079071,
+      "nextFrameMedianMs": 16.600000023841858,
+      "nextFrameP95Ms": 18.19999998807907,
+      "usedJSHeapMedianBytes": 30638036
+    },
+    {
+      "backend": "baseline",
+      "descriptionCharacters": 10000,
+      "pageReplicates": 3,
+      "events": 120,
+      "handlerMedianMs": 3.600000023841858,
+      "handlerP95Ms": 12.400000005960464,
+      "nextFrameMedianMs": 16.599999994039536,
+      "nextFrameP95Ms": 18.19999998807907,
+      "usedJSHeapMedianBytes": 30100016
+    },
+    {
+      "backend": "state-lib",
+      "descriptionCharacters": 10000,
+      "pageReplicates": 3,
+      "events": 120,
+      "handlerMedianMs": 3.75,
+      "handlerP95Ms": 12.400000005960464,
+      "nextFrameMedianMs": 16.599999994039536,
+      "nextFrameP95Ms": 18.200000017881393,
+      "usedJSHeapMedianBytes": 29340460
+    },
+    {
+      "backend": "baseline",
+      "descriptionCharacters": 50000,
+      "pageReplicates": 3,
+      "events": 120,
+      "handlerMedianMs": 3.5999999940395355,
+      "handlerP95Ms": 12.699999988079071,
+      "nextFrameMedianMs": 16.400000005960464,
+      "nextFrameP95Ms": 18.400000005960464,
+      "usedJSHeapMedianBytes": 29425632
+    },
+    {
+      "backend": "state-lib",
+      "descriptionCharacters": 50000,
+      "pageReplicates": 3,
+      "events": 120,
+      "handlerMedianMs": 3.699999988079071,
+      "handlerP95Ms": 12.900000005960464,
+      "nextFrameMedianMs": 16.549999997019768,
+      "nextFrameP95Ms": 18.299999982118607,
+      "usedJSHeapMedianBytes": 30714388
+    }
+  ],
+  "build": [
+    {
+      "backend": "baseline",
+      "javascriptFiles": 8,
+      "javascriptBytes": 1342180,
+      "javascriptGzipSumBytes": 416774
+    },
+    {
+      "backend": "state-lib",
+      "javascriptFiles": 9,
+      "javascriptBytes": 1351657,
+      "javascriptGzipSumBytes": 420136
+    }
+  ],
+  "postReviewCorrection": "All unsaved preferences require explicit conflict resolution after external compatible updates, not quota failures only. 7 unit persistence and4 browser cases pass. HYP-1499 remains red.",
+  "buildNotes": [
+    "Build explicitly used --emptyOutDir for each owned measurement directory. A discarded intermediate run retained old hashed chunks and was invalid.",
+    "Same selected-backend build, maps excluded; sum of per-asset gzip is not initial-route transfer."
+  ]
+}
