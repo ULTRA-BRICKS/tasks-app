@@ -1,3 +1,4 @@
+import { copyActions } from '@/shared/lib/copy-formats';
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -20,7 +21,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useCatalog, useMe, useViews, useNotifications, moduleEnabled } from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
-import { Avatar, Button, Modal } from '@/shared/ui';
+import { Avatar, Button, Modal, ActionMenu } from '@/shared/ui';
 import { api } from '@/shared/api/client';
 export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSearch: () => void }) {
   const { data: catalog } = useCatalog(),
@@ -143,42 +144,84 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
           </>
         )}
         <div className="nav-section-label">Your teams</div>
-        {catalog?.teams.map((t) => (
-          <button
-            type="button"
-            key={t.id}
-            className="nav-item"
-            onClick={() => {
-              close();
-              void navigate('/issues?team_id=' + t.id);
-            }}
-          >
-            <span className="team-icon">{t.key.slice(0, 1)}</span>
-            <span>{t.name}</span>
-          </button>
-        ))}
+        {catalog?.teams.map((team) => {
+          const path = '/issues?team_id=' + encodeURIComponent(team.id);
+          const open = () => {
+            close();
+            void navigate(path);
+          };
+          return (
+            <div className="team-context-row nav-action-row" key={team.id}>
+              <button type="button" className="nav-item" onClick={open}>
+                <span className="team-icon">{team.key.slice(0, 1)}</span>
+                <span>{team.name}</span>
+              </button>
+              <ActionMenu
+                label={'Actions for ' + team.name}
+                items={[
+                  { label: 'Open team issues', onSelect: open },
+                  {
+                    label: 'Create issue in team',
+                    disabled: me?.role === 'viewer',
+                    onSelect: () => {
+                      close();
+                      void navigate('/issues/new', { state: { defaults: { team_id: team.id } } });
+                    },
+                  },
+                  ...copyActions({ id: team.id, title: team.name, path, kind: 'team' }),
+                ]}
+              />
+            </div>
+          );
+        })}
         {moduleEnabled(catalog, 'views') && (
           <>
             <div className="nav-section-label">Saved views</div>
-            {views.data?.map((v) => (
-              <button
-                type="button"
-                className="nav-item"
-                key={v.id}
-                onClick={() => {
-                  close();
-                  void navigate(
-                    '/issues?' +
-                      new URLSearchParams(
-                        Object.entries(v.filters).map(([k, value]) => [k, String(value)]),
-                      ),
-                  );
-                }}
-              >
-                <SlidersHorizontal size={15} />
-                <span>{v.name}</span>
-              </button>
-            ))}
+            {views.data?.map((view) => {
+              const path =
+                '/issues?' +
+                new URLSearchParams(
+                  Object.entries(view.filters).map(([key, value]) => [key, String(value)]),
+                );
+              const open = () => {
+                close();
+                void navigate(path);
+              };
+              return (
+                <div className="saved-view-context-row nav-action-row" key={view.id}>
+                  <button type="button" className="nav-item" onClick={open}>
+                    <SlidersHorizontal size={15} />
+                    <span>{view.name}</span>
+                  </button>
+                  <ActionMenu
+                    label={'Actions for ' + view.name}
+                    items={[
+                      { label: 'Open saved view', onSelect: open },
+                      ...copyActions({ id: view.id, title: view.name, path, kind: 'view' }),
+                      {
+                        label: 'Delete saved view',
+                        danger: true,
+                        separatorBefore: true,
+                        disabled:
+                          view.owner_id !== me?.id && !['owner', 'admin'].includes(me?.role ?? ''),
+                        onSelect: async () => {
+                          if (
+                            !window.confirm(
+                              'Delete the saved view “' +
+                                view.name +
+                                '”? Its issues will not be deleted.',
+                            )
+                          )
+                            return;
+                          await api('/v1/views/' + view.id, { method: 'DELETE' });
+                          await client.invalidateQueries({ queryKey: ['views'] });
+                        },
+                      },
+                    ]}
+                  />
+                </div>
+              );
+            })}
             {!views.data?.length && (
               <p className="nav-empty">Save a filtered view to pin it here.</p>
             )}
