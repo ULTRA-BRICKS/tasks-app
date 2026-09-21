@@ -131,6 +131,7 @@ const migrations = [
   { version: 5, path: './migrations/0005_linear_import.sql' },
   { version: 6, path: './migrations/0006_source_people_query.sql' },
   { version: 7, path: './migrations/0007_imported_files.sql' },
+  { version: 8, path: './migrations/0008_mcp_oauth.sql' },
 ];
 export const CURRENT_SCHEMA_VERSION = migrations.at(-1).version;
 export async function migrate(db) {

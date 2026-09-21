@@ -1,3 +1,4 @@
+import { withMcp } from '../mcp/handler.mjs';
 import { withLinear } from '../linear/handler.mjs';
 import { createDatabase, migrate } from '../db/index.mjs';
 import { createApp } from './app.mjs';
@@ -9,13 +10,16 @@ const db = await createDatabase({
   production: process.env.NODE_ENV === 'production',
 });
 if (!process.env.DATABASE_URL) await migrate(db);
-const app = withLinear(
-  createApp({
-    db,
-    defer: (task) => {
-      void task.catch(() => console.error('Account mail task failed'));
-    },
-  }),
+const app = withMcp(
+  withLinear(
+    createApp({
+      db,
+      defer: (task) => {
+        void task.catch(() => console.error('Account mail task failed'));
+      },
+    }),
+    { db },
+  ),
   { db },
 );
 const server = Bun.serve({
