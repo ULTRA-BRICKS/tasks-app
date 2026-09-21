@@ -1,0 +1,27 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "tasks",
+  "version": "0.1.0",
+  "description": "Search, create and update Tasks workspace issues with meeting source links and safe retries.",
+  "author": {
+    "name": "Ultrabricks"
+  },
+  "homepage": "https://tasks-ultrabricks.vercel.app",
+  "repository": "https://git.hyperide.ai/ultrabricks/tasks-app",
+  "license": "MIT",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Tasks",
+        "shortDescription": "Turn agreed work into traceable tasks",
+        "longDescription": "Connect your Tasks workspace to search existing issues, resolve participants and capture agreed meeting actions. Your existing workspace permissions apply.",
+        "developerName": "Ultrabricks",
+        "defaultPrompt": [
+          "Find my open tasks",
+          "Record the agreed action points from this meeting"
+        ],
+        "brandColor": "#176E63"
+      }
+    }
+  }
+}

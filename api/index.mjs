@@ -1,3 +1,4 @@
+import { withMcp } from '../packages/mcp/handler.mjs';
 import { waitUntil } from '@vercel/functions';
 import { createDatabase } from '../packages/db/index.mjs';
 import { applicationOrigin } from '../packages/config/development.mjs';
@@ -10,7 +11,7 @@ async function initialize(environment) {
     throw new Error('Production configuration incomplete');
   const db = await createDatabase({ url: env.DATABASE_URL, production: true });
   try {
-    return withLinear(createApp({ db, env, defer: waitUntil }), { db, env });
+    return withMcp(withLinear(createApp({ db, env, defer: waitUntil }), { db, env }), { db, env });
   } catch (error) {
     await db.close();
     throw error;

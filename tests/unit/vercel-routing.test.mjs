@@ -7,6 +7,7 @@ test('Vercel catch-all routing must not synthesize named API query parameters', 
   // Unused named captures are appended to the destination query by Vercel.
   // The application dispatches by original pathname and needs no captured parameter.
   expect(config.rewrites).toEqual([
+    { source: '/.well-known/(.*)', destination: '/api/index' },
     { source: '/graphql', destination: '/api/index' },
     { source: '/api', destination: '/api/index' },
     { source: '/api/(.*)', destination: '/api/index' },
