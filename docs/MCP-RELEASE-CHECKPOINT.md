@@ -23,4 +23,34 @@ The exact reviewed source hashes are retained in the independent reviewer handof
 
 Schema8 is additive only. A private pg_dump backup succeeded before migration (6,125,768bytes, TLS verification,0600); its protected path is maintained in the operator handoff, not published here. No task/account reset is permitted.
 
-The regular review CLI stalled without output; independent review is complete but the existing global review-before-commit hook still applies. Do not manufacture a review stamp or bypass hooks. Publication, migration and production MCP verification must be recorded below once actually complete. A deployed endpoint is not a completed ChatGPT account connection; that requires the account's own OAuth consent and available MCP connection UI.
+The initial review CLI calls blocked while reading Remote Desktop Commander stdin until EOF. Running the ordinary review with explicit stdin EOF fixed the interruption: append `< /dev/null` to noninteractive review commands. Three regular reviewer roles then completed, and the normal commit/push hooks accepted the reviewed change. No hook, stamp, quota or approval policy was bypassed.
+
+## Live release
+
+Code PR: https://git.hyperide.ai/ultrabricks/tasks-app/pulls/14 (merged).
+Deployed source: main commit5171b08.
+Canonical MCP endpoint: https://tasks-ultrabricks.vercel.app/api/mcp .
+Deployment: https://tasks-7lgm1775j-inventorems-projects.vercel.app .
+Deployment identifier: dpl_2JB68g9X29iQUDzHrXzqrN2Zkefc.
+
+Explicit production migration returned applied=true,version=8 after a verified private backup. Before/after task, account and membership counts were unchanged. Candidate readiness and metadata passed before promotion; the canonical service passed the following checks after promotion:
+
+| Check | HTTP | Result |
+|---|---:|---|
+| schema ready | 200 | Passed |
+| resource metadata is JSON | 200 | Passed |
+| issuer discovery and PKCE | 200 | Passed |
+| anonymous MCP denied with OAuth challenge | 401 | Passed |
+| invalid access token denied | 401 | Passed |
+| private REST remains anonymous denied | 401 | Passed |
+| bare OAuth token cannot bypass MCP audience through GraphQL | 401 | Passed |
+| exact ChatGPT DCR callback accepted | 201 | Passed |
+| consent requires existing sign-in | 200 | Passed |
+| invalid authorization code rejected | 400 | Passed |
+| unregistered callback denied | 400 | Passed |
+
+Verified at 2026-09-21T11:24:42.944Z. Both discovery responses are actual JSON, not the SPA fallback.
+
+A live authenticated ChatGPT account connection has **not** been claimed: register the endpoint in the account's MCP connection UI and complete its OAuth consent. Live protocol checks did not create a task, comment, membership or user grant. Authenticated task tools and gated writes were exercised through isolated SQLite/PostgreSQL fixtures and the local consent browser journey.
+
+Remaining nonblocking maintenance observations from review: the connector deliberately rechecks domain authorization when forwarding tool calls; fetch response duplication and expired-grant history cleanup can be optimized separately without changing access controls.
