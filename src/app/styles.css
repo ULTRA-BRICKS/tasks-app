@@ -3798,3 +3798,166 @@ button,
     min-height: var(--mobile-tap);
   }
 }
+
+/* Touch uses document scrolling so Safari owns its address-bar and status-bar gestures. */
+@media (pointer: coarse) {
+  html {
+    scroll-padding-top: calc(96px + env(safe-area-inset-top));
+  }
+  body {
+    overflow-x: clip;
+  }
+  .app-shell {
+    height: auto;
+    min-height: 100svh;
+    overflow: visible;
+    align-items: flex-start;
+  }
+  .workspace-main {
+    overflow: visible;
+    min-height: 100svh;
+  }
+  .issues-content,
+  .planning-content,
+  .detail-layout,
+  .settings-layout,
+  .settings-content,
+  .inbox-content,
+  .knowledge-rows,
+  .issue-detail-panel {
+    overflow: visible;
+    max-height: none;
+    height: auto;
+    flex: none;
+  }
+  .sidebar {
+    position: sticky;
+    top: 0;
+  }
+  .page-toolbar,
+  .issue-detail-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: color-mix(in srgb, var(--color-canvas) 84%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .page-toolbar {
+    padding-top: max(var(--space-12), env(safe-area-inset-top));
+  }
+  html
+    body
+    :is(
+      input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+      textarea:not(.document-title),
+      select,
+      [role='combobox'],
+      [contenteditable='true']
+    ) {
+    font-size: max(var(--font-size-16), 1em) !important;
+  }
+  html body .document-title {
+    font-size: max(var(--font-size-24), 1em);
+  }
+  .command-search,
+  .search-field {
+    min-width: 0;
+  }
+  .mobile-dock,
+  .mobile-create {
+    background: color-mix(in srgb, var(--color-elevated) 72%, transparent);
+    backdrop-filter: blur(24px) saturate(145%);
+    -webkit-backdrop-filter: blur(24px) saturate(145%);
+  }
+  .mobile-navigation-bar {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .sidebar .nav-count {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+  }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .mobile-dock,
+  .mobile-create {
+    background: var(--color-elevated);
+  }
+}
+
+.feed-update-anchor {
+  position: sticky;
+  top: 8px;
+  height: 0;
+  z-index: 42;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.feed-update-badge {
+  position: absolute;
+  pointer-events: auto;
+  max-width: calc(100vw - 36px);
+  padding: 10px 16px;
+  border: 1px solid var(--color-accent);
+  border-radius: 24px;
+  background: var(--color-elevated);
+  color: var(--color-text);
+  box-shadow: 0 3px 16px #0003;
+  font-size: var(--font-size-13);
+  cursor: pointer;
+}
+.issue-row[data-update-active='true'] {
+  animation: tasks-row-refreshed 380ms ease-out;
+}
+@keyframes tasks-row-refreshed {
+  from {
+    background: var(--color-selected);
+    box-shadow: inset 3px 0 0 var(--color-accent);
+  }
+  to {
+    box-shadow: inset 0 0 0 transparent;
+  }
+}
+.shell-update-notice {
+  position: fixed;
+  bottom: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  width: max-content;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-elevated);
+  padding: 12px;
+  box-shadow: 0 4px 20px #0004;
+}
+.shell-update-notice button {
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--color-hover);
+  color: var(--color-text);
+  cursor: pointer;
+}
+@media (pointer: coarse) {
+  .feed-update-anchor {
+    top: calc(96px + env(safe-area-inset-top));
+  }
+  .feed-update-badge {
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .issue-row[data-update-active='true'] {
+    animation: none;
+    outline: 1px solid var(--color-border);
+    outline-offset: -1px;
+  }
+}

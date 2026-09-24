@@ -1,3 +1,4 @@
+import { navigationCounts } from './core/navigation-counts.mjs';
 import * as importFiles from './modules/linear-import/files.mjs';
 import * as knowledge from './modules/knowledge/service.mjs';
 import * as linearImport from './modules/linear-import/service.mjs';
@@ -254,6 +255,7 @@ export function createApp({
         response = json(
           await run(true, async (tx, actor) => ({
             workspace: await tx.one('SELECT * FROM workspaces WHERE id=?', [actor.workspace_id]),
+            counts: await navigationCounts(tx, actor),
             teams: await tx.all('SELECT * FROM teams WHERE workspace_id=? ORDER BY key', [
               actor.workspace_id,
             ]),

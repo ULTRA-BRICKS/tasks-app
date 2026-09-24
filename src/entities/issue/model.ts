@@ -1,9 +1,18 @@
+import { feedRefreshInterval } from '@/shared/lib/feed-refresh';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type { Issue, IssueDetail, IssueFilters, Page } from '@tickets/contracts';
 import { api } from '@/shared/api/client';
-export function useIssues(filters: IssueFilters) {
-  return useInfiniteQuery({
+export function useIssues(
+  filters: IssueFilters,
+  options: { live?: boolean; enabled?: boolean } = {},
+) {
+  return useInfiniteQuery<Page<Issue>>({
     queryKey: ['issues', filters],
+    enabled: options.enabled ?? true,
+    refetchInterval: options.live
+      ? (query) => feedRefreshInterval(query.state.data?.pages.length ?? 1)
+      : false,
+    refetchIntervalInBackground: false,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) => {
       const query = new URLSearchParams(
