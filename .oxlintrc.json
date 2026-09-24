@@ -1,6 +1,11 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "react", "jsx-a11y", "import"],
+  "plugins": [
+    "typescript",
+    "react",
+    "jsx-a11y",
+    "import"
+  ],
   "categories": {
     "correctness": "error"
   },
@@ -11,7 +16,8 @@
     "node_modules/**",
     "docs/openapi.json",
     "src/shared/config/tokens.ts",
-    "packages/contracts/request-types.ts"
+    "packages/contracts/request-types.ts",
+    "packages/generated/server-markdown.mjs"
   ],
   "rules": {
     "typescript/no-explicit-any": "off",

@@ -25,6 +25,20 @@ export function toType(schema) {
   throw new Error('Unrecognized request schema');
 }
 const operations = [
+  [
+    '/v1/imports/linear/append',
+    'post',
+    'LinearAppend',
+    'Preview or append missing source UUID records',
+    'admin',
+  ],
+  [
+    '/v1/imports/linear/bind',
+    'post',
+    'LinearBind',
+    'Bind exported source UUIDs to existing native records',
+    'admin',
+  ],
   ['/v1/workspace/policy', 'get', null, 'Read workspace invitation-domain policy', 'admin'],
   [
     '/v1/workspace/policy',
@@ -135,7 +149,23 @@ const operations = [
   ['/v1/teams', 'post', 'Team', 'Create a team and its default workflow', 'admin'],
   ['/v1/statuses', 'post', 'Status', 'Create a team workflow state', 'admin'],
   ['/v1/labels', 'post', 'Label', 'Create a workspace label', 'write'],
-  ['/v1/invitations', 'get', null, 'List workspace invitations without exposing one-time tokens'],
+  [
+    '/v1/invitations',
+    'get',
+    null,
+    'List workspace invitations without exposing one-time tokens',
+    'admin',
+  ],
+  ['/v1/teams/{id}', 'get', null, 'Inspect team dependencies before removal', 'read'],
+  [
+    '/v1/teams/{id}',
+    'patch',
+    'TeamRename',
+    'Rename a team with a concurrent-change check',
+    'admin',
+  ],
+  ['/v1/teams/{id}', 'delete', 'TeamDelete', 'Remove an explicitly confirmed empty team', 'admin'],
+
   ['/v1/invitations', 'post', 'Invite', 'Create a single-use invitation link', 'admin'],
   [
     '/v1/members/{id}',

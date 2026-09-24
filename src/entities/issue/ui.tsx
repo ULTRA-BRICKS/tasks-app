@@ -1,3 +1,4 @@
+import { RefreshingText } from '@/shared/ui/refreshing-text';
 import type { CSSProperties } from 'react';
 import {
   Circle,
@@ -61,6 +62,7 @@ export function IssueRow({
   selected,
   onSelect,
   canSelect = true,
+  updating = false,
 }: {
   issue: Issue;
   status?: Status;
@@ -68,6 +70,7 @@ export function IssueRow({
   selected?: boolean;
   onSelect?: () => void;
   canSelect?: boolean;
+  updating?: boolean;
 }) {
   return (
     <PressPreview
@@ -86,7 +89,11 @@ export function IssueRow({
           : []),
       ]}
     >
-      <div className={'issue-row' + (selected ? ' is-selected' : '')} data-testid="issue-row">
+      <div
+        className={'issue-row' + (selected ? ' is-selected' : '')}
+        data-testid="issue-row"
+        data-update-active={updating}
+      >
         {canSelect && onSelect ? (
           <label className="issue-selection">
             <input
@@ -107,6 +114,7 @@ export function IssueRow({
         <button
           type="button"
           className="issue-open"
+          aria-label={issue.key + ' ' + issue.title}
           onClick={() => {
             if (!window.getSelection()?.toString()) onOpen();
           }}
@@ -116,7 +124,7 @@ export function IssueRow({
             color={status?.color ?? issue.status_color}
           />
           {issue.kind === 'epic' && <Layers size={14} />}
-          <span data-selectable>{issue.title}</span>
+          <RefreshingText text={issue.title} />
         </button>
         <div className="issue-labels">
           {issue.labels.slice(0, 2).map((l) => (

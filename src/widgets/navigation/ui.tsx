@@ -1,3 +1,5 @@
+import { TeamNavigationRow } from '@/features/team-management';
+import { useMobileChrome } from '@/shared/lib/mobile-chrome';
 import { copyActions } from '@/shared/lib/copy-formats';
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -29,10 +31,13 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
     views = useViews(moduleEnabled(catalog, 'views')),
     notifications = useNotifications(moduleEnabled(catalog, 'notifications')),
     client = useQueryClient();
+  const chrome = useMobileChrome();
   const prefs = usePreferences(),
     navigate = useNavigate();
   const location = useLocation();
-  const documentRoute = /^\/(issues|projects|cycles)\/[^/]+/.test(location.pathname);
+  const documentRoute = /^\/(issues|projects|cycles|documents|initiatives)\/[^/]+/.test(
+    location.pathname,
+  );
   const unread = notifications.data?.filter((n) => !n.read_at).length ?? 0;
   const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
   useEffect(() => {
@@ -106,74 +111,147 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
             {unread > 0 && <span className="nav-count">{unread}</span>}
           </NavLink>
         )}
-        <NavLink onClick={close} to="/my-issues" className={navClass}>
+        <NavLink
+          onClick={close}
+          to="/my-issues"
+          aria-label="My issues"
+          aria-description={
+            catalog?.counts?.mine === undefined ? undefined : catalog.counts.mine + ' my issues'
+          }
+          className={navClass}
+        >
           <UserRound size={16} />
           <span>My issues</span>
+          {catalog?.counts?.mine !== undefined && (
+            <span className="nav-count" aria-hidden="true">
+              {catalog.counts.mine}
+            </span>
+          )}
         </NavLink>
         <div className="nav-section-label">Workspace</div>
-        <NavLink onClick={close} to="/issues" end className={navClass}>
+        <NavLink
+          onClick={close}
+          to="/issues"
+          aria-label="All issues"
+          aria-description={
+            catalog?.counts?.issues === undefined
+              ? undefined
+              : catalog.counts.issues + ' all issues'
+          }
+          end
+          className={navClass}
+        >
           <Layers size={16} />
           <span>All issues</span>
+          {catalog?.counts?.issues !== undefined && (
+            <span className="nav-count" aria-hidden="true">
+              {catalog.counts.issues}
+            </span>
+          )}
         </NavLink>
-        <NavLink onClick={close} to="/epics" className={navClass}>
+        <NavLink
+          onClick={close}
+          to="/epics"
+          aria-label="Epics"
+          aria-description={
+            catalog?.counts?.epics === undefined ? undefined : catalog.counts.epics + ' epics'
+          }
+          className={navClass}
+        >
           <Layers size={16} />
           <span>Epics</span>
+          {catalog?.counts?.epics !== undefined && (
+            <span className="nav-count" aria-hidden="true">
+              {catalog.counts.epics}
+            </span>
+          )}
         </NavLink>
         {moduleEnabled(catalog, 'planning') && (
-          <NavLink onClick={close} to="/projects" className={navClass}>
+          <NavLink
+            onClick={close}
+            to="/projects"
+            aria-label="Projects"
+            aria-description={
+              catalog?.counts?.projects === undefined
+                ? undefined
+                : catalog.counts.projects + ' projects'
+            }
+            className={navClass}
+          >
             <FolderKanban size={16} />
             <span>Projects</span>
+            {catalog?.counts?.projects !== undefined && (
+              <span className="nav-count" aria-hidden="true">
+                {catalog.counts.projects}
+              </span>
+            )}
           </NavLink>
         )}
         {moduleEnabled(catalog, 'cycles') && (
-          <NavLink onClick={close} to="/cycles" className={navClass}>
+          <NavLink
+            onClick={close}
+            to="/cycles"
+            aria-label="Cycles"
+            aria-description={
+              catalog?.counts?.cycles === undefined ? undefined : catalog.counts.cycles + ' cycles'
+            }
+            className={navClass}
+          >
             <CalendarRange size={16} />
             <span>Cycles</span>
+            {catalog?.counts?.cycles !== undefined && (
+              <span className="nav-count" aria-hidden="true">
+                {catalog.counts.cycles}
+              </span>
+            )}
           </NavLink>
         )}
         {moduleEnabled(catalog, 'planning') && (
           <>
-            <NavLink onClick={close} to="/initiatives" className={navClass}>
+            <NavLink
+              onClick={close}
+              to="/initiatives"
+              aria-label="Initiatives"
+              aria-description={
+                catalog?.counts?.initiatives === undefined
+                  ? undefined
+                  : catalog.counts.initiatives + ' initiatives'
+              }
+              className={navClass}
+            >
               <Flag size={16} />
               <span>Initiatives</span>
+              {catalog?.counts?.initiatives !== undefined && (
+                <span className="nav-count" aria-hidden="true">
+                  {catalog.counts.initiatives}
+                </span>
+              )}
             </NavLink>
-            <NavLink onClick={close} to="/documents" className={navClass}>
+            <NavLink
+              onClick={close}
+              to="/documents"
+              aria-label="Documents"
+              aria-description={
+                catalog?.counts?.documents === undefined
+                  ? undefined
+                  : catalog.counts.documents + ' documents'
+              }
+              className={navClass}
+            >
               <FileText size={16} />
               <span>Documents</span>
+              {catalog?.counts?.documents !== undefined && (
+                <span className="nav-count" aria-hidden="true">
+                  {catalog.counts.documents}
+                </span>
+              )}
             </NavLink>
           </>
         )}
         <div className="nav-section-label">Your teams</div>
-        {catalog?.teams.map((team) => {
-          const path = '/issues?team_id=' + encodeURIComponent(team.id);
-          const open = () => {
-            close();
-            void navigate(path);
-          };
-          return (
-            <div className="team-context-row nav-action-row" key={team.id}>
-              <button type="button" className="nav-item" onClick={open}>
-                <span className="team-icon">{team.key.slice(0, 1)}</span>
-                <span>{team.name}</span>
-              </button>
-              <ActionMenu
-                label={'Actions for ' + team.name}
-                items={[
-                  { label: 'Open team issues', onSelect: open },
-                  {
-                    label: 'Create issue in team',
-                    disabled: me?.role === 'viewer',
-                    onSelect: () => {
-                      close();
-                      void navigate('/issues/new', { state: { defaults: { team_id: team.id } } });
-                    },
-                  },
-                  ...copyActions({ id: team.id, title: team.name, path, kind: 'team' }),
-                ]}
-              />
-            </div>
-          );
-        })}
+        {catalog?.teams.map((team) => (
+          <TeamNavigationRow key={team.id} team={team} close={close} />
+        ))}
         {moduleEnabled(catalog, 'views') && (
           <>
             <div className="nav-section-label">Saved views</div>
@@ -227,9 +305,22 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
             )}
           </>
         )}
-        <NavLink onClick={close} to="/archive" className={navClass}>
+        <NavLink
+          onClick={close}
+          to="/archive"
+          aria-label="Archive"
+          aria-description={
+            catalog?.counts?.archive === undefined ? undefined : catalog.counts.archive + ' archive'
+          }
+          className={navClass}
+        >
           <Archive size={15} />
           <span>Archive</span>
+          {catalog?.counts?.archive !== undefined && (
+            <span className="nav-count" aria-hidden="true">
+              {catalog.counts.archive}
+            </span>
+          )}
         </NavLink>
       </nav>
       <div className="sidebar-bottom">
@@ -249,7 +340,12 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
   );
   return mobile ? (
     <>
-      <div className="mobile-navigation-bar">
+      <div
+        className="mobile-navigation-bar"
+        data-collapsed={chrome.collapsed}
+        data-keyboard={chrome.keyboard}
+        inert={chrome.keyboard}
+      >
         <nav className="mobile-dock" aria-label="Mobile navigation">
           <NavLink to="/issues" aria-label="Issues" className={navClass}>
             <Layers size={21} />

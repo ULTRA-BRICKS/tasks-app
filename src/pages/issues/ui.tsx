@@ -1,3 +1,4 @@
+import { useLiveFeed } from '@/shared/lib/use-live-feed';
 import { useState, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -90,12 +91,21 @@ export function IssuesPage() {
     if (title === 'Archive') f.archived = true;
     return f;
   }, [params, title]);
-  const query = useIssues(filters),
-    issues = query.data?.pages.flatMap((p) => p.data) ?? [];
+  const query = useIssues(filters, { live: !issueId });
+  const sourceRows = useMemo(() => query.data?.pages.flatMap((p) => p.data) ?? [], [query.data]);
+  const feed = useLiveFeed(
+    sourceRows,
+    selectionKey,
+    Boolean(query.data),
+    query.data?.pages.length ?? 0,
+    query.data?.pages.at(-1)?.data ?? [],
+  );
+  const issues = prefs.view === 'board' ? sourceRows : feed.visible;
+  const groupOf = (issue: Issue) => feed.groups[issue.id] ?? issue.status_id;
   const statuses =
     catalog?.statuses.filter((s) => !filters.team_id || s.team_id === filters.team_id) ?? [];
   const readOnly = me?.role === 'viewer';
-  const selectedRows = issues.filter((i) => selected.has(i.id));
+  const selectedRows = sourceRows.filter((i) => selected.has(i.id));
   const bulk = useMutation({
     mutationFn: (status: string) =>
       api<Issue[]>('/v1/issues/bulk', {
@@ -354,6 +364,41 @@ export function IssuesPage() {
       )}
       {bulk.error && <ErrorState message={errorMessage(bulk.error)} />}
       <div className="issues-content">
+        {prefs.view !== 'board' &&
+          (feed.added > 0 || feed.changed.length > 0 || feed.departed.length > 0) && (
+            <div className="feed-update-anchor">
+              <button
+                type="button"
+                className="feed-update-badge"
+                onClick={() => {
+                  feed.review();
+                  if (matchMedia('(pointer: coarse)').matches)
+                    window.scrollTo({
+                      top: 0,
+                      behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
+                        ? 'instant'
+                        : 'smooth',
+                    });
+                  else
+                    document.querySelector('.issues-content')?.scrollTo({
+                      top: 0,
+                      behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
+                        ? 'instant'
+                        : 'smooth',
+                    });
+                }}
+              >
+                {[
+                  feed.added ? `${feed.added} new` : '',
+                  feed.changed.length ? `${feed.changed.length} updated` : '',
+                  feed.departed.length ? `${feed.departed.length} left this view` : '',
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}{' '}
+                — Review updates
+              </button>
+            </div>
+          )}
         {query.isPending ? (
           <SkeletonRows />
         ) : query.error ? (
@@ -379,7 +424,7 @@ export function IssuesPage() {
         ) : (
           <div className="issue-list">
             {statuses
-              .filter((s) => issues.some((i) => i.status_id === s.id))
+              .filter((s) => issues.some((i) => groupOf(i) === s.id))
               .map((s) => (
                 <section className="issue-group" key={s.id}>
                   <header className="group-heading">
@@ -399,7 +444,7 @@ export function IssuesPage() {
                       <StatusIcon category={s.category} color={s.color} />
                       <h2>{s.name}</h2>
                       <span className="muted">
-                        {issues.filter((i) => i.status_id === s.id).length}
+                        {issues.filter((i) => groupOf(i) === s.id).length}
                       </span>
                     </button>
                     <Button
@@ -414,12 +459,13 @@ export function IssuesPage() {
                   </header>
                   {!collapsed.has(s.id) &&
                     issues
-                      .filter((i) => i.status_id === s.id)
+                      .filter((i) => groupOf(i) === s.id)
                       .map((i) => (
                         <IssueRow
                           key={i.id}
                           issue={i}
                           status={s}
+                          updating={feed.active === i.id}
                           canSelect={!readOnly}
                           selected={selected.has(i.id)}
                           onSelect={() =>

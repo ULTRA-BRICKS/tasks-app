@@ -60,6 +60,8 @@ const unavailable = {
 export function describeImportedChange(raw, resolve = (collection) => unavailable[collection]) {
   const event = payload(raw),
     lines = [];
+  if (event.sourceCreated === true) lines.push('created the issue in Linear');
+  if (event.sourceCommented === true) lines.push('commented in Linear');
   for (const [suffix, label, collection, empty] of fields) {
     const before = valueAt(event, 'from' + suffix),
       after = valueAt(event, 'to' + suffix);

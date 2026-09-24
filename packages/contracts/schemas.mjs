@@ -74,6 +74,58 @@ export const schemas = {
   LinearFileUnavailable: object({ source_status: { type: 'integer', enum: [404, 410] } }, [
     'source_status',
   ]),
+  LinearBind: object(
+    {
+      source_workspace_id: uuid,
+      bindings: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 50,
+        items: object(
+          {
+            collection: text(40, 1),
+            record: {
+              type: 'object',
+              required: ['id'],
+              properties: { id: uuid },
+              additionalProperties: true,
+            },
+            target_id: uuid,
+          },
+          ['collection', 'record', 'target_id'],
+        ),
+      },
+      plan_hash: text(64, 64),
+    },
+    ['source_workspace_id', 'bindings'],
+  ),
+  LinearAppend: object(
+    {
+      source_workspace_id: uuid,
+      issues: {
+        type: 'array',
+        maxItems: 50,
+        items: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: uuid },
+          additionalProperties: true,
+        },
+      },
+      comments: {
+        type: 'array',
+        maxItems: 50,
+        items: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: uuid },
+          additionalProperties: true,
+        },
+      },
+      plan_hash: text(64, 64),
+    },
+    ['source_workspace_id'],
+  ),
   LinearImportCreate: object({ manifest: { type: 'object', additionalProperties: true } }, [
     'manifest',
   ]),
@@ -165,6 +217,11 @@ export const schemas = {
     { token: { ...text(43, 43), pattern: '^[A-Za-z0-9_-]{43}$' }, password: text(256, 12) },
     ['token', 'password'],
   ),
+  TeamRename: object({ name: text(120, 1), expected_name: text(120, 1) }, [
+    'name',
+    'expected_name',
+  ]),
+  TeamDelete: object({ confirm_key: text(20, 1) }, ['confirm_key']),
   Invite: object(
     {
       email: { ...text(254, 3), format: 'email' },

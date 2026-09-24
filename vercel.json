@@ -5,14 +5,20 @@
   "installCommand": "bun install --frozen-lockfile",
   "buildCommand": "bun run build",
   "outputDirectory": "dist",
-  "regions": ["fra1"],
+  "regions": [
+    "fra1"
+  ],
   "functions": {
     "api/index.mjs": {
       "maxDuration": 60,
-      "includeFiles": "{packages/db/migrations/*.sql,packages/linear/schema.graphql,docs/openapi.json}"
+      "includeFiles": "{packages/db/migrations/*.sql,packages/linear/schema.graphql,packages/generated/server-markdown.mjs,docs/openapi.json}"
     }
   },
   "rewrites": [
+    {
+      "source": "/.well-known/(.*)",
+      "destination": "/api/index"
+    },
     {
       "source": "/graphql",
       "destination": "/api/index"

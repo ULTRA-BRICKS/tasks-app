@@ -40,6 +40,10 @@ test('imported history uses source names and readable events on desktop and mobi
   const key = targetId(me.workspace_id, source.ids.org, 'issues', source.ids.issue);
   await page.goto('/issues/' + key);
   const activity = page.locator('.activity-section');
+  // This is a geometry/history assertion, not an in-flight navigation-cancellation test.
+  // Finish the current page's queries before reloading into another viewport in WebKit.
+  await expect(activity).toContainText('changed status: Todo → Done');
+  await page.waitForLoadState('networkidle');
   for (const width of [1280, 393]) {
     await page.setViewportSize({ width, height: 900 });
     await page.reload();
@@ -54,6 +58,7 @@ test('imported history uses source names and readable events on desktop and mobi
       width,
     );
     await activity.screenshot({ path: testInfo.outputPath(`history-${browserName}-${width}.png`) });
+    await page.waitForLoadState('networkidle');
   }
   expect(errors).toEqual([]);
 });
