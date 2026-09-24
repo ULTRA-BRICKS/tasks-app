@@ -1,6 +1,8 @@
 import * as importFiles from './modules/linear-import/files.mjs';
 import * as knowledge from './modules/knowledge/service.mjs';
 import * as linearImport from './modules/linear-import/service.mjs';
+import { appendLinearRecords } from './modules/linear-import/append.mjs';
+import { bindLinearSources } from './modules/linear-import/bind.mjs';
 import { listSourcePeople } from './core/source-people.mjs';
 import { PRODUCT_NAME, PRODUCT_VERSION } from '../config/product.mjs';
 import { requestPasswordReset, resetPassword } from './modules/identity/password-reset.mjs';
@@ -315,6 +317,12 @@ export function createApp({
             await run(false, (tx, a) => knowledge.updateKnowledge(tx, a, kind, key, input)),
           );
         } else throw missing('Route');
+      } else if (path === '/api/v1/imports/linear/bind' && method === 'POST') {
+        const input = await body(request, schemas.LinearBind);
+        response = json(await run(!input.plan_hash, (tx, a) => bindLinearSources(tx, a, input)));
+      } else if (path === '/api/v1/imports/linear/append' && method === 'POST') {
+        const input = await body(request, schemas.LinearAppend);
+        response = json(await run(!input.plan_hash, (tx, a) => appendLinearRecords(tx, a, input)));
       } else if (
         /^\/api\/v1\/imports\/linear(?:\/[^/]+(?:\/(?:records|plan|apply))?)?$/.test(path)
       ) {
