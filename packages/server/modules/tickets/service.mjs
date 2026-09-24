@@ -122,6 +122,16 @@ export async function recordActivity(tx, actor, issue, action, data = {}) {
     [...subscriptions.map((s) => s.user_id), issue.assignee_id].filter(Boolean),
   );
   recipients.delete(actor.id);
+  // getIssue may expose imported attribution IDs as assignee_id for the UI.
+  // Only real members can receive account notifications; attribution creates no access.
+  if (recipients.size) {
+    const members = await tx.all(
+      `SELECT user_id FROM memberships WHERE workspace_id=? AND user_id IN (${[...recipients].map(() => '?').join(',')})`,
+      [actor.workspace_id, ...recipients],
+    );
+    const allowed = new Set(members.map((member) => member.user_id));
+    for (const user of recipients) if (!allowed.has(user)) recipients.delete(user);
+  }
   const notifications = await tx.one(
     "SELECT enabled FROM module_settings WHERE workspace_id=? AND module='notifications'",
     [actor.workspace_id],
