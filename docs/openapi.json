@@ -1966,6 +1966,187 @@
         }
       }
     },
+    "/v1/teams/{id}": {
+      "get": {
+        "summary": "Inspect team dependencies before removal",
+        "operationId": "get_v1_teams__id_",
+        "tags": [
+          "teams"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Resource identifier"
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Rename a team with a concurrent-change check",
+        "operationId": "patch_v1_teams__id_",
+        "tags": [
+          "teams"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Resource identifier"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamRename"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove an explicitly confirmed empty team",
+        "operationId": "delete_v1_teams__id_",
+        "tags": [
+          "teams"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Resource identifier"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamDelete"
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/invitations": {
       "post": {
         "summary": "Create a single-use invitation link",
@@ -5474,6 +5655,40 @@
         "required": [
           "token",
           "password"
+        ],
+        "additionalProperties": false
+      },
+      "TeamRename": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "expected_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "name",
+          "expected_name"
+        ],
+        "additionalProperties": false
+      },
+      "TeamDelete": {
+        "type": "object",
+        "properties": {
+          "confirm_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20
+          }
+        },
+        "required": [
+          "confirm_key"
         ],
         "additionalProperties": false
       },
