@@ -25,6 +25,20 @@ export function toType(schema) {
   throw new Error('Unrecognized request schema');
 }
 const operations = [
+  [
+    '/v1/imports/linear/append',
+    'post',
+    'LinearAppend',
+    'Preview or append missing source UUID records',
+    'admin',
+  ],
+  [
+    '/v1/imports/linear/bind',
+    'post',
+    'LinearBind',
+    'Bind exported source UUIDs to existing native records',
+    'admin',
+  ],
   ['/v1/workspace/policy', 'get', null, 'Read workspace invitation-domain policy', 'admin'],
   [
     '/v1/workspace/policy',

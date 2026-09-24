@@ -74,6 +74,58 @@ export const schemas = {
   LinearFileUnavailable: object({ source_status: { type: 'integer', enum: [404, 410] } }, [
     'source_status',
   ]),
+  LinearBind: object(
+    {
+      source_workspace_id: uuid,
+      bindings: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 50,
+        items: object(
+          {
+            collection: text(40, 1),
+            record: {
+              type: 'object',
+              required: ['id'],
+              properties: { id: uuid },
+              additionalProperties: true,
+            },
+            target_id: uuid,
+          },
+          ['collection', 'record', 'target_id'],
+        ),
+      },
+      plan_hash: text(64, 64),
+    },
+    ['source_workspace_id', 'bindings'],
+  ),
+  LinearAppend: object(
+    {
+      source_workspace_id: uuid,
+      issues: {
+        type: 'array',
+        maxItems: 50,
+        items: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: uuid },
+          additionalProperties: true,
+        },
+      },
+      comments: {
+        type: 'array',
+        maxItems: 50,
+        items: {
+          type: 'object',
+          required: ['id'],
+          properties: { id: uuid },
+          additionalProperties: true,
+        },
+      },
+      plan_hash: text(64, 64),
+    },
+    ['source_workspace_id'],
+  ),
   LinearImportCreate: object({ manifest: { type: 'object', additionalProperties: true } }, [
     'manifest',
   ]),
