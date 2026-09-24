@@ -28,3 +28,11 @@ test('server Markdown parsing does not load virtual filesystem aliases missing f
   expect(build.success).toBe(true);
   expect(virtualFileDependency).toBe(false);
 });
+
+test('deployment lint explicitly excludes only generated parser output even without a Git checkout', async () => {
+  const config = await Bun.file(new URL('../../.oxlintrc.json', import.meta.url)).json();
+  expect(config.ignorePatterns).toContain('packages/generated/server-markdown.mjs');
+  expect(config.ignorePatterns).not.toContain('packages/**');
+  expect(config.ignorePatterns).not.toContain('packages/parsers/**');
+  expect(config.ignorePatterns).not.toContain('scripts/**');
+});
