@@ -1,3 +1,5 @@
+import { useSearchParams } from 'react-router-dom';
+import { PeopleInvitations } from '@/features/people-invitations';
 import { WorkspacePolicySettings } from '@/features/workspace-policy';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -46,11 +48,10 @@ export function SettingsPage() {
     { data: me } = useMe(),
     prefs = usePreferences(),
     client = useQueryClient();
-  const [tab, setTab] = useState('appearance'),
-    [email, setEmail] = useState(''),
-    [inviteRole, setInviteRole] = useState('member'),
-    [inviteLink, setInviteLink] = useState(''),
-    [tokenName, setTokenName] = useState(''),
+  const [params, setParams] = useSearchParams();
+  const tab = params.get('tab') ?? 'appearance',
+    setTab = (value: string) => setParams({ tab: value });
+  const [tokenName, setTokenName] = useState(''),
     [tokenScope, setTokenScope] = useState('read'),
     [revealedToken, setRevealedToken] = useState(''),
     [labelName, setLabelName] = useState(''),
@@ -78,13 +79,6 @@ export function SettingsPage() {
     mutationFn: async (data: { type: string; id?: string; value?: unknown }) => {
       if (data.type === 'module')
         return api('/v1/modules/' + data.id, { method: 'PATCH', json: { enabled: data.value } });
-      if (data.type === 'invite') {
-        const r = await api<{
-          token: string;
-        }>('/v1/invitations', { method: 'POST', json: { email, role: inviteRole } });
-        setInviteLink(window.location.origin + '/invite#token=' + encodeURIComponent(r.token));
-        return r;
-      }
       if (data.type === 'token') {
         const scopes =
           tokenScope === 'admin'
@@ -229,45 +223,7 @@ export function SettingsPage() {
                   </div>
                 ))}
               </div>
-              {admin && (
-                <form
-                  className="stack-form settings-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    action.mutate({ type: 'invite' });
-                  }}
-                >
-                  <h3>Invite a teammate</h3>
-                  <Input
-                    type="email"
-                    aria-label="Invite email"
-                    placeholder="name@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                  <Picker
-                    aria-label="Invite role"
-                    value={inviteRole}
-                    onChange={setInviteRole}
-                    options={['member', 'viewer', 'admin'].map((v) => ({ value: v, label: v }))}
-                  />
-                  <Button type="submit" disabled={action.isPending || !email}>
-                    Create invitation link
-                  </Button>
-                  {inviteLink && (
-                    <div className="secret-output">
-                      <p>Share this link privately. It expires in 7 days and can be used once.</p>
-                      <Input
-                        aria-label="Invitation link"
-                        value={inviteLink}
-                        readOnly
-                        onFocus={(e) => e.target.select()}
-                      />
-                    </div>
-                  )}
-                </form>
-              )}
+              {admin && <PeopleInvitations />}
             </>
           )}
           {tab === 'workflow' && (

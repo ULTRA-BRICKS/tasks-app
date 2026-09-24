@@ -1,3 +1,4 @@
+import { listInvitations } from './modules/identity/invitation-list.mjs';
 import * as importFiles from './modules/linear-import/files.mjs';
 import * as knowledge from './modules/knowledge/service.mjs';
 import * as linearImport from './modules/linear-import/service.mjs';
@@ -463,25 +464,58 @@ export function createApp({
           }),
           201,
         );
+      } else if (path === '/api/v1/invitations' && method === 'GET') {
+        response = json(await run(true, (tx, actor) => listInvitations(tx, actor)));
       } else if (path === '/api/v1/invitations' && method === 'POST') {
         const input = await body(request, schemas.Invite);
+        const emailOnly = input.delivery === 'email';
         response = json(
           await run(false, async (tx, a) => {
-            const invitation = await identity.invite(tx, a, input);
-            const configured = emailConfiguration(env).configured;
-            if (configured) {
-              const link = new URL('/invite', origin);
-              link.hash = new URLSearchParams({ token: invitation.token }).toString();
-              await enqueueAccountEmail(tx, env, {
-                kind: 'invitation',
-                workspaceId: a.workspace_id,
-                to: invitation.email,
-                subject: 'You are invited to Tasks',
-                expiresAt: new Date(Date.now() + 12 * 3600000).toISOString(),
-                text: `You have been invited to a Tasks workspace.\n\nChoose your password and accept the invitation: ${link.href}\n\nThe invitation expires in seven days. Existing accounts must use their existing password.\n`,
-              });
-            }
-            return { ...invitation, email_queued: configured };
+            requirePermission(a, 'admin');
+            if (emailOnly)
+              assert(
+                emailConfiguration(env).configured,
+                503,
+                'MAIL_NOT_CONFIGURED',
+                'Email invitations are unavailable until the workspace sender is configured.',
+              );
+            const createInvitation = async () => {
+              const invitation = await identity.invite(tx, a, input);
+              const configured = emailConfiguration(env).configured;
+              if (configured) {
+                const link = new URL('/invite', origin);
+                link.hash = new URLSearchParams({ token: invitation.token }).toString();
+                await enqueueAccountEmail(tx, env, {
+                  kind: 'invitation',
+                  workspaceId: a.workspace_id,
+                  to: invitation.email,
+                  subject: 'You are invited to Tasks',
+                  expiresAt: new Date(Date.now() + 12 * 3600000).toISOString(),
+                  text: `You have been invited to a Tasks workspace.\n\nChoose your password and accept the invitation: ${link.href}\n\nThe invitation expires in seven days. Existing accounts must use their existing password.\n`,
+                });
+              }
+              const result = {
+                id: invitation.id,
+                email: invitation.email,
+                role: invitation.role,
+                expires_at: invitation.expires_at,
+                email_queued: configured,
+              };
+              return emailOnly ? result : { ...result, token: invitation.token };
+            };
+            return emailOnly
+              ? createIdempotently(
+                  tx,
+                  a,
+                  {
+                    key: request.headers.get('idempotency-key'),
+                    operation: 'email-invitation',
+                    module: 'identity',
+                    input,
+                  },
+                  createInvitation,
+                )
+              : createInvitation();
           }),
           201,
         );
