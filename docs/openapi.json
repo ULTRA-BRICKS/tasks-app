@@ -1966,10 +1966,114 @@
         }
       }
     },
+    "/v1/invitations": {
+      "get": {
+        "summary": "List workspace invitations without exposing one-time tokens",
+        "operationId": "get_v1_invitations",
+        "x-required-scope": "admin",
+        "tags": [
+          "invitations"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "parameters": []
+      },
+      "post": {
+        "summary": "Create a single-use invitation link",
+        "operationId": "post_v1_invitations",
+        "x-required-scope": "admin",
+        "tags": [
+          "invitations"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "201": {
+            "description": "Created"
+          },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Invite"
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/teams/{id}": {
       "get": {
         "summary": "Inspect team dependencies before removal",
         "operationId": "get_v1_teams__id_",
+        "x-required-scope": "read",
         "tags": [
           "teams"
         ],
@@ -2023,6 +2127,7 @@
       "patch": {
         "summary": "Rename a team with a concurrent-change check",
         "operationId": "patch_v1_teams__id_",
+        "x-required-scope": "admin",
         "tags": [
           "teams"
         ],
@@ -2086,6 +2191,7 @@
       "delete": {
         "summary": "Remove an explicitly confirmed empty team",
         "operationId": "delete_v1_teams__id_",
+        "x-required-scope": "admin",
         "tags": [
           "teams"
         ],
@@ -2141,65 +2247,6 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TeamDelete"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/invitations": {
-      "post": {
-        "summary": "Create a single-use invitation link",
-        "operationId": "post_v1_invitations",
-        "x-required-scope": "admin",
-        "tags": [
-          "invitations"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
-          },
-          "201": {
-            "description": "Created"
-          },
-          "202": {
-            "description": "Accepted for background processing; not a delivery receipt"
-          },
-          "400": {
-            "description": "Malformed request"
-          },
-          "401": {
-            "description": "Unauthenticated"
-          },
-          "403": {
-            "description": "Insufficient scope, role, or CSRF protection"
-          },
-          "404": {
-            "description": "Resource not found in this workspace"
-          },
-          "409": {
-            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
-          },
-          "410": {
-            "description": "Expired or already-used account link"
-          },
-          "422": {
-            "description": "Validation error"
-          },
-          "429": {
-            "description": "Rate limit"
-          },
-          "503": {
-            "description": "Provider or production configuration missing"
-          }
-        },
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Invite"
               }
             }
           }
@@ -5707,6 +5754,12 @@
               "admin",
               "member",
               "viewer"
+            ]
+          },
+          "delivery": {
+            "type": "string",
+            "enum": [
+              "email"
             ]
           }
         },

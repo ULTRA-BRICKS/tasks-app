@@ -1,18 +1,5 @@
-import { test, expect, type Page, type BrowserContext } from '@playwright/test';
-let cookies: Awaited<ReturnType<BrowserContext['cookies']>> | undefined;
-async function login(page: Page) {
-  if (cookies) {
-    await page.context().addCookies(cookies);
-    await page.goto('/issues');
-  } else {
-    await page.goto('/login');
-    await page.getByLabel('Email', { exact: true }).fill('demo@example.test');
-    await page.getByLabel('Password', { exact: true }).fill('local-demo-password');
-    await page.getByRole('button', { name: 'Continue', exact: true }).click();
-  }
-  await expect(page.getByTestId('issue-row').first()).toBeVisible();
-  cookies = await page.context().cookies();
-}
+import { test, expect } from '@playwright/test';
+import { login } from './session-fixture';
 test('phone text fields stay at least 16px without restricting user zoom', async ({ browser }) => {
   const context = await browser.newContext({
     viewport: { width: 393, height: 852 },

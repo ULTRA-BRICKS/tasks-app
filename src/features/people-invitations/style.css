@@ -1,0 +1,52 @@
+.people-invitations {
+  margin-top: var(--space-24);
+}
+.people-invitations .settings-form {
+  margin-bottom: var(--space-32);
+}
+.invitation-list {
+  display: grid;
+  border-top: 1px solid var(--color-border);
+}
+.invitation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-16);
+  min-height: 68px;
+  padding: var(--space-12) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.invitation-row > div {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.invitation-row strong {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.invitation-row small {
+  color: var(--color-muted);
+  font-size: var(--font-size-12);
+}
+.invitation-status {
+  border: 1px solid var(--color-border);
+  border-radius: 99px;
+  padding: var(--space-4) var(--space-8);
+  color: var(--color-muted);
+  white-space: nowrap;
+  font-size: var(--font-size-12);
+}
+.invitation-status.pending {
+  color: var(--color-text);
+}
+@media (max-width: 639px) {
+  .invitation-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-8);
+  }
+  .invitation-status {
+    justify-self: start;
+  }
+}

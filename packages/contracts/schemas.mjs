@@ -223,7 +223,11 @@ export const schemas = {
   ]),
   TeamDelete: object({ confirm_key: text(20, 1) }, ['confirm_key']),
   Invite: object(
-    { email: { ...text(254, 3), format: 'email' }, role: enumeration('admin', 'member', 'viewer') },
+    {
+      email: { ...text(254, 3), format: 'email' },
+      role: enumeration('admin', 'member', 'viewer'),
+      delivery: enumeration('email'),
+    },
     ['email', 'role'],
   ),
   AcceptInvite: object({ token: text(100, 20), name: text(100, 1), password: text(256, 12) }, [
