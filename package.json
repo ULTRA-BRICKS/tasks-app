@@ -39,7 +39,7 @@
     "worker": "bun scripts/worker.mjs",
     "setup": "bun scripts/setup.mjs",
     "check:secrets": "bun scripts/secret-scan.mjs",
-    "prepare:generated": "bun run tokens:build && bun run api:generate && bun run graphql:generate",
+    "prepare:generated": "bun scripts/server-markdown.mjs && bun run tokens:build && bun run api:generate && bun run graphql:generate",
     "lint": "oxlint --deny-warnings && bun run lint:fsd",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --write .",

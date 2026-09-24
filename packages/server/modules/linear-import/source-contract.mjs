@@ -1,10 +1,6 @@
-import { fromMarkdown } from 'mdast-util-from-markdown';
-import { gfm } from 'micromark-extension-gfm';
-import { gfmFromMarkdown } from 'mdast-util-gfm';
+import { parseMarkdown } from '../../../generated/server-markdown.mjs';
 import { assert } from '../../core/errors.mjs';
 import { canonical, digest } from '../../../imports/linear-source.mjs';
-const markdownOptions = { extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()] };
-const parseMarkdown = (value) => fromMarkdown(value, markdownOptions);
 function normalizedUrl(value) {
   if (typeof value !== 'string') return value;
   try {
