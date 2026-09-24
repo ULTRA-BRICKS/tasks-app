@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/alex-mextner/tickets-app.git"
+    "url": "https://git.hyperide.ai/ultrabricks/tickets-app.git"
   },
   "bin": {
     "tickets": "packages/cli/tickets.mjs"

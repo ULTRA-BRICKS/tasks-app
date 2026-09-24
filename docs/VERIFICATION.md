@@ -2,7 +2,7 @@
 
 ## Verified source
 
-Full CI for commit [`73763a18549bf9eb7fb288b773aae586fbf610f4`](https://github.com/alex-mextner/tickets-app/commit/73763a18549bf9eb7fb288b773aae586fbf610f4) completed successfully:
+Full CI for commit [`73763a18549bf9eb7fb288b773aae586fbf610f4`](https://git.hyperide.ai/ultrabricks/tickets-app/commit/73763a18549bf9eb7fb288b773aae586fbf610f4) completed successfully:
 
 **[CI run 34504461915](https://github.com/alex-mextner/tickets-app/actions/runs/34504461915)**
 

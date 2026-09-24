@@ -34,7 +34,7 @@ These are captures of the running React application against a synthetic local wo
 Use **Bun 1.4.2 or later**; `.bun-version` and `bun.lock` pin the tested toolchain. Node is not required for the application server, CLI or project scripts.
 
 ```bash
-git clone https://github.com/alex-mextner/tickets-app.git
+git clone https://git.hyperide.ai/ultrabricks/tickets-app.git
 cd tickets-app
 bun install --frozen-lockfile
 bun run setup -- --demo

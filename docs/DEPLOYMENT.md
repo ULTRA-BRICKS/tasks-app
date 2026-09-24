@@ -15,7 +15,7 @@ Neon-проект: `autumn-brook-27632436`. Production-ветка: `br-sparkling
 Нужны Git, Bun 1.4.2 и GitHub CLI (`gh`). Установка GitHub CLI: https://cli.github.com/ . Команды ниже выполняются из корня репозитория. Для существующего checkout используйте свою обычную процедуру обновления, не перезаписывая незакоммиченные изменения.
 
 ```sh
-git clone https://github.com/alex-mextner/tickets-app.git
+git clone https://git.hyperide.ai/ultrabricks/tickets-app.git
 cd tickets-app
 bun install --frozen-lockfile
 gh auth login
