@@ -56,6 +56,10 @@ export interface SourcePerson {
   avatar_url: string | null;
 }
 export interface Catalog {
+  counts?: Record<
+    'issues' | 'epics' | 'mine' | 'projects' | 'cycles' | 'documents' | 'initiatives' | 'archive',
+    number
+  >;
   workspace: { id: Id; name: string; slug: string };
   teams: Team[];
   statuses: Status[];

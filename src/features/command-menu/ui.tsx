@@ -22,7 +22,7 @@ export function CommandMenu({
     const timer = setTimeout(() => setDebounced(query), 180);
     return () => clearTimeout(timer);
   }, [query]);
-  const issues = useIssues({ q: debounced });
+  const issues = useIssues({ q: debounced }, { enabled: open && Boolean(debounced.trim()) });
   const commands = [
     { id: 'create', label: 'Create new issue', icon: Plus, action: onCreate },
     { id: 'issues', label: 'Go to all issues', icon: Layers, action: () => navigate('/issues') },

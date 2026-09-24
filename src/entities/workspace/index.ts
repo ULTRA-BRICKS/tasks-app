@@ -17,7 +17,13 @@ export const useMe = () =>
     staleTime: 60000,
   });
 export const useCatalog = () =>
-  useQuery({ queryKey: ['catalog'], queryFn: () => api<Catalog>('/v1/catalog'), staleTime: 60000 });
+  useQuery({
+    queryKey: ['catalog'],
+    queryFn: () => api<Catalog>('/v1/catalog'),
+    staleTime: 30000,
+    refetchInterval: (query) => (query.state.status === 'success' ? 30000 : false),
+    refetchIntervalInBackground: false,
+  });
 export const useProjects = (enabled = true) =>
   useQuery({ queryKey: ['projects'], queryFn: () => api<Project[]>('/v1/projects'), enabled });
 export const useCycles = (enabled = true) =>

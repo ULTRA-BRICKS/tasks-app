@@ -17,7 +17,7 @@
     "dev": "bun scripts/dev.mjs",
     "dev:api": "bun packages/server/dev.mjs",
     "dev:web": "bun --bun vite --host 127.0.0.1",
-    "build": "bun run prepare:generated && bun run typecheck && bun --bun vite build",
+    "build": "bun run prepare:generated && bun run typecheck && bun --bun vite build && bun scripts/build-shell.mjs",
     "typecheck": "oxlint --type-aware --type-check --deny-warnings",
     "start": "bun packages/server/dev.mjs",
     "db:migrate": "bun scripts/db.mjs migrate",

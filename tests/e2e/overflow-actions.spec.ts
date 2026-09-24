@@ -1,10 +1,18 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
+let cookies: Awaited<ReturnType<BrowserContext['cookies']>> | undefined;
 async function login(page: Page) {
+  if (cookies) {
+    await page.context().addCookies(cookies);
+    await page.goto('/issues');
+    await expect(page.getByTestId('issue-row').first()).toBeVisible();
+    return;
+  }
   await page.goto('/login');
   await page.getByLabel('Email', { exact: true }).fill('demo@example.test');
   await page.getByLabel('Password', { exact: true }).fill('local-demo-password');
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByTestId('issue-row').first()).toBeVisible();
+  cookies = await page.context().cookies();
 }
 test('team actions are visible and copying an identifier retains the page', async ({ page }) => {
   await login(page);
