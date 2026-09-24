@@ -1,9 +1,10 @@
-import { unified } from 'unified';
-import remarkParse from 'remark-parse';
-import remarkGfm from 'remark-gfm';
+import { fromMarkdown } from 'mdast-util-from-markdown';
+import { gfm } from 'micromark-extension-gfm';
+import { gfmFromMarkdown } from 'mdast-util-gfm';
 import { assert } from '../../core/errors.mjs';
 import { canonical, digest } from '../../../imports/linear-source.mjs';
-const markdownParser = unified().use(remarkParse).use(remarkGfm);
+const markdownOptions = { extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()] };
+const parseMarkdown = (value) => fromMarkdown(value, markdownOptions);
 function normalizedUrl(value) {
   if (typeof value !== 'string') return value;
   try {
@@ -33,10 +34,7 @@ export function markdownEquivalent(a, b) {
   if (a === b) return true;
   if (typeof a !== 'string' || typeof b !== 'string' || a.length > 128000 || b.length > 128000)
     return false;
-  return (
-    canonical(semanticNode(markdownParser.parse(a))) ===
-    canonical(semanticNode(markdownParser.parse(b)))
-  );
+  return canonical(semanticNode(parseMarkdown(a))) === canonical(semanticNode(parseMarkdown(b)));
 }
 export function linearIssueUrl(value) {
   let parsed;
@@ -76,4 +74,4 @@ export function sourceIdentifier(record, requireNumber = false) {
     );
 }
 
-export const sourceMarkdownHash = (value) => digest(semanticNode(markdownParser.parse(value)));
+export const sourceMarkdownHash = (value) => digest(semanticNode(parseMarkdown(value)));
