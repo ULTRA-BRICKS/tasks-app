@@ -1,3 +1,5 @@
+import { TeamNavigationRow } from '@/features/team-management';
+import { useMobileChrome } from '@/shared/lib/mobile-chrome';
 import { copyActions } from '@/shared/lib/copy-formats';
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
@@ -29,10 +31,13 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
     views = useViews(moduleEnabled(catalog, 'views')),
     notifications = useNotifications(moduleEnabled(catalog, 'notifications')),
     client = useQueryClient();
+  const chrome = useMobileChrome();
   const prefs = usePreferences(),
     navigate = useNavigate();
   const location = useLocation();
-  const documentRoute = /^\/(issues|projects|cycles)\/[^/]+/.test(location.pathname);
+  const documentRoute = /^\/(issues|projects|cycles|documents|initiatives)\/[^/]+/.test(
+    location.pathname,
+  );
   const unread = notifications.data?.filter((n) => !n.read_at).length ?? 0;
   const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
   useEffect(() => {
@@ -244,36 +249,9 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
           </>
         )}
         <div className="nav-section-label">Your teams</div>
-        {catalog?.teams.map((team) => {
-          const path = '/issues?team_id=' + encodeURIComponent(team.id);
-          const open = () => {
-            close();
-            void navigate(path);
-          };
-          return (
-            <div className="team-context-row nav-action-row" key={team.id}>
-              <button type="button" className="nav-item" onClick={open}>
-                <span className="team-icon">{team.key.slice(0, 1)}</span>
-                <span>{team.name}</span>
-              </button>
-              <ActionMenu
-                label={'Actions for ' + team.name}
-                items={[
-                  { label: 'Open team issues', onSelect: open },
-                  {
-                    label: 'Create issue in team',
-                    disabled: me?.role === 'viewer',
-                    onSelect: () => {
-                      close();
-                      void navigate('/issues/new', { state: { defaults: { team_id: team.id } } });
-                    },
-                  },
-                  ...copyActions({ id: team.id, title: team.name, path, kind: 'team' }),
-                ]}
-              />
-            </div>
-          );
-        })}
+        {catalog?.teams.map((team) => (
+          <TeamNavigationRow key={team.id} team={team} close={close} />
+        ))}
         {moduleEnabled(catalog, 'views') && (
           <>
             <div className="nav-section-label">Saved views</div>
@@ -362,7 +340,12 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
   );
   return mobile ? (
     <>
-      <div className="mobile-navigation-bar">
+      <div
+        className="mobile-navigation-bar"
+        data-collapsed={chrome.collapsed}
+        data-keyboard={chrome.keyboard}
+        inert={chrome.keyboard}
+      >
         <nav className="mobile-dock" aria-label="Mobile navigation">
           <NavLink to="/issues" aria-label="Issues" className={navClass}>
             <Layers size={21} />

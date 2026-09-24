@@ -149,6 +149,9 @@ const operations = [
   ['/v1/teams', 'post', 'Team', 'Create a team and its default workflow', 'admin'],
   ['/v1/statuses', 'post', 'Status', 'Create a team workflow state', 'admin'],
   ['/v1/labels', 'post', 'Label', 'Create a workspace label', 'write'],
+  ['/v1/teams/{id}', 'get', null, 'Inspect team dependencies before removal'],
+  ['/v1/teams/{id}', 'patch', 'TeamRename', 'Rename a team with a concurrent-change check'],
+  ['/v1/teams/{id}', 'delete', 'TeamDelete', 'Remove an explicitly confirmed empty team'],
   ['/v1/invitations', 'post', 'Invite', 'Create a single-use invitation link', 'admin'],
   [
     '/v1/members/{id}',

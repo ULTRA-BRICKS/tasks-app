@@ -1,3 +1,4 @@
+import * as teamManagement from './modules/identity/teams.mjs';
 import { navigationCounts } from './core/navigation-counts.mjs';
 import * as importFiles from './modules/linear-import/files.mjs';
 import * as knowledge from './modules/knowledge/service.mjs';
@@ -420,6 +421,25 @@ export function createApp({
             linearImport.sourceRecord(tx, a, path.split('/')[4], path.split('/')[5]),
           ),
         );
+      } else if (/^\/api\/v1\/teams\/[^/]+$/.test(path)) {
+        const teamId = path.split('/').at(-1);
+        if (method === 'GET')
+          response = json(
+            await run(true, (tx, actor) => teamManagement.inspectTeam(tx, actor, teamId)),
+          );
+        else if (method === 'PATCH') {
+          const input = await body(request, schemas.TeamRename);
+          response = json(
+            await run(false, (tx, actor) => teamManagement.renameTeam(tx, actor, teamId, input)),
+          );
+        } else if (method === 'DELETE') {
+          const input = await body(request, schemas.TeamDelete);
+          response = json(
+            await run(false, (tx, actor) =>
+              teamManagement.removeEmptyTeam(tx, actor, teamId, input),
+            ),
+          );
+        } else throw new AppError(405, 'METHOD_NOT_ALLOWED', 'Unsupported team operation');
       } else if (path === '/api/v1/teams' && method === 'POST') {
         const input = await body(request, schemas.Team);
         response = json(await run(false, (tx, a) => identity.createTeam(tx, a, input)), 201);

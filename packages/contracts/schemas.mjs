@@ -217,6 +217,11 @@ export const schemas = {
     { token: { ...text(43, 43), pattern: '^[A-Za-z0-9_-]{43}$' }, password: text(256, 12) },
     ['token', 'password'],
   ),
+  TeamRename: object({ name: text(120, 1), expected_name: text(120, 1) }, [
+    'name',
+    'expected_name',
+  ]),
+  TeamDelete: object({ confirm_key: text(20, 1) }, ['confirm_key']),
   Invite: object(
     { email: { ...text(254, 3), format: 'email' }, role: enumeration('admin', 'member', 'viewer') },
     ['email', 'role'],
