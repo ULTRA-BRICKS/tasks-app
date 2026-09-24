@@ -14,10 +14,13 @@ test('server Markdown parsing does not load virtual filesystem aliases missing f
       {
         name: 'detect-virtual-file-dependency',
         setup(builder) {
-          builder.onResolve({ filter: /^vfile(?:\/|$)/ }, () => {
-            virtualFileDependency = true;
-            return { path: 'vfile', external: true };
-          });
+          builder.onResolve(
+            { filter: /^(?:vfile|unist-util-visit-parents|mdast-util-from-markdown)(?:\/|$)/ },
+            () => {
+              virtualFileDependency = true;
+              return { path: 'vfile', external: true };
+            },
+          );
         },
       },
     ],
