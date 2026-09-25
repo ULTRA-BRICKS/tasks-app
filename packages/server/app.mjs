@@ -1,3 +1,5 @@
+import { canonicalNumbering } from './modules/linear-numbering/service.mjs';
+import { numberingGraphPage } from './modules/linear-numbering/graph-page.mjs';
 import { listInvitations } from './modules/identity/invitation-list.mjs';
 import * as teamManagement from './modules/identity/teams.mjs';
 import { navigationCounts } from './core/navigation-counts.mjs';
@@ -322,6 +324,23 @@ export function createApp({
             await run(false, (tx, a) => knowledge.updateKnowledge(tx, a, kind, key, input)),
           );
         } else throw missing('Route');
+      } else if (path === '/api/v1/sync/linear/numbering/graph' && method === 'GET') {
+        response = json(
+          await run(true, (tx, a) =>
+            numberingGraphPage(tx, a, {
+              section: url.searchParams.get('section'),
+              cursor: url.searchParams.get('cursor'),
+              limit: url.searchParams.has('limit') ? Number(url.searchParams.get('limit')) : 100,
+            }),
+          ),
+        );
+      } else if (path === '/api/v1/sync/linear/numbering' && method === 'POST') {
+        const input = await body(request, schemas.LinearNumbering);
+        response = json(
+          await run(!input.plan_hash, (tx, a) =>
+            canonicalNumbering(tx, a, input, { appOrigin: env.APP_URL }),
+          ),
+        );
       } else if (path === '/api/v1/imports/linear/bind' && method === 'POST') {
         const input = await body(request, schemas.LinearBind);
         response = json(await run(!input.plan_hash, (tx, a) => bindLinearSources(tx, a, input)));

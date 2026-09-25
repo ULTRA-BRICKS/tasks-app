@@ -225,6 +225,17 @@ export async function createIssue(tx, actor, input, { idempotencyKey } = {}) {
     "SELECT id FROM statuses WHERE workspace_id=? AND team_id=? ORDER BY CASE WHEN category='unstarted' THEN 0 ELSE 1 END,position LIMIT 1",
     [actor.workspace_id, team.id],
   );
+  const numbering = await tx.one(
+    "SELECT config FROM module_settings WHERE workspace_id=? AND module='linear-numbering' AND enabled=1",
+    [actor.workspace_id],
+  );
+  const pending = numbering && JSON.parse(numbering.config).teamIds.includes(team.id);
+  const lowest = pending
+    ? await tx.one('SELECT MIN(number) AS value FROM issues WHERE workspace_id=? AND team_id=?', [
+        actor.workspace_id,
+        team.id,
+      ])
+    : null;
   const created = now();
   const issue = {
     id: id(),
@@ -253,8 +264,12 @@ export async function createIssue(tx, actor, input, { idempotencyKey } = {}) {
     archived_at: null,
     deleted_at: null,
   };
+  if (pending) {
+    issue.number = Math.min(0, Number(lowest?.value ?? 0)) - 1;
+    issue.key = 'PENDING-' + issue.id;
+  }
   await validateReferences(tx, actor, issue, input.label_ids ?? []);
-  await tx.exec('UPDATE teams SET next_number=next_number+1 WHERE id=?', [team.id]);
+  if (!pending) await tx.exec('UPDATE teams SET next_number=next_number+1 WHERE id=?', [team.id]);
   const columns = Object.keys(issue);
   await tx.exec(
     `INSERT INTO issues(${columns.join(',')}) VALUES(${columns.map(() => '?').join(',')})`,

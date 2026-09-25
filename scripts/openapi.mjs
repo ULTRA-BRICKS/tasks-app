@@ -26,6 +26,20 @@ export function toType(schema) {
 }
 const operations = [
   [
+    '/v1/sync/linear/numbering/graph',
+    'get',
+    null,
+    'Read bounded workspace identity and reference graph',
+    'admin',
+  ],
+  [
+    '/v1/sync/linear/numbering',
+    'post',
+    'LinearNumbering',
+    'Preview or apply Linear canonical numbering',
+    'admin',
+  ],
+  [
     '/v1/imports/linear/append',
     'post',
     'LinearAppend',

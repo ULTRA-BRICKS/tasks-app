@@ -1,0 +1,13 @@
+# Canonical Linear numbering — HYP-1482
+
+User decision: retain existing Linear codes and bring Tasks to the same current codes. Tasks remains the operational application and task-cli backend. No arbitrary Linear renumbering, task recreation or merge by number is permitted.
+
+The authenticated administrator graph endpoint exposes bounded pages of current workspace objects, source mappings and references. Preview validates source UUID/team/code uniqueness, all managed native identities and occupied-code groups. Apply requires the same complete plan hash, recomputes against current records and refuses unresolved references. The code swap preserves every native UUID and uses bounded two-phase SQL updates with version checks. No schema change.
+
+A one-off PostgreSQL table-level write lock covers the graph while applying (five-second lock wait limit), including non-REST writers; readers continue seeing the committed state. References use destination UUIDs and verified origin. A colliding bare code in a native-authored document remains ambiguous until explicit evidence identifies the intended task. Rewrites use original offsets once, not cascading search/replace. Concurrent text edits are rejected using versions and original content; non-versioned captions use original-content compare-and-swap. Published history and initial immutable import records are not rewritten.
+
+Covered current reference fields: issue title/description, comment body, project/initiative name/body, document title/body, milestone/cycle names, saved-view name/filter text, and external-link titles/URLs. Repository and communication references need their separate provenance audit; the server graph does not claim access to all external copies.
+
+The completed receipt preserves original codes, source snapshot and per-occurrence before/after evidence. Future creates in managed teams retain a stable native UUID and explicit PENDING key until the Linear allocator assigns a final code, rather than restart an independent counter. This safety guard is not a claim that the broader queue worker is already enabled. That unfinished runtime is excluded from this release; the cutover and runtime activation remain separately verified operations.
+
+Verification: new red/green tests cover protected captions, plain-code ambiguity, overlapping URL decisions and idempotent provisional creation. Existing atomic-cycle tests include 250 rows in bounded batches. Run source gates, real local PostgreSQL tests, browser regressions and focused review before publication. Current-state receipts and deployment status are recorded in the operator checkpoint, not inferred from this design document.
