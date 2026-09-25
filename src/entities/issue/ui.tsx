@@ -1,5 +1,5 @@
 import { RefreshingText } from '@/shared/ui/refreshing-text';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
   Circle,
   CheckCircle2,
@@ -63,6 +63,7 @@ export function IssueRow({
   onSelect,
   canSelect = true,
   updating = false,
+  assigneeControl,
 }: {
   issue: Issue;
   status?: Status;
@@ -71,6 +72,7 @@ export function IssueRow({
   onSelect?: () => void;
   canSelect?: boolean;
   updating?: boolean;
+  assigneeControl?: ReactNode;
 }) {
   return (
     <PressPreview
@@ -141,7 +143,7 @@ export function IssueRow({
         >
           {issue.due_date ? formatDate(issue.due_date) : ''}
         </span>
-        <Avatar name={issue.assignee_name} />
+        {assigneeControl ?? <Avatar name={issue.assignee_name} />}
       </div>
     </PressPreview>
   );
