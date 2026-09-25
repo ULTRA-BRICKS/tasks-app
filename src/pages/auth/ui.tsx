@@ -1,24 +1,29 @@
 import { useEphemeralLinkToken } from './password-reset';
-import { useId, useState } from 'react';
+import { useId, useRef, useState, type MouseEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthShell } from './shell';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
 import { Button, Input, ErrorState } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 export function LoginPage() {
+  const navigate = useNavigate();
   const location = useLocation(),
     passwordId = useId();
+  const submitting = useRef(false);
   const [email, setEmail] = useState(() =>
       typeof location.state?.email === 'string' ? location.state.email.slice(0, 254) : '',
     ),
     [password, setPassword] = useState(''),
     client = useQueryClient();
   const mutation = useMutation({
-    mutationFn: () =>
-      api('/auth/login', { method: 'POST', json: { email: email.trim(), password } }),
+    mutationFn: (input: { email: string; password: string }) =>
+      api('/auth/login', { method: 'POST', json: input }),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['me'] });
+    },
+    onSettled: () => {
+      submitting.current = false;
     },
   });
   return (
@@ -38,9 +43,28 @@ export function LoginPage() {
     >
       <form
         className="stack-form auth-form"
+        onInput={(event) => {
+          // Editing one field must adopt silent autofill in its sibling before React renders.
+          const data = new FormData(event.currentTarget);
+          const address = data.get('email'),
+            secret = data.get('password');
+          if (typeof address === 'string') setEmail(address);
+          if (typeof secret === 'string') setPassword(secret);
+        }}
         onSubmit={(e) => {
           e.preventDefault();
-          if (!mutation.isPending) mutation.mutate();
+          if (submitting.current) return;
+          // Browser autofill can update the fields without a React change event.
+          const data = new FormData(e.currentTarget);
+          const address = data.get('email'),
+            secret = data.get('password');
+          if (typeof address !== 'string' || typeof secret !== 'string') return;
+          const input = { email: address.trim(), password: secret };
+          setEmail(input.email);
+          setPassword(input.password);
+          // Lock synchronously: mutation.isPending changes only on the next render.
+          submitting.current = true;
+          mutation.mutate(input);
         }}
       >
         <label className="auth-field">
@@ -48,6 +72,7 @@ export function LoginPage() {
           <Input
             data-autofocus
             type="email"
+            name="email"
             autoComplete="username"
             maxLength={254}
             value={email}
@@ -62,6 +87,23 @@ export function LoginPage() {
               className="auth-recovery-link"
               to="/forgot-password"
               state={{ email: email.trim() }}
+              onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+                if (
+                  event.defaultPrevented ||
+                  event.button !== 0 ||
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.altKey ||
+                  event.shiftKey
+                )
+                  return;
+                const form = event.currentTarget.closest('form');
+                const address = form ? new FormData(form).get('email') : email;
+                event.preventDefault();
+                void navigate('/forgot-password', {
+                  state: { email: typeof address === 'string' ? address.trim() : email.trim() },
+                });
+              }}
             >
               Forgot password?
             </Link>
@@ -69,6 +111,7 @@ export function LoginPage() {
           <Input
             id={passwordId}
             type="password"
+            name="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
