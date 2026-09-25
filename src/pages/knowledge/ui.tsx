@@ -1,3 +1,4 @@
+import { personOptions, canonicalPersonValue } from '@/shared/lib/people';
 import { copyActions } from '@/shared/lib/copy-formats';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -254,19 +255,9 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
                 />
                 <Picker
                   aria-label="Owner"
-                  value={model.draft.owner_id ?? 'none'}
+                  value={canonicalPersonValue(catalog, model.draft.owner_id)}
                   disabled={disabled}
-                  options={[
-                    { value: 'none', label: 'No owner' },
-                    ...(catalog?.people.map((person) => ({
-                      value: person.id,
-                      label: person.name,
-                    })) ?? []),
-                    ...(catalog?.source_people?.map((person) => ({
-                      value: person.id,
-                      label: person.name + ' · imported',
-                    })) ?? []),
-                  ]}
+                  options={[{ value: 'none', label: 'No owner' }, ...personOptions(catalog)]}
                   onChange={(value) => property({ owner_id: value === 'none' ? null : value })}
                 />
               </>

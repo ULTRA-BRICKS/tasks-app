@@ -1,3 +1,4 @@
+import { selectedPerson, personOptions, canonicalPersonValue } from '@/shared/lib/people';
 import { useState, type ReactNode } from 'react';
 import { Popover } from '@base-ui/react/popover';
 import {
@@ -50,9 +51,7 @@ export function IssueProperties({
     cycles = useCycles(moduleEnabled(c, 'cycles')),
     milestones = useMilestones(moduleEnabled(c, 'planning'));
   const status = c?.statuses.find((s) => s.id === v.status_id),
-    person = [...(c?.people ?? []), ...(c?.source_people ?? [])].find(
-      (p) => p.id === v.assignee_id,
-    );
+    person = selectedPerson(c, v.assignee_id);
   const row = (icon: ReactNode, child: ReactNode) => (
     <div className="compact-property">
       <span className="property-icon" aria-hidden="true">
@@ -100,16 +99,11 @@ export function IssueProperties({
         />,
       )}
       {row(
-        person ? <Avatar name={person.name} /> : <UserRound size={15} />,
+        person ? <Avatar name={person.name} src={person.avatar_url} /> : <UserRound size={15} />,
         <Picker
           aria-label="Assignee"
-          value={v.assignee_id ?? 'none'}
-          options={[
-            { value: 'none', label: 'Unassigned' },
-            ...(c?.people.map((p) => ({ value: p.id, label: p.name })) ?? []),
-            ...(c?.source_people?.map((p) => ({ value: p.id, label: p.name + ' · imported' })) ??
-              []),
-          ]}
+          value={canonicalPersonValue(c, v.assignee_id)}
+          options={[{ value: 'none', label: 'Unassigned' }, ...personOptions(c)]}
           onChange={(id) => onChange({ assignee_id: id === 'none' ? null : id })}
           disabled={disabled}
         />,

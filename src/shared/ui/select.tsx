@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+import { Avatar } from './avatar';
 import { Select } from '@base-ui/react/select';
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/cn';
@@ -5,6 +7,7 @@ export interface Option {
   value: string;
   label: string;
   disabled?: boolean;
+  avatar_url?: string | null;
 }
 export function Picker({
   value,
@@ -13,6 +16,7 @@ export function Picker({
   'aria-label': label,
   disabled,
   className,
+  triggerContent,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -20,6 +24,7 @@ export function Picker({
   'aria-label': string;
   disabled?: boolean;
   className?: string;
+  triggerContent?: ReactNode;
 }) {
   return (
     <Select.Root
@@ -31,8 +36,8 @@ export function Picker({
       disabled={disabled}
     >
       <Select.Trigger aria-label={label} className={cn('picker', className)}>
-        <Select.Value />
-        <Select.Icon>
+        {triggerContent ?? <Select.Value />}
+        <Select.Icon className="picker-chevron">
           <ChevronDown size={12} />
         </Select.Icon>
       </Select.Trigger>
@@ -51,7 +56,12 @@ export function Picker({
                   disabled={o.disabled}
                   className="picker-item"
                 >
-                  <Select.ItemText>{o.label}</Select.ItemText>
+                  {Object.hasOwn(o, 'avatar_url') && (
+                    <span aria-hidden="true">
+                      <Avatar name={o.label} src={o.avatar_url} />
+                    </span>
+                  )}
+                  <Select.ItemText className="picker-item-text">{o.label}</Select.ItemText>
                   <Select.ItemIndicator>
                     <Check size={13} />
                   </Select.ItemIndicator>

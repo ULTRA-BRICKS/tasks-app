@@ -9,6 +9,7 @@ export type StatusCategory =
   | 'completed'
   | 'canceled';
 export interface Person {
+  avatar_url?: string | null;
   id: Id;
   name: string;
   email: string;

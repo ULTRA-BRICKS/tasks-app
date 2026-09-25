@@ -1,3 +1,4 @@
+import { personOptions, canonicalPersonValue } from '@/shared/lib/people';
 import { mergeVersioned } from '@/shared/lib/versioned';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -489,15 +490,8 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
               <div className="compact-property">
                 <Picker
                   aria-label="Project lead"
-                  value={draft.lead ?? 'none'}
-                  options={[
-                    { value: 'none', label: 'No lead' },
-                    ...(catalog?.people.map((p) => ({ value: p.id, label: p.name })) ?? []),
-                    ...(catalog?.source_people?.map((p) => ({
-                      value: p.id,
-                      label: p.name + ' · imported',
-                    })) ?? []),
-                  ]}
+                  value={canonicalPersonValue(catalog, draft.lead)}
+                  options={[{ value: 'none', label: 'No lead' }, ...personOptions(catalog)]}
                   onChange={(lead) => property({ lead: lead === 'none' ? null : lead })}
                   disabled={frozen || busy}
                 />

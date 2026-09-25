@@ -1,3 +1,5 @@
+import { peopleDirectory } from '@/shared/lib/people';
+import { IssueAssignee } from '@/features/issue-edit';
 import { useLiveFeed } from '@/shared/lib/use-live-feed';
 import { useState, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
@@ -93,6 +95,11 @@ export function IssuesPage() {
   }, [params, title]);
   const query = useIssues(filters, { live: !issueId });
   const sourceRows = useMemo(() => query.data?.pages.flatMap((p) => p.data) ?? [], [query.data]);
+  const directory = useMemo(() => peopleDirectory(catalog), [catalog]);
+  const sourceRowsById = useMemo(
+    () => new Map(sourceRows.map((row) => [row.id, row])),
+    [sourceRows],
+  );
   const feed = useLiveFeed(
     sourceRows,
     selectionKey,
@@ -294,10 +301,15 @@ export function IssuesPage() {
               { value: 'all', label: 'All assignees' },
               { value: 'me', label: 'Assigned to me' },
               { value: 'unassigned', label: 'Unassigned' },
-              ...(catalog?.people.map((p) => ({ value: p.id, label: p.name })) ?? []),
+              ...(catalog?.people.map((p) => ({
+                value: p.id,
+                label: p.name,
+                avatar_url: p.avatar_url ?? null,
+              })) ?? []),
               ...(catalog?.source_people?.map((p) => ({
                 value: p.id,
-                label: p.name + ' · imported',
+                label: p.name,
+                avatar_url: p.avatar_url,
               })) ?? []),
             ]}
             onChange={(v) => setFilter('assignee_id', v)}
@@ -466,6 +478,13 @@ export function IssuesPage() {
                           issue={i}
                           status={s}
                           updating={feed.active === i.id}
+                          assigneeControl={
+                            <IssueAssignee
+                              issue={sourceRowsById.get(i.id) ?? i}
+                              people={directory}
+                              disabled={!me || readOnly}
+                            />
+                          }
                           canSelect={!readOnly}
                           selected={selected.has(i.id)}
                           onSelect={() =>
