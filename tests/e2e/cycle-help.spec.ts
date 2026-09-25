@@ -96,3 +96,34 @@ test('cycle guide footer and close button remain usable on a short phone without
     await context.close();
   }
 });
+
+test('the cycle help affordance does not truncate the ordinary empty cycle label on phones', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 393, height: 760 },
+    hasTouch: true,
+  });
+  const page = await context.newPage();
+  try {
+    await login(page);
+    await page.goto('/issues/new');
+    const cycle = page.getByRole('combobox', { name: 'Cycle', exact: true });
+    await expect(cycle).toBeVisible();
+    for (const width of [320, 393, 430]) {
+      await page.setViewportSize({ width, height: 760 });
+      const size = await cycle
+        .locator('span')
+        .first()
+        .evaluate((el) => ({ visible: el.clientWidth, text: el.scrollWidth }));
+      expect(size, `${width}px cycle label`).toEqual({ visible: size.text, text: size.text });
+      const help = await page
+        .getByRole('button', { name: 'About cycles', exact: true })
+        .boundingBox();
+      expect(help!.width).toBeGreaterThanOrEqual(44);
+      expect(help!.x + help!.width).toBeLessThanOrEqual(width);
+    }
+  } finally {
+    await context.close();
+  }
+});
