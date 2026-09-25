@@ -74,6 +74,40 @@ export const schemas = {
   LinearFileUnavailable: object({ source_status: { type: 'integer', enum: [404, 410] } }, [
     'source_status',
   ]),
+  LinearSyncConfig: object(
+    {
+      organizationId: uuid,
+      enabled: { type: 'boolean' },
+      teamIds: { type: 'array', maxItems: 100, items: uuid },
+    },
+    ['organizationId', 'enabled'],
+  ),
+  LinearNumbering: object(
+    {
+      source_workspace_id: uuid,
+      records: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 10000,
+        items: object(
+          { source_id: uuid, code: text(40, 3), team_id: uuid, updated_at: text(64, 1) },
+          ['source_id', 'code', 'team_id', 'updated_at'],
+        ),
+      },
+      reference_decisions: {
+        type: 'object',
+        additionalProperties: {
+          type: 'object',
+          additionalProperties: object({ target_id: nullable(uuid), evidence: text(2000, 8) }, [
+            'target_id',
+            'evidence',
+          ]),
+        },
+      },
+      plan_hash: text(64, 64),
+    },
+    ['source_workspace_id', 'records'],
+  ),
   LinearBind: object(
     {
       source_workspace_id: uuid,

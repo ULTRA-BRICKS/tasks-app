@@ -399,7 +399,7 @@ export async function runWorker(db, env, { limit = 20, fetcher = fetch } = {}) {
       const job = await db.transaction(async (tx) => {
         await tx.lock('tickets-app:worker:' + table);
         const row = await tx.one(
-          `SELECT * FROM ${table} WHERE (status='pending' OR status='processing') AND next_attempt_at<=? AND attempts<5 ORDER BY created_at,id LIMIT 1`,
+          `SELECT * FROM ${table} WHERE provider IN ('github','slack') AND (status='pending' OR status='processing') AND next_attempt_at<=? AND attempts<5 ORDER BY created_at,id LIMIT 1`,
           [now()],
         );
         if (!row) return null;

@@ -102,6 +102,13 @@ export async function updateProject(tx, actor, projectId, input) {
   ]);
   if (!current) throw missing('Project');
   if (input.version !== current.version) conflict(current);
+  let teamIds;
+  if (Object.hasOwn(input, 'team_ids')) {
+    assert(Array.isArray(input.team_ids) && input.team_ids.length>0 && input.team_ids.length<=100,422,'TEAMS_REQUIRED','Choose one to100 teams');
+    teamIds=[...new Set(input.team_ids)];
+    const teams=await tx.all(`SELECT id FROM teams WHERE workspace_id=? AND id IN (${teamIds.map(()=>'?').join(',')})`,[actor.workspace_id,...teamIds]);
+    assert(teams.length===teamIds.length,422,'INVALID_TEAM','Every project team must belong to this workspace');
+  }
   const fields = [
     'name',
     'description',
@@ -117,11 +124,16 @@ export async function updateProject(tx, actor, projectId, input) {
   await checkProject(tx, actor, next);
   fields.push('lead_source_id');
   if (Object.hasOwn(input, 'archived')) next.archived_at = input.archived ? now() : null;
-  await tx.exec(
-    `UPDATE projects SET ${fields.map((f) => f + '=?').join(',')},archived_at=?,version=version+1,updated_at=? WHERE workspace_id=? AND id=?`,
-    [...fields.map((f) => next[f]), next.archived_at, now(), actor.workspace_id, projectId],
+  const changed=await tx.exec(
+    `UPDATE projects SET ${fields.map((f) => f + '=?').join(',')},archived_at=?,version=version+1,updated_at=? WHERE workspace_id=? AND id=? AND version=?`,
+    [...fields.map((f) => next[f]), next.archived_at, now(), actor.workspace_id, projectId,current.version],
   );
-  return { ...next, version: current.version + 1 };
+  if(Number(changed.changes)!==1)conflict(await tx.one('SELECT * FROM projects WHERE workspace_id=? AND id=?',[actor.workspace_id,projectId]));
+  if(teamIds){
+    await tx.exec('DELETE FROM project_teams WHERE workspace_id=? AND project_id=?',[actor.workspace_id,projectId]);
+    for(const team of teamIds)await tx.exec('INSERT INTO project_teams(workspace_id,project_id,team_id) VALUES(?,?,?)',[actor.workspace_id,projectId,team]);
+  }
+  return { ...next, version: current.version + 1,...(teamIds?{team_ids:teamIds}:{}) };
 }
 export async function createMilestone(tx, actor, input) {
   requirePermission(actor, 'write');
