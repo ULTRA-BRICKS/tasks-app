@@ -25,6 +25,29 @@ export function toType(schema) {
   throw new Error('Unrecognized request schema');
 }
 const operations = [
+  ['/v1/sync/linear/status', 'get', null, 'Read bidirectional synchronization status', 'admin'],
+  [
+    '/v1/sync/linear/configure',
+    'post',
+    'LinearSyncConfig',
+    'Configure verified Linear organization and writer',
+    'admin',
+  ],
+  ['/v1/sync/linear/reconcile', 'post', null, 'Schedule bounded durable catch-up', 'admin'],
+  [
+    '/v1/sync/linear/numbering/graph',
+    'get',
+    null,
+    'Inspect source identity and reference graph',
+    'admin',
+  ],
+  [
+    '/v1/sync/linear/numbering',
+    'post',
+    'LinearNumbering',
+    'Preview or apply canonical Linear numbering',
+    'admin',
+  ],
   [
     '/v1/imports/linear/append',
     'post',
