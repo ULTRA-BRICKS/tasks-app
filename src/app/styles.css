@@ -4184,3 +4184,10 @@ button,
     flex-basis: 44px;
   }
 }
+
+/* Keep the cycle value readable beside its independent 44px information control. */
+@media (max-width: 767px) {
+  .detail-properties > .compact-property:has(> .cycle-help-trigger) {
+    grid-column: 1 / -1;
+  }
+}
