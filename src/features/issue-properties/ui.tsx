@@ -1,3 +1,4 @@
+import { CycleHelp } from './cycle-help';
 import { selectedPerson, personOptions, canonicalPersonValue } from '@/shared/lib/people';
 import { useState, type ReactNode } from 'react';
 import { Popover } from '@base-ui/react/popover';
@@ -126,18 +127,21 @@ export function IssueProperties({
       {moduleEnabled(c, 'cycles') &&
         row(
           <CircleDashed size={15} />,
-          <Picker
-            aria-label="Cycle"
-            value={v.cycle_id ?? 'none'}
-            options={[
-              { value: 'none', label: 'No cycle' },
-              ...(cycles.data
-                ?.filter((cycle) => cycle.team_id === v.team_id)
-                .map((cycle) => ({ value: cycle.id, label: cycle.name })) ?? []),
-            ]}
-            onChange={(id) => onChange({ cycle_id: id === 'none' ? null : id })}
-            disabled={disabled}
-          />,
+          <>
+            <Picker
+              aria-label="Cycle"
+              value={v.cycle_id ?? 'none'}
+              options={[
+                { value: 'none', label: 'No cycle' },
+                ...(cycles.data
+                  ?.filter((cycle) => cycle.team_id === v.team_id)
+                  .map((cycle) => ({ value: cycle.id, label: cycle.name })) ?? []),
+              ]}
+              onChange={(id) => onChange({ cycle_id: id === 'none' ? null : id })}
+              disabled={disabled}
+            />
+            <CycleHelp />
+          </>,
         )}
       <div className="property-section-title">Labels</div>
       <LabelPicker
