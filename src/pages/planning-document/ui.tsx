@@ -1,5 +1,6 @@
+import { useLocalState } from '../../shared/lib/state';
 import { mergeVersioned } from '@/shared/lib/versioned';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, Folder, CalendarRange } from 'lucide-react';
@@ -90,7 +91,7 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
     readonly = me?.role === 'viewer';
   const storageKey = `plan-draft:${me?.workspace_id}:${me?.id}:${kind}:${existing?.id ?? 'new'}`;
   const initial = planDraft(existing, catalog?.teams[0]?.id ?? '');
-  const [draft, setDraft] = useState<Draft>(() => {
+  const [draft, setDraft] = useLocalState<Draft>(() => {
     try {
       const saved = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null') as Draft | null;
       if (
@@ -111,10 +112,10 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
     unsaved = useRef(!sameDraft(draft, initial)),
     editing = useRef(false),
     latestServer = useRef(existing);
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState<string | null>(null),
-    [conflict, setConflict] = useState<Plan | null>(null),
-    [storageError, setStorageError] = useState(false);
+  const [busy, setBusy] = useLocalState(false),
+    [error, setError] = useLocalState<string | null>(null),
+    [conflict, setConflict] = useLocalState<Plan | null>(null),
+    [storageError, setStorageError] = useLocalState(false);
   const syncClean = useCallback(() => {
     const server = latestServer.current;
     if (
@@ -130,7 +131,7 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
     version.current = server.version;
     current.current = next;
     setDraft(next);
-  }, []);
+  }, [setDraft]);
   useEffect(() => {
     if (existing && (!latestServer.current || existing.version >= latestServer.current.version))
       latestServer.current = existing;

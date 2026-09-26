@@ -1,0 +1,371 @@
+{
+  "baselineRevision": "a4ae80b1aae42293674f091c14ab9b59b37609e0",
+  "owners": [
+    {
+      "path": "src/app/main.tsx",
+      "line": 63,
+      "binding": "[createOpen, setCreateOpen]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/app/main.tsx",
+      "line": 64,
+      "binding": "[searchOpen, setSearchOpen]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/features/issue-properties/ui.tsx",
+      "line": 218,
+      "binding": "[query, setQuery]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/features/issue-properties/ui.tsx",
+      "line": 289,
+      "binding": "[open, setOpen]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/features/issue-properties/ui.tsx",
+      "line": 290,
+      "binding": "[draft, setDraft]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/features/command-menu/ui.tsx",
+      "line": 16,
+      "binding": "[query, setQuery]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/features/command-menu/ui.tsx",
+      "line": 17,
+      "binding": "[index, setIndex]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/features/command-menu/ui.tsx",
+      "line": 18,
+      "binding": "[debounced, setDebounced]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/features/workspace-policy/ui.tsx",
+      "line": 20,
+      "binding": "[draft, setDraft]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/features/workspace-policy/ui.tsx",
+      "line": 21,
+      "binding": "[version, setVersion]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/shared/ui/press-preview.tsx",
+      "line": 37,
+      "binding": "[position, setPosition]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/shared/ui/press-preview.tsx",
+      "line": 38,
+      "binding": "[highlighted, setHighlighted]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/shared/ui/press-preview.tsx",
+      "line": 39,
+      "binding": "[error, setError]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/shared/ui/press-preview.tsx",
+      "line": 40,
+      "binding": "[pending, setPending]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/settings/ui.tsx",
+      "line": 50,
+      "binding": "[tab, setTab]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/settings/ui.tsx",
+      "line": 51,
+      "binding": "[email, setEmail]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/settings/ui.tsx",
+      "line": 52,
+      "binding": "[inviteRole, setInviteRole]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/settings/ui.tsx",
+      "line": 53,
+      "binding": "[inviteLink, setInviteLink]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/settings/ui.tsx",
+      "line": 54,
+      "binding": "[tokenName, setTokenName]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/settings/ui.tsx",
+      "line": 55,
+      "binding": "[tokenScope, setTokenScope]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/settings/ui.tsx",
+      "line": 56,
+      "binding": "[revealedToken, setRevealedToken]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/settings/ui.tsx",
+      "line": 57,
+      "binding": "[labelName, setLabelName]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/settings/ui.tsx",
+      "line": 58,
+      "binding": "[labelColor, setLabelColor]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/settings/ui.tsx",
+      "line": 521,
+      "binding": "[text, setText]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/auth/password-reset.tsx",
+      "line": 49,
+      "binding": "[email, setEmail]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/auth/password-reset.tsx",
+      "line": 102,
+      "binding": "[password, setPassword]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/auth/password-reset.tsx",
+      "line": 103,
+      "binding": "[confirmation, setConfirmation]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/auth/ui.tsx",
+      "line": 12,
+      "binding": "[email, setEmail]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/auth/ui.tsx",
+      "line": 15,
+      "binding": "[password, setPassword]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/auth/ui.tsx",
+      "line": 100,
+      "binding": "[name, setName]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/auth/ui.tsx",
+      "line": 101,
+      "binding": "[password, setPassword]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/knowledge/model.ts",
+      "line": 67,
+      "binding": "[draft, setDraft]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/knowledge/model.ts",
+      "line": 68,
+      "binding": "[dirty, setDirty]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/knowledge/model.ts",
+      "line": 69,
+      "binding": "[archiving, setArchiving]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/knowledge/model.ts",
+      "line": 70,
+      "binding": "[busy, setBusy]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/knowledge/model.ts",
+      "line": 71,
+      "binding": "[error, setError]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/knowledge/model.ts",
+      "line": 72,
+      "binding": "[storageError, setStorageError]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/knowledge/model.ts",
+      "line": 73,
+      "binding": "[conflict, setConflict]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/planning-document/ui.tsx",
+      "line": 93,
+      "binding": "[draft, setDraft]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/planning-document/ui.tsx",
+      "line": 114,
+      "binding": "[busy, setBusy]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/planning-document/ui.tsx",
+      "line": 115,
+      "binding": "[error, setError]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/planning-document/ui.tsx",
+      "line": 116,
+      "binding": "[conflict, setConflict]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/planning-document/ui.tsx",
+      "line": 117,
+      "binding": "[storageError, setStorageError]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/issues/ui.tsx",
+      "line": 46,
+      "binding": "[selection, setSelection]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/issues/ui.tsx",
+      "line": 56,
+      "binding": "[filterOpen, setFilterOpen]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/issues/ui.tsx",
+      "line": 57,
+      "binding": "[createOpen, setCreateOpen]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/issues/ui.tsx",
+      "line": 58,
+      "binding": "[defaults, setDefaults]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/issues/ui.tsx",
+      "line": 59,
+      "binding": "[collapsed, setCollapsed]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/issues/ui.tsx",
+      "line": 60,
+      "binding": "[saveOpen, setSaveOpen]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/pages/issues/ui.tsx",
+      "line": 61,
+      "binding": "[viewName, setViewName]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/widgets/navigation/ui.tsx",
+      "line": 36,
+      "binding": "[mobile, setMobile]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/widgets/issue-details/ui.tsx",
+      "line": 73,
+      "binding": "[comment, setComment]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/widgets/issue-details/ui.tsx",
+      "line": 74,
+      "binding": "[relationOpen, setRelationOpen]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/widgets/issue-details/ui.tsx",
+      "line": 75,
+      "binding": "[target, setTarget]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/widgets/issue-details/ui.tsx",
+      "line": 76,
+      "binding": "[relationType, setRelationType]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/widgets/issue-details/ui.tsx",
+      "line": 77,
+      "binding": "[subissue, setSubissue]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/widgets/issue-details/ui.tsx",
+      "line": 78,
+      "binding": "[copied, setCopied]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/widgets/issue-details/ui.tsx",
+      "line": 79,
+      "binding": "[localError, setLocalError]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/widgets/issue-details/ui.tsx",
+      "line": 85,
+      "binding": "[propertyPending, setPropertyPending]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/widgets/issue-details/ui.tsx",
+      "line": 174,
+      "binding": "[uploading, setUploading]",
+      "mechanism": "/spec#s4-9"
+    },
+    {
+      "path": "src/widgets/issue-board/ui.tsx",
+      "line": 109,
+      "binding": "[active, setActive]",
+      "mechanism": "/spec#s4-9"
+    }
+  ]
+}

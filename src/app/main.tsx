@@ -1,9 +1,10 @@
+import { UiStateProvider, useLocalState } from '../shared/lib/state';
 import { ImportedFilesProvider } from '@/shared/ui';
 import { KnowledgeListPage, KnowledgePage } from '@/pages/knowledge';
 import { PlanningDocumentPage } from '@/pages/planning-document';
 import { WorkspaceKeyboard } from '@/features/keyboard';
 import { NewIssuePage } from '@/pages/issue-new';
-import React, { useEffect, useState, type ReactNode } from 'react';
+import React, { useEffect, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -60,8 +61,8 @@ function Workspace() {
   const me = useMe(),
     prefs = usePreferences(),
     navigate = useNavigate(),
-    [createOpen, setCreateOpen] = useState(false),
-    [searchOpen, setSearchOpen] = useState(false);
+    [createOpen, setCreateOpen] = useLocalState(false),
+    [searchOpen, setSearchOpen] = useLocalState(false);
   useEffect(() => {
     document.documentElement.dataset.theme = prefs.theme;
     document.documentElement.dataset.density = prefs.density ?? 'auto';
@@ -133,17 +134,19 @@ function Workspace() {
 }
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Boundary>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/invite" element={<InvitePage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="*" element={<Workspace />} />
-          </Routes>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </Boundary>
+    <UiStateProvider>
+      <Boundary>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/invite" element={<InvitePage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="*" element={<Workspace />} />
+            </Routes>
+          </BrowserRouter>
+        </QueryClientProvider>
+      </Boundary>
+    </UiStateProvider>
   </React.StrictMode>,
 );

@@ -1,5 +1,7 @@
+import { useLocalState } from '../../shared/lib/state';
 /* oxlint-disable jsx-a11y/prefer-tag-over-role -- Editable combobox with a virtual-focus ARIA listbox, not a native select. */
-import { useEffect, useRef, useState } from 'react';
+/* oxlint-disable jsx-a11y/prefer-tag-over-role -- Editable combobox with a virtual-focus ARIA listbox, not a native select. */
+import { useEffect, useRef } from 'react';
 import { Search, Plus, Inbox, Layers, Settings, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useIssues } from '@/entities/issue';
@@ -13,15 +15,15 @@ export function CommandMenu({
   onOpenChange: (open: boolean) => void;
   onCreate: () => void;
 }) {
-  const [query, setQuery] = useState(''),
-    [index, setIndex] = useState(0),
-    [debounced, setDebounced] = useState('');
+  const [query, setQuery] = useLocalState(''),
+    [index, setIndex] = useLocalState(0),
+    [debounced, setDebounced] = useLocalState('');
   const navigate = useNavigate(),
     list = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(query), 180);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, setDebounced]);
   const issues = useIssues({ q: debounced });
   const commands = [
     { id: 'create', label: 'Create new issue', icon: Plus, action: onCreate },

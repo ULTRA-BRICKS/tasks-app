@@ -1,5 +1,6 @@
+import { useLocalState } from '../../shared/lib/state';
 import { WorkspacePolicySettings } from '@/features/workspace-policy';
-import { useState } from 'react';
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Settings,
@@ -47,15 +48,15 @@ export function SettingsPage() {
     prefs = usePreferences(),
     persistence = usePreferencePersistence(),
     client = useQueryClient();
-  const [tab, setTab] = useState('appearance'),
-    [email, setEmail] = useState(''),
-    [inviteRole, setInviteRole] = useState('member'),
-    [inviteLink, setInviteLink] = useState(''),
-    [tokenName, setTokenName] = useState(''),
-    [tokenScope, setTokenScope] = useState('read'),
-    [revealedToken, setRevealedToken] = useState(''),
-    [labelName, setLabelName] = useState(''),
-    [labelColor, setLabelColor] = useState('#a694ff');
+  const [tab, setTab] = useLocalState('appearance'),
+    [email, setEmail] = useLocalState(''),
+    [inviteRole, setInviteRole] = useLocalState('member'),
+    [inviteLink, setInviteLink] = useLocalState(''),
+    [tokenName, setTokenName] = useLocalState(''),
+    [tokenScope, setTokenScope] = useLocalState('read'),
+    [revealedToken, setRevealedToken] = useLocalState(''),
+    [labelName, setLabelName] = useLocalState(''),
+    [labelColor, setLabelColor] = useLocalState('#a694ff');
   const admin = ['owner', 'admin'].includes(me?.role ?? '');
   const tokens = useQuery({
     queryKey: ['tokens'],
@@ -518,7 +519,7 @@ function IntegrationCard({
 }) {
   const client = useQueryClient(),
     { data: catalog } = useCatalog();
-  const [text, setText] = useState(
+  const [text, setText] = useLocalState(
     JSON.stringify(
       Object.keys(state.config ?? {}).length
         ? state.config

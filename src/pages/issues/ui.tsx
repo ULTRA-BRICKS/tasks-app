@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useLocalState } from '../../shared/lib/state';
+import { useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -43,7 +44,7 @@ export function IssuesPage() {
     { data: me } = useMe(),
     projects = useProjects(moduleEnabled(catalog, 'planning'));
   const selectionKey = location.pathname + '?' + params.toString();
-  const [selection, setSelection] = useState({ key: selectionKey, ids: new Set<string>() });
+  const [selection, setSelection] = useLocalState({ key: selectionKey, ids: new Set<string>() });
   const selected = selection.key === selectionKey ? selection.ids : new Set<string>();
   const setSelected = (value: Set<string> | ((old: Set<string>) => Set<string>)) =>
     setSelection((previous) => ({
@@ -53,12 +54,12 @@ export function IssuesPage() {
           ? value(previous.key === selectionKey ? previous.ids : new Set())
           : value,
     }));
-  const [filterOpen, setFilterOpen] = useState(false),
-    [createOpen, setCreateOpen] = useState(false),
-    [defaults, setDefaults] = useState<Partial<IssueCreate>>({}),
-    [collapsed, setCollapsed] = useState<Set<string>>(new Set()),
-    [saveOpen, setSaveOpen] = useState(false),
-    [viewName, setViewName] = useState('');
+  const [filterOpen, setFilterOpen] = useLocalState(false),
+    [createOpen, setCreateOpen] = useLocalState(false),
+    [defaults, setDefaults] = useLocalState<Partial<IssueCreate>>({}),
+    [collapsed, setCollapsed] = useLocalState<Set<string>>(new Set()),
+    [saveOpen, setSaveOpen] = useLocalState(false),
+    [viewName, setViewName] = useLocalState('');
   const title = location.pathname.startsWith('/my-issues')
     ? 'My issues'
     : location.pathname.startsWith('/epics')

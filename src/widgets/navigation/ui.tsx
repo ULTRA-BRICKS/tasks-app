@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useLocalState } from '../../shared/lib/state';
+import { useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Inbox,
@@ -33,13 +34,13 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
   const location = useLocation();
   const documentRoute = /^\/(issues|projects|cycles)\/[^/]+/.test(location.pathname);
   const unread = notifications.data?.filter((n) => !n.read_at).length ?? 0;
-  const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  const [mobile, setMobile] = useLocalState(() => window.matchMedia('(max-width: 767px)').matches);
   useEffect(() => {
     const query = window.matchMedia('(max-width: 767px)');
     const changed = () => setMobile(query.matches);
     query.addEventListener('change', changed);
     return () => query.removeEventListener('change', changed);
-  }, []);
+  }, [setMobile]);
   function close() {
     prefs.setSidebarOpen(false);
   }

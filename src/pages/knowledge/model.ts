@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocalState } from '../../shared/lib/state';
+import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError, errorMessage } from '@/shared/api/client';
@@ -64,13 +65,13 @@ function restore(key: string, row?: Knowledge) {
   return fromServer(row);
 }
 export function useKnowledgeDraft(kind: Kind, key: string, row?: Knowledge) {
-  const [draft, setDraft] = useState(() => restore(key, row)),
-    [dirty, setDirty] = useState(() => draftPersistence.getItem(key) !== null);
-  const [archiving, setArchiving] = useState(false);
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState(''),
-    [storageError, setStorageError] = useState(false),
-    [conflict, setConflict] = useState<Knowledge | null>(null);
+  const [draft, setDraft] = useLocalState(() => restore(key, row)),
+    [dirty, setDirty] = useLocalState(() => draftPersistence.getItem(key) !== null);
+  const [archiving, setArchiving] = useLocalState(false);
+  const [busy, setBusy] = useLocalState(false),
+    [error, setError] = useLocalState(''),
+    [storageError, setStorageError] = useLocalState(false),
+    [conflict, setConflict] = useLocalState<Knowledge | null>(null);
   const current = useRef(draft),
     mounted = useRef(true),
     locked = useRef(false),
@@ -98,7 +99,7 @@ export function useKnowledgeDraft(kind: Kind, key: string, row?: Knowledge) {
         setStorageError(true);
       }
     },
-    [key],
+    [key, setDraft, setDirty, setStorageError],
   );
   useEffect(() => {
     if (row && !dirtyRef.current && !locked.current && !editing.current) {
@@ -106,7 +107,7 @@ export function useKnowledgeDraft(kind: Kind, key: string, row?: Knowledge) {
       current.current = next;
       setDraft(next);
     }
-  }, [row]);
+  }, [row, setDraft]);
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
       if (dirtyRef.current) {

@@ -1,3 +1,4 @@
+import { useLocalState } from '../../shared/lib/state';
 import { AuthShell } from './shell';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -46,7 +47,7 @@ function AccountPage({
 }
 export function ForgotPasswordPage() {
   const location = useLocation();
-  const [email, setEmail] = useState(() =>
+  const [email, setEmail] = useLocalState(() =>
     typeof location.state?.email === 'string' ? location.state.email.slice(0, 254) : '',
   );
   const mutation = useMutation({
@@ -99,8 +100,8 @@ export function ForgotPasswordPage() {
 export function ResetPasswordPage() {
   const token = useEphemeralLinkToken(),
     client = useQueryClient();
-  const [password, setPassword] = useState(''),
-    [confirmation, setConfirmation] = useState('');
+  const [password, setPassword] = useLocalState(''),
+    [confirmation, setConfirmation] = useLocalState('');
   const mutation = useMutation({
     mutationFn: () => api('/auth/reset-password', { method: 'POST', json: { token, password } }),
     onSuccess: () => {

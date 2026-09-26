@@ -1,4 +1,5 @@
-import { useState, type CSSProperties } from 'react';
+import { useLocalState } from '../../shared/lib/state';
+import { type CSSProperties } from 'react';
 import {
   DndContext,
   PointerSensor,
@@ -106,7 +107,7 @@ export function IssueBoard({
   onCreate: (status: Status) => void;
   readOnly: boolean;
 }) {
-  const [active, setActive] = useState<Issue | null>(null),
+  const [active, setActive] = useLocalState<Issue | null>(null),
     mutation = useIssueUpdate(),
     busy = useIssueWriteBusy();
   const sensors = useSensors(

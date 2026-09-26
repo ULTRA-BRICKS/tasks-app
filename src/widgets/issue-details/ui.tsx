@@ -1,6 +1,7 @@
+import { useLocalState } from '../../shared/lib/state';
 import { ImportedSourceLink } from '@/shared/ui';
 import { IssueProperties } from '@/features/issue-properties';
-import { useState, useRef } from 'react';
+import { useRef } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -70,19 +71,19 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
   const document = useInlineDocument(issue, draftKey);
   const draft = document.draft,
     dirty = document.dirty;
-  const [comment, setComment] = useState(''),
-    [relationOpen, setRelationOpen] = useState(false),
-    [target, setTarget] = useState(''),
-    [relationType, setRelationType] = useState('blocks'),
-    [subissue, setSubissue] = useState(false),
-    [copied, setCopied] = useState(false),
-    [localError, setLocalError] = useState<string | null>(null);
+  const [comment, setComment] = useLocalState(''),
+    [relationOpen, setRelationOpen] = useLocalState(false),
+    [target, setTarget] = useLocalState(''),
+    [relationType, setRelationType] = useLocalState('blocks'),
+    [subissue, setSubissue] = useLocalState(false),
+    [copied, setCopied] = useLocalState(false),
+    [localError, setLocalError] = useLocalState<string | null>(null);
   const upload = useRef<HTMLInputElement>(null),
     mutation = useIssueUpdate(),
     busy = useIssueWriteBusy(),
     readOnly = me?.role === 'viewer';
   const propertyLock = useRef(false);
-  const [propertyPending, setPropertyPending] = useState(false);
+  const [propertyPending, setPropertyPending] = useLocalState(false);
   const propertiesDisabled = readOnly || busy || propertyPending;
   async function update(patch: Omit<IssuePatch, 'version'>) {
     if (propertiesDisabled || propertyLock.current) return;
@@ -171,7 +172,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
       setLocalError(errorMessage(e));
     }
   }
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useLocalState(false);
   return (
     <>
       <header className="issue-detail-toolbar">

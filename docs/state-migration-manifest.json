@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "baselineRevision": "a4ae80b",
+  "baselineSelector": {
+    "env": "VITE_STATE_BACKEND",
+    "values": ["baseline", "state-lib"],
+    "default": "state-lib",
+    "mechanism": "build-time; each entry point loads exactly one implementation via top-level dynamic import (src/shared/lib/state/backend.ts, src/features/preferences/index.ts)"
+  },
+  "specificationNote": "Anchors are the ones named in the request (/spec#...). The specification is not vendored in this repository, so link targets could NOT be verified here; verify before publication.",
+  "verification": "RUN in this session (2026-09-24) from a clean `bun install --frozen-lockfile`: `bun test tests/unit/state-core.test.ts tests/unit/state-react.test.tsx tests/unit/state-keyboard.test.ts tests/unit/state-issue-draft.test.ts` -> 26 pass / 0 fail (70 expect() calls). `bun test tests/unit/state-lib-document.test.ts tests/unit/state-lib-document-lifecycle.test.ts tests/unit/state-lib-preferences.test.ts tests/unit/state-lib-persistence.test.ts` (pre-existing HYP-1497/1498/1499 work) -> 32 pass / 0 fail (3170 expect() calls), including the disposal-during-notification regression test, unmodified. Full `bun test tests/unit` -> 241 pass / 0 fail across 37 files (4431 expect() calls). `bun run typecheck` (oxlint --type-aware --type-check --deny-warnings) -> clean, zero errors. `bun run lint` (oxlint --deny-warnings + FSD boundary check, 92 source files) -> clean. `VITE_STATE_BACKEND=baseline bun --bun vite build --outDir dist-baseline --emptyOutDir` -> succeeded (2324 modules). `VITE_STATE_BACKEND=state-lib bun --bun vite build --outDir dist-state-lib --emptyOutDir` -> succeeded (2321 modules); both build dirs deleted afterward, not committed. Full `bun run check` (prepare:generated + lint + typecheck + test + build, default state-lib backend) -> green end-to-end. No source or test edits were required; every command passed on the first attempt.",
+  "entries": [
+    {
+      "source": "src/features/preferences/*",
+      "owner": "UI preferences (theme, density, etc.)",
+      "baselineMechanism": "Zustand (baseline.ts / baseline-entry)",
+      "newOwner": "state-lib Runtime (src/features/preferences/state-lib)",
+      "anchors": ["/spec#s4-9", "/spec#s8-5"],
+      "parityTests": [
+        "tests/unit/state-lib-preferences.test.ts",
+        "tests/unit/state-lib-persistence.test.ts"
+      ],
+      "status": "migrated-prior-work (HYP-1497); not re-verified here"
+    },
+    {
+      "source": "src/features/issue-edit/document-*.ts",
+      "owner": "Issue document draft, version conflict, save authority/cancellation",
+      "baselineMechanism": "useState/useRef in document-baseline.ts + TanStack useMutation",
+      "newOwner": "document-controller.ts on state-lib Runtime; Tiptap/DOM handles opaque",
+      "anchors": ["/spec#s4-4", "/spec#s4-10", "/spec#s6-1", "/spec#s8-1"],
+      "parityTests": [
+        "tests/unit/state-lib-document.test.ts",
+        "tests/unit/state-lib-document-lifecycle.test.ts"
+      ],
+      "status": "migrated-prior-work (HYP-1497/1499); not re-verified here"
+    },
+    {
+      "source": "src/features/keyboard",
+      "owner": "Shortcut help visibility, g-chord deadline, row navigation, search/new-issue routing",
+      "baselineMechanism": "useState + refs in baseline.tsx",
+      "newOwner": "controller.ts (createKeyboardController) on a Scope; React binding in state-lib.tsx; DOM rows behind RowsPort",
+      "anchors": ["/spec#s4-9", "/spec#s6-1"],
+      "parityTests": ["tests/unit/state-keyboard.test.ts", "tests/unit/state-react.test.tsx"],
+      "status": "migrated-verified: bun test tests/unit/state-keyboard.test.ts tests/unit/state-react.test.tsx -> pass (included in the 26/26 pass state-lib run and the 241/241 full unit run); typecheck/lint/both-backend builds/bun run check all green; no source or test changes required"
+    },
+    {
+      "source": "src/pages/issue-new",
+      "owner": "New-issue private draft, sessionStorage projection, idempotent create attempt, submit lock",
+      "baselineMechanism": "useState/useRef/useMutation in baseline.tsx",
+      "newOwner": "draft-controller.ts on a Scope; TanStack retained only as invalidation adapter (explicit port onCreated)",
+      "anchors": ["/spec#s4-4", "/spec#s4-9", "/spec#s8-5"],
+      "parityTests": ["tests/unit/state-issue-draft.test.ts"],
+      "status": "migrated-verified: bun test tests/unit/state-issue-draft.test.ts -> pass (included in the 26/26 pass state-lib run and the 241/241 full unit run); typecheck/lint/both-backend builds/bun run check all green; no source or test changes required"
+    },
+    {
+      "source": "src/shared/lib/state/{scope,react,storage,backend}.ts",
+      "owner": "Reusable core (Scope over Runtime) + optional React bindings (useStore/useSelector/useScope/useLatest)",
+      "baselineMechanism": "n/a (new)",
+      "newOwner": "itself",
+      "anchors": ["/spec#s6-1", "/spec#s13"],
+      "parityTests": ["tests/unit/state-core.test.ts", "tests/unit/state-react.test.tsx"],
+      "status": "migrated-verified: bun test tests/unit/state-core.test.ts tests/unit/state-react.test.tsx -> pass (included in the 26/26 pass state-lib run and the 241/241 full unit run); typecheck/lint/both-backend builds/bun run check all green; no source or test changes required"
+    },
+    {
+      "source": "src/pages/planning-document/ui.tsx",
+      "owner": "Planning doc draft/busy/error/conflict/storageError",
+      "baselineMechanism": "useState x5",
+      "newOwner": "none",
+      "anchors": ["/spec#s4-9"],
+      "parityTests": [],
+      "status": "not-migrated"
+    },
+    {
+      "source": "src/pages/knowledge/model.ts",
+      "owner": "Knowledge doc draft/dirty/archiving/busy/error/storageError/conflict",
+      "baselineMechanism": "useState x7",
+      "newOwner": "none",
+      "anchors": ["/spec#s4-9"],
+      "parityTests": [],
+      "status": "not-migrated"
+    },
+    {
+      "source": "src/pages/issues/ui.tsx",
+      "owner": "Selection, filter/create/save-view open flags, defaults, collapsed groups, view name; bulk/save mutations",
+      "baselineMechanism": "useState x7 + useMutation x2",
+      "newOwner": "none",
+      "anchors": ["/spec#s4-9"],
+      "parityTests": [],
+      "status": "not-migrated"
+    },
+    {
+      "source": "src/widgets/issue-details/ui.tsx",
+      "owner": "Comment/relation/subissue forms, copied flag, propertyPending, uploading; action mutation",
+      "baselineMechanism": "useState x9 + useMutation",
+      "newOwner": "none",
+      "anchors": ["/spec#s4-4", "/spec#s4-9"],
+      "parityTests": [],
+      "status": "not-migrated"
+    },
+    {
+      "source": "src/pages/settings/ui.tsx",
+      "owner": "Tab, invite/token/label forms, revealed token; queries and mutations",
+      "baselineMechanism": "useState x10 + useQuery/useMutation",
+      "newOwner": "none",
+      "anchors": ["/spec#s4-9"],
+      "parityTests": [],
+      "status": "not-migrated"
+    },
+    {
+      "source": "src/pages/auth/{ui,password-reset}.tsx",
+      "owner": "Credentials/reset form fields",
+      "baselineMechanism": "useState + useMutation",
+      "newOwner": "none",
+      "anchors": ["/spec#s4-9"],
+      "parityTests": [],
+      "status": "not-migrated (form-local; arguably should stay component-local)"
+    },
+    {
+      "source": "src/features/{command-menu,workspace-policy,issue-properties}/ui.tsx, src/widgets/{issue-board,navigation}/ui.tsx, src/app/main.tsx, src/shared/ui/press-preview.tsx",
+      "owner": "Dialog open flags, query text, highlighted index, drag-active issue, mobile breakpoint, policy draft",
+      "baselineMechanism": "useState",
+      "newOwner": "none",
+      "anchors": ["/spec#s4-9"],
+      "parityTests": [],
+      "status": "not-migrated (transient/local UI state; classification pending)"
+    },
+    {
+      "source": "src/entities/{workspace,issue}, src/pages/{knowledge,inbox,planning}",
+      "owner": "Server cache: me, catalog, projects, cycles, views, issue lists/details, knowledge, inbox, planning",
+      "baselineMechanism": "TanStack Query useQuery/useInfiniteQuery/useMutation",
+      "newOwner": "TanStack Query retained as explicit interchangeable server-cache infrastructure adapter",
+      "anchors": ["/spec#s8-1"],
+      "parityTests": [],
+      "status": "retained-adapter (not a state-lib store; no query transport port implemented for these hooks)"
+    }
+  ]
+}

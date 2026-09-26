@@ -1,5 +1,6 @@
+import { useLocalState } from '../../shared/lib/state';
 import { useEphemeralLinkToken } from './password-reset';
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthShell } from './shell';
@@ -9,10 +10,10 @@ import { api, errorMessage } from '@/shared/api/client';
 export function LoginPage() {
   const location = useLocation(),
     passwordId = useId();
-  const [email, setEmail] = useState(() =>
+  const [email, setEmail] = useLocalState(() =>
       typeof location.state?.email === 'string' ? location.state.email.slice(0, 254) : '',
     ),
-    [password, setPassword] = useState(''),
+    [password, setPassword] = useLocalState(''),
     client = useQueryClient();
   const mutation = useMutation({
     mutationFn: () =>
@@ -97,8 +98,8 @@ export function LoginPage() {
 }
 export function InvitePage() {
   const token = useEphemeralLinkToken(),
-    [name, setName] = useState(''),
-    [password, setPassword] = useState('');
+    [name, setName] = useLocalState(''),
+    [password, setPassword] = useLocalState('');
   const mutation = useMutation({
     mutationFn: () =>
       api<{ email: string }>('/auth/accept-invite', {

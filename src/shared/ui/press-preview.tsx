@@ -1,8 +1,8 @@
+import { useLocalState } from '../lib/state';
 import {
   useEffect,
   useCallback,
   useRef,
-  useState,
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
@@ -34,26 +34,29 @@ export function PressPreview({
     trigger = useRef<HTMLButtonElement>(null),
     popup = useRef<HTMLDialogElement>(null),
     sourcePosition = useRef<{ left: number; top: number } | null>(null);
-  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
-  const [highlighted, setHighlighted] = useState(-1),
-    [error, setError] = useState(''),
-    [pending, setPending] = useState(false);
+  const [position, setPosition] = useLocalState<{ left: number; top: number } | null>(null);
+  const [highlighted, setHighlighted] = useLocalState(-1),
+    [error, setError] = useLocalState(''),
+    [pending, setPending] = useLocalState(false);
   const opened = useRef(false),
     held = useRef(false),
     busy = useRef(false),
     suppressUntil = useRef(0);
   const stopTracking = useRef<() => void>(() => {}),
     hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const close = useCallback((restoreFocus = false) => {
-    opened.current = false;
-    held.current = false;
-    stopTracking.current();
-    clearTimeout(hoverTimer.current);
-    setPosition(null);
-    setHighlighted(-1);
-    setError('');
-    if (restoreFocus) trigger.current?.focus({ preventScroll: true });
-  }, []);
+  const close = useCallback(
+    (restoreFocus = false) => {
+      opened.current = false;
+      held.current = false;
+      stopTracking.current();
+      clearTimeout(hoverTimer.current);
+      setPosition(null);
+      setHighlighted(-1);
+      setError('');
+      if (restoreFocus) trigger.current?.focus({ preventScroll: true });
+    },
+    [setPosition, setHighlighted, setError],
+  );
   const focusAction = () =>
     requestAnimationFrame(() =>
       popup.current

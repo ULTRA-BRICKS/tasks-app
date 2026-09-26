@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react';
+import { useLocalState } from '../../shared/lib/state';
+import { type ReactNode } from 'react';
 import { Popover } from '@base-ui/react/popover';
 import {
   CalendarDays,
@@ -215,7 +216,7 @@ function LabelPicker({
   disabled: boolean;
 }) {
   const { data: c } = useCatalog(),
-    [query, setQuery] = useState('');
+    [query, setQuery] = useLocalState('');
   return (
     <Popover.Root>
       <Popover.Trigger
@@ -286,8 +287,8 @@ export function DateProperty({
   onChange: (value: string | null) => void;
   disabled: boolean;
 }) {
-  const [open, setOpen] = useState(false),
-    [draft, setDraft] = useState(value ?? '');
+  const [open, setOpen] = useLocalState(false),
+    [draft, setDraft] = useLocalState(value ?? '');
   return (
     <Popover.Root
       open={open}

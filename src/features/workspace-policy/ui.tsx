@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useLocalState } from '../../shared/lib/state';
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { WorkspacePolicy } from '@tickets/contracts';
 import { api, errorMessage } from '@/shared/api/client';
@@ -17,8 +18,8 @@ export function WorkspacePolicySettings() {
   ) : null;
 }
 function PolicyEditor({ initial }: { initial: WorkspacePolicy }) {
-  const [draft, setDraft] = useState(initial.allowed_email_domains.join('\n'));
-  const [version, setVersion] = useState(initial.version),
+  const [draft, setDraft] = useLocalState(initial.allowed_email_domains.join('\n'));
+  const [version, setVersion] = useLocalState(initial.version),
     client = useQueryClient();
   const mutation = useMutation({
     mutationFn: () =>
