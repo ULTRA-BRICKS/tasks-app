@@ -89,3 +89,15 @@ The previous rejected correction was freshly approved in normal scope0a5e8956ce8
 Focused tests16/16, full unit215/215, complete bun run check (generation, lint/FSD, type-aware checking, unit, build) passed. On a separate synthetic local HTTP instance, all40state-lib and40baseline editor/preferences/navigation/Markdown/conflict/reload/logout Chromium/WebKit cases passed. These are correctness reruns, not new speed/heap measurements. Eight vendor output hashes still match provenance.
 
 Evidence and active owners: ../state-lifecycle-20260918/run-98379b7d7f/CHECKPOINT.md. Next: review the exact staged correction, normal commit/push to this experiment branch, update PR12 and tracker with confirmed SHA. Do not merge app main or deploy production automatically. The completed website feedback release is independent and must not be repeated. After this bug, HYP-1500/1501/1502 remain the measured next work; no blanket bug-free/production-ready claim.
+
+## 2026-09-26 — published isolated UI-owner migration and draft settlement
+
+Current worktree is `tasks-state-complete-20260923`, branch `feat/state-complete-HYP-1491`; source `9b61328762341927aaf51e4796b4dd2d3c0e25ca` is pushed and the remote SHA matches. PR32 is stacked on `feat/state-lib-HYP-1497`, not main. The original HYP1499 fix remains intact. Do not resume the older dirty pilot or repeat its obsolete red status.
+
+Four persisted-creation lifecycle failures were reproduced and fixed, with two additional same-key/newer-content checks. Current accepted evidence:257 unit tests, strict tsc, complete check, state-lib build, secret scan and Chromium/WebKit registry/selector lifecycle flows pass. Review completed. See `DRAFT-SETTLEMENT-20260926.md` for mechanism links and exact remaining boundaries.
+
+The experimental identity-switch fixture is untracked and unaccepted; its initial network route also intercepted a source import, and the proposed harness correction was denied before execution. Do not treat that as a verified application RED or silently route around the denied operation. Mounted draft-key ownership is still a real source-level concern, along with deeper persistence/lifecycle coverage and the incomplete full query-state migration. No production acceptance is claimed.
+
+Site laboratory deployment and actual browser-to-Neon sharing are independently verified by the coordinator. The four empty comparison databases are not four staged applications. A new service-role provisioning file was denied while being prepared and parked unexecuted as `.pending`; authorization itself works. No production data, permissions or accounts were changed.
+
+No test suite or reviewer is running. The owned Vite fixture on6937 may be stopped after checking its PID; all accepted browser checks finished. Preserve the untracked diagnostic, rig metadata and earlier worktrees. Next work is a targeted identity/lifecycle correction and safe independent staging, not another journal rewrite or historical benchmark rerun.
