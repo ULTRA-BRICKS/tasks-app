@@ -35,7 +35,7 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
   const prefs = usePreferences(),
     navigate = useNavigate();
   const location = useLocation();
-  const documentRoute = /^\/(issues|projects|cycles|documents|initiatives)\/[^/]+/.test(
+  const documentRoute = /^\/(tasks|issues|projects|cycles|documents|initiatives)\/[^/]+/.test(
     location.pathname,
   );
   const unread = notifications.data?.filter((n) => !n.read_at).length ?? 0;
@@ -93,7 +93,7 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
         <Button
           size="icon"
           variant="secondary"
-          aria-label="Create new issue"
+          aria-label="Create new task"
           onClick={() => {
             close();
             onCreate();
@@ -113,15 +113,15 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
         )}
         <NavLink
           onClick={close}
-          to="/my-issues"
-          aria-label="My issues"
+          to="/my-tasks"
+          aria-label="My tasks"
           aria-description={
-            catalog?.counts?.mine === undefined ? undefined : catalog.counts.mine + ' my issues'
+            catalog?.counts?.mine === undefined ? undefined : catalog.counts.mine + ' my tasks'
           }
           className={navClass}
         >
           <UserRound size={16} />
-          <span>My issues</span>
+          <span>My tasks</span>
           {catalog?.counts?.mine !== undefined && (
             <span className="nav-count" aria-hidden="true">
               {catalog.counts.mine}
@@ -131,18 +131,16 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
         <div className="nav-section-label">Workspace</div>
         <NavLink
           onClick={close}
-          to="/issues"
-          aria-label="All issues"
+          to="/tasks"
+          aria-label="All tasks"
           aria-description={
-            catalog?.counts?.issues === undefined
-              ? undefined
-              : catalog.counts.issues + ' all issues'
+            catalog?.counts?.issues === undefined ? undefined : catalog.counts.issues + ' all tasks'
           }
           end
           className={navClass}
         >
           <Layers size={16} />
-          <span>All issues</span>
+          <span>All tasks</span>
           {catalog?.counts?.issues !== undefined && (
             <span className="nav-count" aria-hidden="true">
               {catalog.counts.issues}
@@ -257,7 +255,7 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
             <div className="nav-section-label">Saved views</div>
             {views.data?.map((view) => {
               const path =
-                '/issues?' +
+                '/tasks?' +
                 new URLSearchParams(
                   Object.entries(view.filters).map(([key, value]) => [key, String(value)]),
                 );
@@ -287,7 +285,7 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
                             !window.confirm(
                               'Delete the saved view “' +
                                 view.name +
-                                '”? Its issues will not be deleted.',
+                                '”? Its tasks will not be deleted.',
                             )
                           )
                             return;
@@ -347,13 +345,13 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
         inert={chrome.keyboard}
       >
         <nav className="mobile-dock" aria-label="Mobile navigation">
-          <NavLink to="/issues" aria-label="Issues" className={navClass}>
+          <NavLink to="/tasks" aria-label="Tasks" className={navClass}>
             <Layers size={21} />
-            <span>Issues</span>
+            <span>Tasks</span>
           </NavLink>
-          <NavLink to="/my-issues" className={navClass}>
+          <NavLink to="/my-tasks" className={navClass}>
             <UserRound size={21} />
-            <span>My issues</span>
+            <span>My tasks</span>
           </NavLink>
           {moduleEnabled(catalog, 'planning') && (
             <NavLink to="/projects" className={navClass}>
@@ -381,7 +379,7 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
                 ? 'Create new project'
                 : location.pathname === '/cycles'
                   ? 'Create new cycle'
-                  : 'Create new issue'
+                  : 'Create new task'
             }
             onClick={() =>
               location.pathname === '/projects' || location.pathname === '/cycles'

@@ -71,9 +71,9 @@ function IssueDraftPage() {
       } catch {}
       void client.invalidateQueries({ queryKey: ['issues'] });
       void client.invalidateQueries({ queryKey: ['projects'] });
-      void navigate('/issues/' + issue.id, {
+      void navigate('/tasks/' + issue.id, {
         replace: true,
-        state: { from: location.state?.from ?? '/issues' },
+        state: { from: location.state?.from ?? '/tasks' },
       });
     },
   });
@@ -123,14 +123,14 @@ function IssueDraftPage() {
     return () => window.removeEventListener('keydown', listener);
   });
   return (
-    <section className="issue-detail-panel new-issue-page" aria-label="New issue">
+    <section className="issue-detail-panel new-issue-page" aria-label="New task">
       <header className="issue-detail-toolbar">
         <div className="breadcrumb">
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Back to issues"
-            onClick={() => navigate(location.state?.from ?? '/issues')}
+            aria-label="Back to tasks"
+            onClick={() => navigate(location.state?.from ?? '/tasks')}
           >
             <ChevronLeft size={16} />
           </Button>
@@ -147,7 +147,7 @@ function IssueDraftPage() {
             disabled={readOnly || mutation.isPending || !draft.title.trim() || !team}
             onClick={() => void create()}
           >
-            {mutation.isPending ? 'Creating…' : draft.attempt ? 'Retry creation' : 'Create issue'}
+            {mutation.isPending ? 'Creating…' : draft.attempt ? 'Retry creation' : 'Create task'}
           </Button>
         </div>
       </header>
@@ -166,14 +166,14 @@ function IssueDraftPage() {
           {draft.attempt && !mutation.isPending && (
             <p className="section-hint">
               The request may already have succeeded. Retry sends the same request safely; editing
-              is paused to prevent duplicate issues.
+              is paused to prevent duplicate tasks.
             </p>
           )}
           <p className="document-create-hint">
             ⌘ / Ctrl Enter to create · Your draft stays here until you create it.
           </p>
         </div>
-        <aside className="detail-properties" aria-label="Issue properties">
+        <aside className="detail-properties" aria-label="Task properties">
           <IssueProperties
             value={{ ...draft, team_id: team, status_id: status }}
             disabled={frozen || readOnly}

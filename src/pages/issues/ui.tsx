@@ -35,8 +35,9 @@ import {
   ActionMenu,
 } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
-export function IssuesPage() {
-  const { issueId } = useParams(),
+export function IssuesPage({ reference }: { reference?: string } = {}) {
+  const { issueId: routeIssueId } = useParams(),
+    issueId = reference ?? routeIssueId,
     navigate = useNavigate(),
     location = useLocation(),
     [params, setParams] = useSearchParams(),
@@ -62,13 +63,13 @@ export function IssuesPage() {
     [collapsed, setCollapsed] = useState<Set<string>>(new Set()),
     [saveOpen, setSaveOpen] = useState(false),
     [viewName, setViewName] = useState('');
-  const title = location.pathname.startsWith('/my-issues')
-    ? 'My issues'
+  const title = location.pathname.startsWith('/my-tasks')
+    ? 'My tasks'
     : location.pathname.startsWith('/epics')
       ? 'Epics'
       : location.pathname.startsWith('/archive')
         ? 'Archive'
-        : 'All issues';
+        : 'All tasks';
   const filters = useMemo(() => {
     const f: IssueFilters = {};
     for (const key of [
@@ -88,7 +89,7 @@ export function IssuesPage() {
     if (params.has('priority')) f.priority = Number(params.get('priority'));
     if (params.has('category')) f.category = params.get('category') as StatusCategory;
     if (params.get('kind') === 'epic') f.kind = 'epic';
-    if (title === 'My issues') f.assignee_id = 'me';
+    if (title === 'My tasks') f.assignee_id = 'me';
     if (title === 'Epics') f.kind = 'epic';
     if (title === 'Archive') f.archived = true;
     return f;
@@ -162,7 +163,7 @@ export function IssuesPage() {
     return (
       <IssueDetails
         id={issueId}
-        onClose={() => navigate('/issues' + (params.toString() ? '?' + params : ''))}
+        onClose={() => navigate('/tasks' + (params.toString() ? '?' + params : ''))}
       />
     );
   return (
@@ -190,7 +191,7 @@ export function IssuesPage() {
             variant="ghost"
             size="icon"
             className="desktop-refresh"
-            aria-label="Refresh issues"
+            aria-label="Refresh tasks"
             onClick={() => void query.refetch()}
             disabled={query.isFetching}
           >
@@ -200,18 +201,18 @@ export function IssuesPage() {
             variant="default"
             size="sm"
             className="page-create-action"
-            aria-label="New issue"
+            aria-label="New task"
             onClick={() => create()}
             disabled={readOnly}
           >
             <Plus size={18} />
-            <span className="page-create-label">New issue</span>
+            <span className="page-create-label">New task</span>
           </Button>
           <ActionMenu
-            label="Issue actions"
+            label="Task actions"
             items={[
               {
-                label: 'Refresh issues',
+                label: 'Refresh tasks',
                 onSelect: () => void query.refetch(),
                 disabled: query.isFetching,
               },
@@ -224,7 +225,7 @@ export function IssuesPage() {
                 onSelect: () => prefs.setDensity(value),
               })),
               {
-                label: 'Select loaded issues',
+                label: 'Select loaded tasks',
                 onSelect: () => setSelected(new Set(issues.map((i) => i.id))),
                 disabled: readOnly || !issues.length,
               },
@@ -248,8 +249,8 @@ export function IssuesPage() {
         <div className="inline-search">
           <Search size={13} />
           <Input
-            aria-label="Search issues"
-            placeholder="Search issues…"
+            aria-label="Search tasks"
+            placeholder="Search tasks…"
             value={params.get('q') ?? ''}
             onChange={(e) => setFilter('q', e.target.value)}
           />
@@ -370,7 +371,7 @@ export function IssuesPage() {
               }}
             />
           ) : (
-            <span className="muted">Select issues from one team to change their workflow.</span>
+            <span className="muted">Select tasks from one team to change their workflow.</span>
           )}
         </div>
       )}
@@ -417,19 +418,19 @@ export function IssuesPage() {
           <ErrorState message={errorMessage(query.error)} retry={() => void query.refetch()} />
         ) : !issues.length ? (
           <EmptyState
-            title={Object.keys(filters).length ? 'No matching issues' : 'A clear place to start'}
+            title={Object.keys(filters).length ? 'No matching tasks' : 'A clear place to start'}
             description={
               Object.keys(filters).length
-                ? 'Try adjusting your filters. Your issues have not been deleted.'
+                ? 'Try adjusting your filters. Your tasks have not been deleted.'
                 : 'Give your next piece of work a name. The details can follow.'
             }
-            action={!readOnly ? { label: 'Create issue', onClick: () => create() } : undefined}
+            action={!readOnly ? { label: 'Create task', onClick: () => create() } : undefined}
           />
         ) : prefs.view === 'board' ? (
           <IssueBoard
             issues={issues}
             statuses={statuses}
-            onOpen={(id) => navigate('/issues/' + id)}
+            onOpen={(id) => navigate('/tasks/' + id)}
             onCreate={create}
             readOnly={readOnly}
           />
@@ -462,7 +463,7 @@ export function IssuesPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={`Create ${s.name} issue`}
+                      aria-label={`Create ${s.name} task`}
                       onClick={() => create(s)}
                       disabled={readOnly}
                     >
@@ -496,7 +497,7 @@ export function IssuesPage() {
                             })
                           }
                           onOpen={() =>
-                            navigate('/issues/' + i.id + (params.toString() ? '?' + params : ''))
+                            navigate('/tasks/' + i.id + (params.toString() ? '?' + params : ''))
                           }
                         />
                       ))}
@@ -507,13 +508,13 @@ export function IssuesPage() {
         {query.hasNextPage && (
           <div className="load-more">
             <Button onClick={() => void query.fetchNextPage()} disabled={query.isFetchingNextPage}>
-              {query.isFetchingNextPage ? 'Loading…' : 'Load more issues'}
+              {query.isFetchingNextPage ? 'Loading…' : 'Load more tasks'}
             </Button>
           </div>
         )}
       </div>
       <footer className="page-statusbar">
-        <span>{issues.length} issues loaded</span>
+        <span>{issues.length} tasks loaded</span>
         <span>C to create · ⌘ K to search</span>
       </footer>
       {createOpen && (

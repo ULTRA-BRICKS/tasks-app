@@ -6,7 +6,7 @@ export function InlineTitle({
   onEditStart,
   onEditEnd,
   readOnly = false,
-  placeholder = 'Issue title',
+  placeholder = 'Task title',
   maxLength = 300,
 }: {
   value: string;

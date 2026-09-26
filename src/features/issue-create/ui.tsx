@@ -17,7 +17,7 @@ export function CreateIssue({
   useEffect(() => {
     if (open) {
       onOpenChange(false);
-      void navigate('/issues/new', {
+      void navigate('/tasks/new', {
         state: { defaults, from: location.pathname + location.search },
       });
     }

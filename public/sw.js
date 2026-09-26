@@ -4,7 +4,7 @@ const PRECACHE = ['__TASKS_SHELL_ASSETS__'];
 const CACHE = 'tasks-shell-' + SHELL_VERSION;
 const assets = new Set(PRECACHE);
 const appRoute =
-  /^\/(?:issues|my-issues|epics|archive|projects|cycles|documents|initiatives|inbox|settings|login)(?:\/|$)/;
+  /^\/(?:tasks|my-tasks|issues|my-issues|epics|archive|projects|cycles|documents|initiatives|inbox|settings|login)(?:\/|$)/;
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
 });

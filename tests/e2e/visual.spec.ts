@@ -32,8 +32,8 @@ test('issue list — narrow viewport', async ({ page }) => {
 });
 test('new issue — inline document page', async ({ page }) => {
   await login(page);
-  await page.getByRole('button', { name: 'New issue', exact: true }).click();
-  await expect(page).toHaveURL(/\/issues\/new$/);
+  await page.getByRole('button', { name: 'New task', exact: true }).click();
+  await expect(page).toHaveURL(/\/tasks\/new$/);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('.document-description[contenteditable=true]')).toBeVisible();
   await expect(page).toHaveScreenshot('create-issue.png');

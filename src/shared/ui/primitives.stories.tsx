@@ -105,7 +105,7 @@ function DialogExample() {
   return (
     <>
       <Button onClick={() => setOpen(true)}>Open dialog</Button>
-      <Modal open={open} onOpenChange={setOpen} title="New issue">
+      <Modal open={open} onOpenChange={setOpen} title="New task">
         <Input aria-label="Title" data-autofocus placeholder="A clear outcome" />
         <Button onClick={() => setOpen(false)}>Create issue</Button>
       </Modal>

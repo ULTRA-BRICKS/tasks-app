@@ -45,7 +45,7 @@ export function InboxPage() {
         ) : !query.data?.length ? (
           <EmptyState
             title="You're all caught up"
-            description="Assignments, comments, and updates to subscribed issues will appear here."
+            description="Assignments, comments, and updates to subscribed tasks will appear here."
           />
         ) : (
           query.data.map((n) => (
@@ -53,7 +53,7 @@ export function InboxPage() {
               <span className="notification-dot" />
               <div>
                 <p>{n.body}</p>
-                <Link to={'/issues/' + n.issue_id}>
+                <Link to={'/tasks/' + n.issue_id}>
                   <span className="issue-key">{n.key}</span> {n.title}
                 </Link>
               </div>

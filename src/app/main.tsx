@@ -12,7 +12,7 @@ import { usePreferences } from '@/features/preferences';
 import { CreateIssue } from '@/features/issue-create';
 import { CommandMenu } from '@/features/command-menu';
 import { Navigation } from '@/widgets/navigation';
-import { IssuesPage } from '@/pages/issues';
+import { IssuesPage, TaskDetailRoute, LegacyTaskRoute } from '@/pages/issues';
 import { PlanningPage } from '@/pages/planning';
 import { InboxPage } from '@/pages/inbox';
 import { SettingsPage } from '@/pages/settings';
@@ -88,12 +88,14 @@ function Workspace() {
         <Navigation onCreate={() => setCreateOpen(true)} onSearch={() => setSearchOpen(true)} />
         <main id="main-content" className="workspace-main">
           <Routes>
-            <Route path="/" element={<Navigate to="/issues" replace />} />
-            <Route path="/login" element={<Navigate to="/issues" replace />} />
-            <Route path="/issues" element={<IssuesPage />} />
-            <Route path="/issues/new" element={<NewIssuePage />} />
-            <Route path="/issues/:issueId" element={<IssuesPage />} />
-            <Route path="/my-issues" element={<IssuesPage />} />
+            <Route path="/" element={<Navigate to="/tasks" replace />} />
+            <Route path="/login" element={<Navigate to="/tasks" replace />} />
+            <Route path="/tasks" element={<IssuesPage />} />
+            <Route path="/tasks/new" element={<NewIssuePage />} />
+            <Route path="/tasks/:issueId/:slug?" element={<TaskDetailRoute />} />
+            <Route path="/issues/*" element={<LegacyTaskRoute />} />
+            <Route path="/my-issues" element={<LegacyTaskRoute />} />
+            <Route path="/my-tasks" element={<IssuesPage />} />
             <Route path="/epics" element={<IssuesPage />} />
             <Route path="/archive" element={<IssuesPage />} />
             <Route path="/projects" element={<PlanningPage kind="projects" />} />
@@ -112,8 +114,8 @@ function Workspace() {
               element={
                 <div className="empty-state">
                   <h1>Page not found</h1>
-                  <button className="button button-secondary" onClick={() => navigate('/issues')}>
-                    Back to issues
+                  <button className="button button-secondary" onClick={() => navigate('/tasks')}>
+                    Back to tasks
                   </button>
                 </div>
               }

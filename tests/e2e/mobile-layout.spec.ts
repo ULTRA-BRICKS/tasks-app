@@ -8,7 +8,7 @@ test('phone text fields stay at least 16px without restricting user zoom', async
   const page = await context.newPage();
   try {
     await login(page);
-    const search = page.getByPlaceholder('Search issues…');
+    const search = page.getByPlaceholder('Search tasks…');
     expect(
       await search.evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
     ).toBeGreaterThanOrEqual(16);
@@ -96,8 +96,8 @@ test('background list refresh holds new rows behind a badge and reveals existing
     });
   });
   updated = true;
-  await page.getByRole('button', { name: 'Issue actions', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'Refresh issues', exact: true }).click();
+  await page.getByRole('button', { name: 'Task actions', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Refresh tasks', exact: true }).click();
   await expect(page.getByRole('button', { name: /1 new.*Review updates/ })).toBeVisible();
   expect(await page.locator('.issue-row .issue-key').allTextContents()).toEqual(before);
   expect(Math.abs((await anchor.boundingBox())!.y - y)).toBeLessThanOrEqual(1);
@@ -138,7 +138,7 @@ test('explicit Load more shows the requested page immediately without calling it
   await login(page);
   await expect(page.getByTestId('issue-row')).toHaveCount(2);
   const before = await page.getByTestId('issue-row').first().boundingBox();
-  await page.getByRole('button', { name: 'Load more issues', exact: true }).click();
+  await page.getByRole('button', { name: 'Load more tasks', exact: true }).click();
   await expect(page.getByText('Explicitly requested next page', { exact: true })).toBeVisible();
   await expect(page.getByTestId('issue-row')).toHaveCount(3);
   await expect(page.getByRole('button', { name: /Review updates/ })).toHaveCount(0);

@@ -18,8 +18,8 @@ export function shortcutGuard(event: KeyboardEvent): boolean {
   );
 }
 export const navigationChords: Record<string, string> = {
-  i: '/issues',
-  m: '/my-issues',
+  i: '/tasks',
+  m: '/my-tasks',
   p: '/projects',
   c: '/cycles',
   n: '/inbox',
