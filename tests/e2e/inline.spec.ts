@@ -5,19 +5,19 @@ async function login(page: Page) {
   if (savedCookies) {
     await page.context().addCookies(savedCookies);
     await page.goto('/issues');
-    await expect(page.getByRole('heading', { name: 'All issues', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'All tasks', exact: true })).toBeVisible();
     return;
   }
   await page.goto('/issues');
   await page.getByLabel('Email', { exact: true }).fill('demo@example.test');
   await page.getByLabel('Password', { exact: true }).fill('local-demo-password');
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'All issues', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'All tasks', exact: true })).toBeVisible();
   savedCookies = await page.context().cookies();
 }
 async function newIssue(page: Page, title: string) {
-  await page.getByRole('button', { name: 'New issue', exact: true }).click();
-  await expect(page).toHaveURL(/\/issues\/new$/);
+  await page.getByRole('button', { name: 'New task', exact: true }).click();
+  await expect(page).toHaveURL(/\/tasks\/new$/);
   await expect(page.locator('.document-description[contenteditable=true]')).toBeVisible();
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill(title);
 }
@@ -29,8 +29,8 @@ test('opening a new page creates nothing and a private draft survives navigation
   await newIssue(page, 'Unpublished private draft');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('textbox', { name: 'Description', exact: true }).fill('Keep this text');
-  await page.getByRole('button', { name: 'Back to issues', exact: true }).click();
-  await page.getByRole('button', { name: 'New issue', exact: true }).click();
+  await page.getByRole('button', { name: 'Back to tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'New task', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(
     'Unpublished private draft',
   );
@@ -49,7 +49,7 @@ test('keyboard list navigation, opening and return do not capture editor input',
   await expect(page.locator('.issue-list .issue-open').nth(1)).toBeFocused();
   await page.keyboard.press('k');
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  await expect(page).toHaveURL(/\/tasks\/(?!new)[^/]+$/);
   await page.getByRole('textbox', { name: 'Title', exact: true }).focus();
   const previous = await page.getByRole('textbox', { name: 'Title', exact: true }).inputValue();
   await page.getByRole('textbox', { name: 'Title', exact: true }).fill(previous);
@@ -61,7 +61,7 @@ test('keyboard list navigation, opening and return do not capture editor input',
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(previous);
   await page.locator('.issue-detail-toolbar').click({ position: { x: 190, y: 18 } });
   await page.keyboard.press('Escape');
-  await expect(page).toHaveURL(/\/issues$/);
+  await expect(page).toHaveURL(/\/tasks$/);
   await page.keyboard.press('g');
   await page.keyboard.press('p');
   await expect(page).toHaveURL(/\/projects$/);
@@ -79,8 +79,8 @@ test('estimate and dates chosen during inline creation persist on the server', a
     await page.getByLabel(name + ' value', { exact: true }).fill(value);
     await page.getByRole('button', { name: 'Apply', exact: true }).click();
   }
-  await page.getByRole('button', { name: 'Create issue', exact: true }).click();
-  await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  await page.getByRole('button', { name: 'Create task', exact: true }).click();
+  await expect(page).toHaveURL(/\/tasks\/(?!new)[^/]+$/);
   const id = new URL(page.url()).pathname.split('/').at(-1);
   const issue = await (await page.request.get('/api/v1/issues/' + id)).json();
   expect(issue).toMatchObject({ estimate: 5, start_date: '2026-10-01', due_date: '2026-10-08' });
@@ -101,14 +101,14 @@ test('lost create response retries the identical request instead of duplicating 
       await route.abort('failed');
     } else await route.continue();
   });
-  await page.getByRole('button', { name: 'Create issue', exact: true }).click();
+  await page.getByRole('button', { name: 'Create task', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Retry creation', exact: true })).toBeEnabled();
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveAttribute(
     'readonly',
     '',
   );
   await page.getByRole('button', { name: 'Retry creation', exact: true }).click();
-  await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  await expect(page).toHaveURL(/\/tasks\/(?!new)[^/]+$/);
   expect(keys).toHaveLength(2);
   expect(keys[0]).toBeTruthy();
   expect(keys[0]).toBe(keys[1]);
@@ -120,8 +120,8 @@ test('lost create response retries the identical request instead of duplicating 
 test('newer text survives an earlier save response and a second commit', async ({ page }) => {
   await login(page);
   await newIssue(page, 'Concurrent editor test');
-  await page.getByRole('button', { name: 'Create issue', exact: true }).click();
-  await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  await page.getByRole('button', { name: 'Create task', exact: true }).click();
+  await expect(page).toHaveURL(/\/tasks\/(?!new)[^/]+$/);
   let release: () => void = () => {};
   let patches = 0;
   const waiting = new Promise<void>((resolve) => {
@@ -193,8 +193,8 @@ test('focused clean description keeps its original version through a remote refe
   await login(page);
   await newIssue(page, 'Focused refetch safety');
   await page.getByRole('textbox', { name: 'Description', exact: true }).fill('Original content');
-  await page.getByRole('button', { name: 'Create issue', exact: true }).click();
-  await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  await page.getByRole('button', { name: 'Create task', exact: true }).click();
+  await expect(page).toHaveURL(/\/tasks\/(?!new)[^/]+$/);
   const id = new URL(page.url()).pathname.split('/').at(-1);
   const editor = page.getByRole('textbox', { name: 'Description', exact: true });
   await expect(page.locator('.document-description[contenteditable=true]')).toBeVisible();
@@ -214,9 +214,7 @@ test('focused clean description keeps its original version through a remote refe
   await refresh;
   await editor.fill('My local edit from the previous version');
   await page.getByRole('textbox', { name: 'Title', exact: true }).click();
-  await expect(
-    page.getByRole('button', { name: 'Keep my issue draft', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Keep my task draft', exact: true })).toBeVisible();
   expect((await (await page.request.get('/api/v1/issues/' + id)).json()).description).toBe(
     'New text from another user',
   );
@@ -225,7 +223,7 @@ test('focused clean description keeps its original version through a remote refe
   const resolved = page.waitForResponse(
     (r) => r.request().method() === 'PATCH' && r.url().endsWith('/api/v1/issues/' + id) && r.ok(),
   );
-  await page.getByRole('button', { name: 'Keep my issue draft', exact: true }).click();
+  await page.getByRole('button', { name: 'Keep my task draft', exact: true }).click();
   await resolved;
   expect((await (await page.request.get('/api/v1/issues/' + id)).json()).description).toBe(
     'My local edit from the previous version',
@@ -380,8 +378,8 @@ test('a clean project follows a refetch before the next inline edit', async ({ p
 test('a posted comment response does not erase the next comment being typed', async ({ page }) => {
   await login(page);
   await newIssue(page, 'Concurrent comments');
-  await page.getByRole('button', { name: 'Create issue', exact: true }).click();
-  await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  await page.getByRole('button', { name: 'Create task', exact: true }).click();
+  await expect(page).toHaveURL(/\/tasks\/(?!new)[^/]+$/);
   let release: () => void = () => {},
     reached = false;
   const waiting = new Promise<void>((resolve) => {
@@ -409,8 +407,8 @@ test('issue text conflict can be resolved explicitly without endless stale retri
 }) => {
   await login(page);
   await newIssue(page, 'Conflict fixture');
-  await page.getByRole('button', { name: 'Create issue', exact: true }).click();
-  await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  await page.getByRole('button', { name: 'Create task', exact: true }).click();
+  await expect(page).toHaveURL(/\/tasks\/(?!new)[^/]+$/);
   const title = page.getByRole('textbox', { name: 'Title', exact: true });
   await expect(title).toHaveValue('Conflict fixture');
   // Start the local edit before the remote write, so this deterministically tests a conflict.
@@ -423,7 +421,7 @@ test('issue text conflict can be resolved explicitly without endless stale retri
   });
   expect(remote.ok()).toBeTruthy();
   await page.getByRole('textbox', { name: 'Title', exact: true }).press('Enter');
-  await expect(page.getByRole('region', { name: 'Resolve issue conflict' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Resolve task conflict' })).toBeVisible();
   await expect(page.getByText('Remote writer', { exact: true })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(
     'Local draft retained',
@@ -435,9 +433,9 @@ test('issue text conflict can be resolved explicitly without endless stale retri
       r.url().endsWith('/api/v1/issues/' + id) &&
       r.status() === 200,
   );
-  await page.getByRole('button', { name: 'Keep my issue draft', exact: true }).click();
+  await page.getByRole('button', { name: 'Keep my task draft', exact: true }).click();
   await saved;
-  await expect(page.getByRole('region', { name: 'Resolve issue conflict' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Resolve task conflict' })).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(
     'Local draft retained',
@@ -486,8 +484,8 @@ test('planning acknowledgements adopt normalized titles without reload', async (
 test('a posted response never erases a newly typed identical comment', async ({ page }) => {
   await login(page);
   await newIssue(page, 'Concurrent comments');
-  await page.getByRole('button', { name: 'Create issue', exact: true }).click();
-  await expect(page).toHaveURL(/\/issues\/(?!new)[^/]+$/);
+  await page.getByRole('button', { name: 'Create task', exact: true }).click();
+  await expect(page).toHaveURL(/\/tasks\/(?!new)[^/]+$/);
   let release: () => void = () => {},
     reached = false;
   const waiting = new Promise<void>((resolve) => {

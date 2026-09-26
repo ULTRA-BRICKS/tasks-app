@@ -26,7 +26,7 @@ export function TeamNavigationRow({ team, close }: { team: Team; close: () => vo
     enabled: mode === 'delete',
     staleTime: 0,
   });
-  const path = '/issues?team_id=' + encodeURIComponent(team.id);
+  const path = '/tasks?team_id=' + encodeURIComponent(team.id);
   const open = () => {
     close();
     void navigate(path);
@@ -42,7 +42,7 @@ export function TeamNavigationRow({ team, close }: { team: Team; close: () => vo
       setMode(null);
       void client.invalidateQueries({ queryKey: ['catalog'] });
       if (mode === 'delete' && new URLSearchParams(location.search).get('team_id') === team.id)
-        void navigate('/issues');
+        void navigate('/tasks');
     },
   });
   const show = (next: 'rename' | 'delete') => {
@@ -61,13 +61,13 @@ export function TeamNavigationRow({ team, close }: { team: Team; close: () => vo
         <ActionMenu
           label={'Actions for ' + team.name}
           items={[
-            { label: 'Open team issues', onSelect: open },
+            { label: 'Open team tasks', onSelect: open },
             {
-              label: 'Create issue in team',
+              label: 'Create task in team',
               disabled: me?.role === 'viewer',
               onSelect: () => {
                 close();
-                void navigate('/issues/new', { state: { defaults: { team_id: team.id } } });
+                void navigate('/tasks/new', { state: { defaults: { team_id: team.id } } });
               },
             },
             ...copyActions({ id: team.id, title: team.name, path, kind: 'team' }),
@@ -113,7 +113,7 @@ export function TeamNavigationRow({ team, close }: { team: Team; close: () => vo
             <>
               <p>
                 Delete <strong>{team.name}</strong>? Only an empty team can be removed. Tasks,
-                archived issues, projects and cycles are never deleted with it.
+                archived tasks, projects and cycles are never deleted with it.
               </p>
               {details.isPending && <p>Checking linked work…</p>}
               {details.error && (
@@ -127,7 +127,7 @@ export function TeamNavigationRow({ team, close }: { team: Team; close: () => vo
               )}
               {details.data && !details.data.can_delete && !details.data.last_team && (
                 <p role="alert">
-                  Move the linked work first: {details.data.linked.issues} issues,{' '}
+                  Move the linked work first: {details.data.linked.issues} tasks,{' '}
                   {details.data.linked.projects} projects, {details.data.linked.cycles} cycles.
                 </p>
               )}

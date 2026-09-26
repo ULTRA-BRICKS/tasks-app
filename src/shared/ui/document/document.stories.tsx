@@ -26,7 +26,7 @@ export const EmptyDocument: Story = {
     const c = within(canvasElement);
     await expect(c.getByRole('textbox', { name: 'Title' })).toHaveAttribute(
       'placeholder',
-      'Issue title',
+      'Task title',
     );
     await expect(await c.findByRole('textbox', { name: 'Description' })).toBeVisible();
     await expect(c.queryByRole('dialog')).not.toBeInTheDocument();

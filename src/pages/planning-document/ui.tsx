@@ -440,12 +440,12 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
           )}
           {existing && (
             <section className="detail-section">
-              <h3>Issues</h3>
+              <h3>Tasks</h3>
               <Link
                 className="button button-ghost"
-                to={'/issues?' + (kind === 'projects' ? 'project_id=' : 'cycle_id=') + existing.id}
+                to={'/tasks?' + (kind === 'projects' ? 'project_id=' : 'cycle_id=') + existing.id}
               >
-                View linked issues →
+                View linked tasks →
               </Link>
             </section>
           )}

@@ -24,9 +24,9 @@ test('mobile dock navigates and creates a document without horizontal overflow',
   await expect(dock).toBeVisible();
   await dock.getByRole('link', { name: 'Projects', exact: true }).click();
   await expect(page).toHaveURL(/\/projects$/);
-  await dock.getByRole('link', { name: 'Issues', exact: true }).click();
-  await page.getByRole('button', { name: 'Create new issue', exact: true }).click();
-  await expect(page).toHaveURL(/\/issues\/new/);
+  await dock.getByRole('link', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Create new task', exact: true }).click();
+  await expect(page).toHaveURL(/\/tasks\/new/);
   await expect(page.getByLabel('Title', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
@@ -37,21 +37,21 @@ test('press slide release opens exactly the highlighted issue', async ({ page })
   const box = (await trigger.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
-  const peek = page.getByRole('dialog', { name: 'Issue preview' });
+  const peek = page.getByRole('dialog', { name: 'Task preview' });
   await expect(peek).toBeVisible();
-  const open = await peek.getByRole('button', { name: 'Open issue', exact: true }).boundingBox();
+  const open = await peek.getByRole('button', { name: 'Open task', exact: true }).boundingBox();
   await page.mouse.move(open!.x + 20, open!.y + open!.height / 2);
   await page.mouse.up();
-  await expect(page).toHaveURL(/\/issues\/[^/?]+/);
+  await expect(page).toHaveURL(/\/tasks\/[^/?]+/);
   await expect(peek).toHaveCount(0);
 });
 
 test('preview supports keyboard dismissal and restores focus', async ({ page }) => {
   const trigger = page.getByRole('button', { name: /^Preview / }).first();
   await trigger.click();
-  await expect(page.getByRole('dialog', { name: 'Issue preview' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Task preview' })).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog', { name: 'Issue preview' })).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Task preview' })).toHaveCount(0);
   await expect(trigger).toBeFocused();
 });
 
@@ -63,8 +63,8 @@ test('moving before the hold threshold cancels preview', async ({ page }) => {
   await page.mouse.move(box.x - 80, box.y + 80);
   await page.waitForTimeout(450);
   await page.mouse.up();
-  await expect(page.getByRole('dialog', { name: 'Issue preview' })).toHaveCount(0);
-  await expect(page).toHaveURL(/\/issues$/);
+  await expect(page.getByRole('dialog', { name: 'Task preview' })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/tasks$/);
 });
 
 test('issue text selection is not swallowed by navigation or long press', async ({ page }) => {
@@ -79,7 +79,7 @@ test('issue text selection is not swallowed by navigation or long press', async 
   const selected = await page.evaluate(() => getSelection()?.toString());
   expect(selected?.length).toBeGreaterThan(0);
   await title.dispatchEvent('click');
-  await expect(page).toHaveURL(/\/issues$/);
+  await expect(page).toHaveURL(/\/tasks$/);
   expect(await title.evaluate((node) => getComputedStyle(node).userSelect)).toBe('text');
 });
 
@@ -96,14 +96,14 @@ test('canceling a touch pointer dismisses the peek without navigating', async ({
     clientX: 30,
     clientY: 150,
   });
-  await expect(page.getByRole('dialog', { name: 'Issue preview' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Task preview' })).toBeVisible();
   await trigger.dispatchEvent('pointercancel', {
     pointerId: 71,
     pointerType: 'touch',
     isPrimary: true,
   });
-  await expect(page.getByRole('dialog', { name: 'Issue preview' })).toHaveCount(0);
-  await expect(page).toHaveURL(/\/issues$/);
+  await expect(page.getByRole('dialog', { name: 'Task preview' })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/tasks$/);
 });
 
 test('project peek opens a real project and a grouped mobile list', async ({ page }) => {
@@ -130,11 +130,11 @@ test('holding card whitespace opens a peek rather than navigating', async ({ pag
   const box = (await card.boundingBox())!;
   await page.mouse.move(box.x + box.width - 18, box.y + box.height - 6);
   await page.mouse.down();
-  const peek = page.getByRole('dialog', { name: 'Issue preview' });
+  const peek = page.getByRole('dialog', { name: 'Task preview' });
   await expect(peek).toBeVisible();
   await page.mouse.up();
   await expect(peek).toBeVisible();
-  await expect(page).toHaveURL(/\/issues$/);
+  await expect(page).toHaveURL(/\/tasks$/);
   await page.keyboard.press('Escape');
 });
 
@@ -144,7 +144,7 @@ test('click-open preview closes when its source list scrolls', async ({ page }) 
     .getByRole('button', { name: /^Preview / })
     .first()
     .click();
-  const preview = page.getByRole('dialog', { name: 'Issue preview' });
+  const preview = page.getByRole('dialog', { name: 'Task preview' });
   await expect(preview).toBeVisible();
   await page.locator('.issues-content').evaluate((element) => {
     element.scrollTop += 160;
@@ -165,7 +165,7 @@ test('mobile team navigation closes its sheet instead of covering the destinatio
 });
 
 test('title grows after a viewport resize without requiring another edit', async ({ page }) => {
-  await page.getByRole('button', { name: 'New issue', exact: true }).click();
+  await page.getByRole('button', { name: 'New task', exact: true }).click();
   const title = page.getByRole('textbox', { name: 'Title', exact: true });
   await title.fill(
     'A long title that wraps when the same issue document switches from a wide desktop canvas to a narrow phone viewport and must remain completely visible.',
@@ -180,12 +180,12 @@ test('mobile capsule menu supports filters and keyboard dismissal without firing
   page,
 }) => {
   await page.setViewportSize({ width: 393, height: 852 });
-  const trigger = page.getByRole('button', { name: 'Issue actions', exact: true });
+  const trigger = page.getByRole('button', { name: 'Task actions', exact: true });
   await trigger.click();
-  const menu = page.getByRole('menu', { name: 'Issue actions', exact: true });
+  const menu = page.getByRole('menu', { name: 'Task actions', exact: true });
   await expect(menu).toBeVisible();
   await page.keyboard.press('c');
-  await expect(page).toHaveURL(/\/issues$/);
+  await expect(page).toHaveURL(/\/tasks$/);
   await page.keyboard.press('Escape');
   await expect(menu).toBeHidden();
   await expect(trigger).toBeFocused();
@@ -212,8 +212,8 @@ test('mobile capsule and preview actions have at least 44px hit areas', async ({
     await expect(page.getByTestId('issue-row').first()).toBeVisible();
     expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
     for (const element of [
-      page.getByRole('button', { name: 'New issue', exact: true }),
-      page.getByRole('button', { name: 'Issue actions', exact: true }),
+      page.getByRole('button', { name: 'New task', exact: true }),
+      page.getByRole('button', { name: 'Task actions', exact: true }),
       page.getByRole('button', { name: /^Preview / }).first(),
     ]) {
       const box = (await element.boundingBox())!;
@@ -232,7 +232,7 @@ test('only one issue preview is open and its own content can scroll', async ({ p
   const triggers = page.getByRole('button', { name: /^Preview / });
   await triggers.first().click();
   await triggers.nth(1).click();
-  const dialog = page.getByRole('dialog', { name: 'Issue preview' });
+  const dialog = page.getByRole('dialog', { name: 'Task preview' });
   await expect(dialog).toHaveCount(1);
   await dialog
     .locator('.peek-content')
@@ -245,11 +245,11 @@ test('native preview dialog blocks workspace commands until dismissed', async ({
     .getByRole('button', { name: /^Preview / })
     .first()
     .click();
-  const dialog = page.getByRole('dialog', { name: 'Issue preview' });
+  const dialog = page.getByRole('dialog', { name: 'Task preview' });
   await expect(dialog).toBeVisible();
   await page.keyboard.press('c');
   await page.keyboard.press('Control+k');
-  await expect(page).toHaveURL(/\/issues$/);
+  await expect(page).toHaveURL(/\/tasks$/);
   await expect(dialog).toHaveCount(1);
   await expect(page.getByRole('dialog')).toHaveCount(1);
   await page.keyboard.press('Escape');
@@ -270,7 +270,7 @@ test('typing retains one title resize observation for the mounted editor', async
       }
     };
   });
-  await page.getByRole('button', { name: 'New issue', exact: true }).click();
+  await page.getByRole('button', { name: 'New task', exact: true }).click();
   const title = page.getByRole('textbox', { name: 'Title', exact: true });
   await expect(title).toBeVisible();
   const count = () =>
@@ -290,9 +290,9 @@ test('typing retains one title resize observation for the mounted editor', async
 
 test('mobile document create and property actions remain touch-sized', async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 852 });
-  await page.getByRole('button', { name: 'New issue', exact: true }).click();
+  await page.getByRole('button', { name: 'New task', exact: true }).click();
   for (const action of [
-    page.getByRole('button', { name: 'Create issue', exact: true }),
+    page.getByRole('button', { name: 'Create task', exact: true }),
     page.getByRole('combobox', { name: 'Status', exact: true }),
   ]) {
     const box = (await action.boundingBox())!;

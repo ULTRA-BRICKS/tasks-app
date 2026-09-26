@@ -37,7 +37,7 @@ export function copyActions(record: CopyRecord) {
       label: 'Copy',
       children: [
         { label: 'Copy link', onSelect: copy('link') },
-        { label: record.key ? 'Copy issue ID' : 'Copy ID', onSelect: copy('id') },
+        { label: record.key ? 'Copy task ID' : 'Copy ID', onSelect: copy('id') },
         { label: 'Copy title', onSelect: copy('title') },
         { label: 'Copy Markdown', onSelect: copy('markdown') },
         { label: 'Copy linked title', onSelect: copy('linkedTitle') },

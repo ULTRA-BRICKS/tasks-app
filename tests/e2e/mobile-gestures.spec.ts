@@ -8,7 +8,7 @@ test('touch search remains readable without disabling pinch zoom', async ({ brow
   const page = await context.newPage();
   try {
     await login(page);
-    const search = page.getByPlaceholder('Search issues…');
+    const search = page.getByPlaceholder('Search tasks…');
     expect(
       await search.evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
     ).toBeGreaterThanOrEqual(16);

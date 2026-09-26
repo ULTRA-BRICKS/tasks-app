@@ -1,3 +1,4 @@
+import { invalidateTaskDetails } from '@/shared/lib/task-query-aliases';
 import { copyActions } from '@/shared/lib/copy-formats';
 import { ImportedSourceLink } from '@/shared/ui';
 import { IssueProperties } from '@/features/issue-properties';
@@ -41,14 +42,14 @@ import { formatDate } from '@/shared/lib/date';
 export function IssueDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const query = useIssue(id);
   return (
-    <section className="issue-detail-panel" aria-label="Issue details">
+    <section className="issue-detail-panel" aria-label="Task details">
       {query.isPending ? (
-        <Loading label="Loading issue" />
+        <Loading label="Loading task" />
       ) : query.error ? (
         <>
           <Button variant="ghost" onClick={onClose}>
             <ChevronLeft size={15} />
-            Back to issues
+            Back to tasks
           </Button>
           <ErrorState message={errorMessage(query.error)} retry={() => void query.refetch()} />
         </>
@@ -124,7 +125,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
         return api(`/v1/issues/${issue.id}/export/github`, { method: 'POST' });
     },
     onSuccess: (_result, variables) => {
-      void client.invalidateQueries({ queryKey: ['issue', issue.id] });
+      void invalidateTaskDetails(client, issue.id);
       void client.invalidateQueries({ queryKey: ['notifications'] });
       if (variables.kind === 'comment' && variables.revision === commentRevision.current)
         setComment('');
@@ -161,7 +162,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
         body: file,
         headers: { 'content-type': 'application/octet-stream' },
       });
-      await client.invalidateQueries({ queryKey: ['issue', issue.id] });
+      await invalidateTaskDetails(client, issue.id);
     } catch (e) {
       if (reservation)
         await api(`/v1/attachments/${reservation.id}`, { method: 'DELETE' }).catch(() => {});
@@ -180,22 +181,22 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
         </div>
         <div className="toolbar-actions">
           <ActionMenu
-            label="Issue actions"
+            label="Task actions"
             items={copyActions({
               title: draft.title,
               body: draft.description,
               key: issue.key,
-              path: '/issues/' + issue.id,
+              path: '/tasks/' + issue.id,
               kind: 'issue',
             })}
           />
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Copy issue link"
+            aria-label="Copy task link"
             onClick={() => {
               void navigator.clipboard
-                .writeText(window.location.origin + '/issues/' + issue.id)
+                .writeText(window.location.origin + '/tasks/' + issue.id)
                 .then(() => {
                   setCopied(true);
                   setTimeout(() => setCopied(false), 1500);
@@ -207,7 +208,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
           >
             {copied ? <Check size={15} /> : <Copy size={15} />}
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Close issue" onClick={onClose}>
+          <Button variant="ghost" size="icon" aria-label="Close task" onClick={onClose}>
             <X size={17} />
           </Button>
         </div>
@@ -258,7 +259,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             </div>
           )}
           {document.conflict && (
-            <section className="document-feedback" aria-label="Resolve issue conflict">
+            <section className="document-feedback" aria-label="Resolve task conflict">
               <h3>A newer server version exists</h3>
               <p>
                 Your draft is kept. Server version {document.conflict.version}:{' '}
@@ -280,7 +281,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                     document.resolveConflict();
                 }}
               >
-                Keep my issue draft
+                Keep my task draft
               </Button>
             </section>
           )}
@@ -291,7 +292,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
           >
             <header>
               <h3>
-                Sub-issues <span>{issue.children.length}</span>
+                Sub-tasks <span>{issue.children.length}</span>
               </h3>
               <Button
                 size="sm"
@@ -300,11 +301,11 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                 disabled={readOnly}
               >
                 <Plus size={14} />
-                Add sub-issue
+                Add sub-task
               </Button>
             </header>
             {issue.children.map((child) => (
-              <Link to={'/issues/' + child.id} key={child.id} className="subissue-row">
+              <Link to={'/tasks/' + child.id} key={child.id} className="subissue-row">
                 <StatusIcon
                   category={
                     catalog?.statuses.find((s) => s.id === child.status_id)?.category ?? 'unstarted'
@@ -316,7 +317,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             ))}
             {!issue.children.length && (
               <p className="section-hint">
-                Break this work into smaller, independently trackable issues.
+                Break this work into smaller, independently trackable tasks.
               </p>
             )}
           </section>
@@ -334,7 +335,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                 disabled={readOnly}
               >
                 <Link2 size={14} />
-                Link issue
+                Link task
               </Button>
             </header>
             {issue.relations.map((r) => {
@@ -353,7 +354,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
               return (
                 <div key={r.id} className="relation-row">
                   <span className="muted">{label}</span>
-                  <Link to={'/issues/' + other}>
+                  <Link to={'/tasks/' + other}>
                     {outbound ? r.target_key : r.source_key} ·{' '}
                     {outbound ? r.target_title : r.source_title}
                   </Link>
@@ -454,7 +455,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                   <span className="activity-dot" />
                   <div className="activity-message">
                     <div>
-                      <strong>{a.actor_name}</strong> {a.summary ?? 'updated the issue'}
+                      <strong>{a.actor_name}</strong> {a.summary ?? 'updated the task'}
                     </div>
                     {a.details?.map((detail, index) => (
                       <div className="activity-detail" key={index}>
@@ -509,7 +510,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             {action.error && <ErrorState message={errorMessage(action.error)} />}
           </section>
         </div>
-        <aside className="detail-properties" aria-label="Issue properties">
+        <aside className="detail-properties" aria-label="Task properties">
           <IssueProperties
             value={issue}
             onChange={(patch) => void update(patch)}
@@ -523,16 +524,14 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             onClick={() => {
               if (
                 window.confirm(
-                  issue.archived_at
-                    ? 'Restore this issue from the archive?'
-                    : 'Archive this issue?',
+                  issue.archived_at ? 'Restore this task from the archive?' : 'Archive this task?',
                 )
               )
                 void update({ archived: !issue.archived_at });
             }}
           >
             <Archive size={14} />
-            {issue.archived_at ? 'Unarchive issue' : 'Archive issue'}
+            {issue.archived_at ? 'Unarchive task' : 'Archive task'}
           </Button>
           {moduleEnabled(catalog, 'github') && ['owner', 'admin'].includes(me?.role ?? '') && (
             <Button
@@ -541,7 +540,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
               disabled={action.isPending}
               onClick={() => {
                 if (
-                  window.confirm('Queue export of this issue to the configured GitHub repository?')
+                  window.confirm('Queue export of this task to the configured GitHub repository?')
                 )
                   action.mutate({ kind: 'export' });
               }}
@@ -559,7 +558,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
           </p>
         </aside>
       </div>
-      <Modal open={relationOpen} onOpenChange={setRelationOpen} title="Link an issue">
+      <Modal open={relationOpen} onOpenChange={setRelationOpen} title="Link a task">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -572,14 +571,14 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             value={relationType}
             onChange={setRelationType}
             options={[
-              { value: 'blocks', label: 'This issue blocks' },
+              { value: 'blocks', label: 'This task blocks' },
               { value: 'related', label: 'Related to' },
-              { value: 'duplicates', label: 'This issue duplicates' },
+              { value: 'duplicates', label: 'This task duplicates' },
             ]}
           />
           <Input
             data-autofocus
-            aria-label="Target issue key"
+            aria-label="Target task key"
             placeholder="TKT-42"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
@@ -587,7 +586,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
           />
           {action.error && <ErrorState message={errorMessage(action.error)} />}
           <Button variant="default" type="submit" disabled={!target.trim() || action.isPending}>
-            Link issue
+            Link task
           </Button>
         </form>
       </Modal>

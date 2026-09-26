@@ -23,12 +23,17 @@ export function CommandMenu({
     return () => clearTimeout(timer);
   }, [query]);
   const issues = useIssues({ q: debounced }, { enabled: open && Boolean(debounced.trim()) });
+  // Keep the old issue search terms working after the UI rename.
+  const commandQuery = query
+    .toLowerCase()
+    .replace(/\bissues\b/g, 'tasks')
+    .replace(/\bissue\b/g, 'task');
   const commands = [
-    { id: 'create', label: 'Create new issue', icon: Plus, action: onCreate },
-    { id: 'issues', label: 'Go to all issues', icon: Layers, action: () => navigate('/issues') },
+    { id: 'create', label: 'Create new task', icon: Plus, action: onCreate },
+    { id: 'issues', label: 'Go to all tasks', icon: Layers, action: () => navigate('/tasks') },
     { id: 'inbox', label: 'Go to inbox', icon: Inbox, action: () => navigate('/inbox') },
     { id: 'settings', label: 'Open settings', icon: Settings, action: () => navigate('/settings') },
-  ].filter((c) => c.label.toLowerCase().includes(query.toLowerCase()));
+  ].filter((c) => c.label.toLowerCase().includes(commandQuery));
   const results = [
     ...commands,
     ...(query.trim()
@@ -36,7 +41,7 @@ export function CommandMenu({
           id: i.id,
           label: `${i.key}  ${i.title}`,
           icon: ArrowRight,
-          action: () => navigate('/issues/' + i.id),
+          action: () => navigate('/tasks/' + i.id),
         })) ?? [])
       : []),
   ];
@@ -59,8 +64,8 @@ export function CommandMenu({
         <Search size={18} />
         <Input
           data-autofocus
-          aria-label="Search commands and issues"
-          placeholder="Search issues or type a command…"
+          aria-label="Search commands and tasks"
+          placeholder="Search tasks or type a command…"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -91,7 +96,7 @@ export function CommandMenu({
       <div
         id="command-results"
         role="listbox"
-        aria-label="Commands and issues"
+        aria-label="Commands and tasks"
         className="command-results"
         ref={list}
       >
@@ -118,7 +123,7 @@ export function CommandMenu({
             <span className="muted">↵</span>
           </div>
         ))}
-        {!results.length && <p className="muted">No matching commands or issues.</p>}
+        {!results.length && <p className="muted">No matching commands or tasks.</p>}
       </div>
       <div className="command-footer">
         ↑ ↓ to navigate <span>↵ to select · esc to close</span>

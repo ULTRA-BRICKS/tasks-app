@@ -43,7 +43,7 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
       }
       if ((key === 'c' || key === 'v') && !e.repeat && me?.role !== 'viewer') {
         e.preventDefault();
-        void navigate('/issues/new', { state: { from: location.pathname + location.search } });
+        void navigate('/tasks/new', { state: { from: location.pathname + location.search } });
         return;
       }
       if (e.key === '?') {
@@ -51,9 +51,9 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
         setHelp(true);
         return;
       }
-      if (e.key === 'Escape' && location.pathname.startsWith('/issues/')) {
+      if (e.key === 'Escape' && location.pathname.startsWith('/tasks/')) {
         e.preventDefault();
-        void navigate(location.state?.from ?? '/issues');
+        void navigate(location.state?.from ?? '/tasks');
         return;
       }
       if (!['j', 'k', 'arrowdown', 'arrowup', 'x'].includes(key)) return;
@@ -92,17 +92,17 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
     <Modal open={help} onOpenChange={setHelp} title="Keyboard shortcuts">
       <dl className="shortcut-reference">
         <dt>J / K or ↓ / ↑</dt>
-        <dd>Move through visible issues</dd>
+        <dd>Move through visible tasks</dd>
         <dt>Enter</dt>
-        <dd>Open the focused issue</dd>
+        <dd>Open the focused task</dd>
         <dt>X</dt>
-        <dd>Select the focused issue</dd>
+        <dd>Select the focused task</dd>
         <dt>C / V</dt>
-        <dd>New issue page</dd>
+        <dd>New task page</dd>
         <dt>⌘ / Ctrl K</dt>
         <dd>Command menu</dd>
         <dt>G then I / M / P / C</dt>
-        <dd>Issues / My issues / Projects / Cycles</dd>
+        <dd>Tasks / My tasks / Projects / Cycles</dd>
         <dt>Escape</dt>
         <dd>Cancel the active edit or return to the list</dd>
         <dt>?</dt>

@@ -77,7 +77,7 @@ export function PlanningPage({ kind }: { kind: 'projects' | 'cycles' }) {
                 onSelect: () => void query.refetch(),
                 disabled: !enabled || query.isFetching,
               },
-              { label: 'Open all issues', onSelect: () => navigate('/issues') },
+              { label: 'Open all tasks', onSelect: () => navigate('/tasks') },
             ]}
           />
         </div>
@@ -188,14 +188,14 @@ function ProjectCard({ project }: { project: Project }) {
         <>
           <h2 data-selectable>{project.name}</h2>
           <p className="muted">
-            {project.completed} / {project.total} issues · {project.health.replaceAll('_', ' ')}
+            {project.completed} / {project.total} tasks · {project.health.replaceAll('_', ' ')}
           </p>
           <Markdown>{project.description || 'No description yet.'}</Markdown>
         </>
       }
       actions={[
         { label: 'Open project', run: () => navigate('/projects/' + project.id) },
-        { label: 'View project issues', run: () => navigate('/issues?project_id=' + project.id) },
+        { label: 'View project tasks', run: () => navigate('/tasks?project_id=' + project.id) },
         {
           label: 'Copy link',
           run: () =>
@@ -225,11 +225,11 @@ function ProjectCard({ project }: { project: Project }) {
         </Link>
         <p className="project-description">
           {project.description.replace(/[#*[\]]/g, '').slice(0, 140) ||
-            'Add issues to make the next step clear.'}
+            'Add tasks to make the next step clear.'}
         </p>
         <div className="project-progress-label">
           <span>
-            {project.completed} / {project.total} issues
+            {project.completed} / {project.total} tasks
           </span>
           <strong>{percent}%</strong>
         </div>

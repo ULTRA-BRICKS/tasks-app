@@ -72,7 +72,7 @@ export function useInlineDocument(issue: IssueDetail, storageKey: string) {
         const sent = { ...current.current };
         if (!draftDirty(sent)) continue;
         if (!sent.title.trim()) {
-          setError('An issue needs a title. Your draft is kept.');
+          setError('A task needs a title. Your draft is kept.');
           return null;
         }
         try {

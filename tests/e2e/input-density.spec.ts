@@ -72,7 +72,7 @@ test('a desktop user can choose density and retain it across resize and reload',
   await expect(row).toBeVisible();
   const height = () => row.evaluate((el) => el.getBoundingClientRect().height);
   expect(await height()).toBe(42);
-  await page.getByRole('button', { name: 'Issue actions', exact: true }).click();
+  await page.getByRole('button', { name: 'Task actions', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Density: compact', exact: true }).click();
   await expect.poll(height).toBe(36);
   await page.reload();
@@ -80,10 +80,10 @@ test('a desktop user can choose density and retain it across resize and reload',
   expect(await height()).toBe(36);
   await page.setViewportSize({ width: 1440, height: 900 });
   expect(await height()).toBe(36);
-  await page.getByRole('button', { name: 'Issue actions', exact: true }).click();
+  await page.getByRole('button', { name: 'Task actions', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Density: comfortable', exact: true }).click();
   await expect.poll(height).toBe(56);
-  await page.getByRole('button', { name: 'Issue actions', exact: true }).click();
+  await page.getByRole('button', { name: 'Task actions', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Density: auto', exact: true }).click();
   await expect.poll(height).toBe(42);
 });
@@ -108,9 +108,9 @@ test('touch selection uses the full hit area without opening a preview or issue'
     expect(area.height).toBeGreaterThanOrEqual(44);
     await page.touchscreen.tap(area.x + 3, area.y + 3);
     await expect(row.getByRole('checkbox')).toBeChecked();
-    await expect(page).toHaveURL(/\/issues$/);
-    await expect(page.getByRole('dialog', { name: 'Issue preview', exact: true })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Issue actions', exact: true }).click();
+    await expect(page).toHaveURL(/\/tasks$/);
+    await expect(page.getByRole('dialog', { name: 'Task preview', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Task actions', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Density: compact', exact: true }).click();
     await expect.poll(() => row.evaluate((el) => el.getBoundingClientRect().height)).toBe(48);
     expect((await label.boundingBox())!.height).toBeGreaterThanOrEqual(44);

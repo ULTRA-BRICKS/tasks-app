@@ -77,17 +77,17 @@ export function IssueRow({
   return (
     <PressPreview
       label={`Preview ${issue.key}`}
-      dialogLabel="Issue preview"
+      dialogLabel="Task preview"
       content={<IssuePeek issue={issue} />}
       actions={[
-        { label: 'Open issue', run: onOpen },
+        { label: 'Open task', run: onOpen },
         {
           label: 'Copy link',
           run: () =>
-            navigator.clipboard.writeText(new URL('/issues/' + issue.id, location.origin).href),
+            navigator.clipboard.writeText(new URL('/tasks/' + issue.id, location.origin).href),
         },
         ...(canSelect && onSelect
-          ? [{ label: selected ? 'Deselect issue' : 'Select issue', run: onSelect }]
+          ? [{ label: selected ? 'Deselect task' : 'Select task', run: onSelect }]
           : []),
       ]}
     >
@@ -152,14 +152,14 @@ export function IssueCard({ issue, onOpen }: { issue: Issue; onOpen: () => void 
   return (
     <PressPreview
       label={`Preview ${issue.key}`}
-      dialogLabel="Issue preview"
+      dialogLabel="Task preview"
       content={<IssuePeek issue={issue} />}
       actions={[
-        { label: 'Open issue', run: onOpen },
+        { label: 'Open task', run: onOpen },
         {
           label: 'Copy link',
           run: () =>
-            navigator.clipboard.writeText(new URL('/issues/' + issue.id, location.origin).href),
+            navigator.clipboard.writeText(new URL('/tasks/' + issue.id, location.origin).href),
         },
       ]}
     >
@@ -180,7 +180,7 @@ export function IssueCard({ issue, onOpen }: { issue: Issue; onOpen: () => void 
           {issue.title}
         </span>
         <span className="card-footer">
-          <span>{issue.labels[0]?.name ?? (issue.kind === 'epic' ? 'Epic' : 'Issue')}</span>
+          <span>{issue.labels[0]?.name ?? (issue.kind === 'epic' ? 'Epic' : 'Task')}</span>
           <Avatar name={issue.assignee_name} />
         </span>
       </button>
@@ -202,7 +202,7 @@ function IssuePeek({ issue }: { issue: Issue }) {
       {details.isPending ? (
         <output>Loading preview…</output>
       ) : details.error ? (
-        <output>Details unavailable. You can still open the issue.</output>
+        <output>Details unavailable. You can still open the task.</output>
       ) : (
         <Markdown>{(details.data?.description || 'No description yet.').slice(0, 2000)}</Markdown>
       )}

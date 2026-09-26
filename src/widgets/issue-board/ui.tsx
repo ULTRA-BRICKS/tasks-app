@@ -77,7 +77,7 @@ function Column({
         <Button
           variant="ghost"
           size="icon"
-          aria-label={`Create issue in ${status.name}`}
+          aria-label={`Create task in ${status.name}`}
           onClick={() => onCreate(status)}
           disabled={disabled}
         >
@@ -88,7 +88,7 @@ function Column({
         {issues.map((i) => (
           <Draggable key={i.id} issue={i} onOpen={() => onOpen(i.id)} disabled={disabled} />
         ))}
-        {!issues.length && <div className="board-empty">Drop an issue here</div>}
+        {!issues.length && <div className="board-empty">Drop a task here</div>}
       </div>
     </section>
   );
@@ -124,8 +124,8 @@ export function IssueBoard({
     <>
       {mutation.error && <ErrorState message={errorMessage(mutation.error)} />}
       <p className="sr-only">
-        Drag an issue using its move handle. Keyboard: Space to pick up, arrow keys to move, Space
-        to drop, Escape to cancel. You can also open an issue and choose its status.
+        Drag a task using its move handle. Keyboard: Space to pick up, arrow keys to move, Space to
+        drop, Escape to cancel. You can also open a task and choose its status.
       </p>
       <DndContext
         sensors={sensors}

@@ -29,20 +29,20 @@ test('team actions are visible and copying an identifier retains the page', asyn
   const row = page.locator('.team-context-row').first();
   const trigger = row.getByRole('button', { name: /^Actions for / });
   await trigger.click();
-  await expect(page.getByRole('menuitem', { name: 'Open team issues', exact: true })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Open team tasks', exact: true })).toBeVisible();
   await page.getByRole('menuitem', { name: 'Copy', exact: true }).hover();
   await page.getByRole('menuitem', { name: 'Copy ID', exact: true }).click();
   await expect(page.getByRole('menu')).toHaveCount(0);
   const copied = await page.evaluate(() => document.documentElement.dataset.copied);
   expect(copied).toMatch(/^[a-f0-9-]{36}$/);
-  await expect(page).toHaveURL(/\/issues$/);
+  await expect(page).toHaveURL(/\/tasks$/);
 });
 test('issue copy submenu uses the current text and closes one level at a time with Escape', async ({
   page,
 }) => {
   await login(page);
   await page.locator('.issue-open').first().click();
-  await page.getByRole('button', { name: 'Issue actions', exact: true }).click();
+  await page.getByRole('button', { name: 'Task actions', exact: true }).click();
   const parent = page.getByRole('menu').first();
   await expect(parent).toBeVisible();
   await page.getByRole('menuitem', { name: 'Copy', exact: true }).focus();
@@ -53,7 +53,7 @@ test('issue copy submenu uses the current text and closes one level at a time wi
   await expect(page.getByRole('menu')).toHaveCount(1);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menu')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Issue actions', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Task actions', exact: true })).toBeFocused();
 });
 test('document actions preserve text and expose archive; cancellation writes nothing', async ({
   page,

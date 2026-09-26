@@ -287,7 +287,7 @@ export function SettingsPage() {
               </section>
               <p className="settings-note">
                 Team and status creation are also available through the API. Reordering, merging and
-                deleting workflow states are planned separately to preserve existing issue
+                deleting workflow states are planned separately to preserve existing task
                 references.
               </p>
             </>
@@ -487,8 +487,8 @@ function IntegrationCard({
       </header>
       <p>
         {provider === 'github'
-          ? 'Import issues, export explicitly, and link pull requests. A closed unmerged pull request never marks work done.'
-          : 'Create issues with /tickets or a message shortcut. Map Slack user IDs to workspace member IDs before enabling writes.'}
+          ? 'Import tasks, export explicitly, and link pull requests. A closed unmerged pull request never marks work done.'
+          : 'Create tasks with /tickets or a message shortcut. Map Slack user IDs to workspace member IDs before enabling writes.'}
       </p>
       <div className="integration-endpoint">
         <code>/api/webhooks/{provider}</code>

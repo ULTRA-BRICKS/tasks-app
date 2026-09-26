@@ -18,7 +18,7 @@ export function EmptyState({
         <Inbox size={25} />
       </span>
       <h2>{title}</h2>
-      <p>{description ?? 'Create an issue to start a conversation.'}</p>
+      <p>{description ?? 'Create a task to start a conversation.'}</p>
       {action && <Button onClick={action.onClick}>{action.label}</Button>}
     </div>
   );
@@ -46,7 +46,7 @@ export function Loading({ label = 'Loading' }: { label?: string }) {
 }
 export function SkeletonRows() {
   return (
-    <output aria-label="Loading issues">
+    <output aria-label="Loading tasks">
       {Array.from({ length: 8 }, (_, i) => (
         <div className="skeleton-row" key={i}>
           <span className="skeleton" />
