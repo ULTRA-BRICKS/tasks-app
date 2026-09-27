@@ -15,6 +15,7 @@ import {
 } from './modules/linear-live/webhook.mjs';
 import { verifySourceOrganization } from './modules/linear-live/client.mjs';
 import { startReconciliation } from './modules/linear-live/scans.mjs';
+import { retrySyncJobs } from './modules/linear-live/retry.mjs';
 import { dispatchLinearJobs } from './modules/linear-live/dispatch.mjs';
 import { appendLinearRecords } from './modules/linear-import/append.mjs';
 import { queueNativeLinearChange } from './core/linear-events.mjs';
@@ -360,6 +361,9 @@ export function createApp({
         });
         await verifySourceOrganization(env, input.organizationId, { deadline: Date.now() + 10000 });
         response = json(await run(false, (tx, a) => configureSync(tx, a, input, env)));
+      } else if (path === '/api/v1/sync/linear/retry' && method === 'POST') {
+        const input = await body(request, schemas.LinearSyncRetry);
+        response = json(await run(false, (tx, a) => retrySyncJobs(tx, a, env, input)));
       } else if (path === '/api/v1/sync/linear/reconcile' && method === 'POST') {
         response = json(
           await run(false, async (tx, a) => {

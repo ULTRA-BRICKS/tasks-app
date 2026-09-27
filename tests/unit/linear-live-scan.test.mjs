@@ -16,7 +16,8 @@ test('source scan writes JSON-safe jobs and resumable cursor work without copyin
     const job = await f.db.transaction((tx) =>
       enqueueSyncJob(tx, actor.workspace_id, data, 'scan-json-safety'),
     );
-    const record = source.data.issues[0];
+    // This case deliberately represents changed source metadata and must still enqueue.
+    const record = { ...source.data.issues[0], updatedAt: '2026-09-27T00:00:00.000Z' };
     const result = await reconcileScanJob(f.db, env, job.id, config.generation, {
       fetcher: async (_url, options) => {
         const query = JSON.parse(options.body).query;

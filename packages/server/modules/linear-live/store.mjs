@@ -167,6 +167,24 @@ export async function claimSyncJob(db, env, jobId, generation) {
     const data = JSON.parse(row.payload),
       lease = id(),
       attempts = row.attempts + 1;
+    // Binding can complete while a native event waits in the queue. Resolve it
+    // before the entity lease so source and native jobs lock the same identity.
+    if (data.side === 'native' && data.targetId) {
+      const mappings = await tx.all(
+        'SELECT source_id FROM linear_source_map WHERE workspace_id=? AND source_workspace_id=? AND collection=? AND target_id=?',
+        [config.workspaceId, config.organizationId, data.collection, data.targetId],
+      );
+      if (mappings.length === 1) data.sourceId = mappings[0].source_id;
+      else if (mappings.length > 1) {
+        // Generic native events carry no independent source provenance. Preserve
+        // the job as an inspectable block rather than guessing a source alias.
+        await tx.exec(
+          "UPDATE outbox SET status='blocked',last_error='SYNC_SOURCE_ALIAS_AMBIGUOUS',next_attempt_at=? WHERE id=? AND workspace_id=? AND provider='linear'",
+          [now(), jobId, config.workspaceId],
+        );
+        return null;
+      }
+    }
     const entityKey =
       data.kind === 'entity'
         ? key(config.workspaceId, 'entity-lease', data.collection + ':' + data.sourceId)
@@ -273,6 +291,7 @@ export async function finishSyncJob(tx, job, result) {
   delete payload._lease;
   delete payload._dirty;
   if (dirty) payload._dispatchToken = currentPayload._nextDispatchToken ?? id();
+  if (dirty) delete payload._capacityPauses;
   delete payload._nextDispatchToken;
 
   if (job.data._entityKey)
@@ -330,6 +349,15 @@ export async function failSyncJob(db, job, error) {
       typeof error.code === 'string' && /^[A-Z0-9_]{1,80}$/.test(error.code)
         ? error.code
         : 'SYNC_TRANSIENT_ERROR';
+    // Capacity pauses do not mean an entity is permanently invalid. Preserve its
+    // cursor/job until capacity returns rather than exhausting eight attempts.
+    const capacityPause = ['SYNC_BACKPRESSURE', 'SOURCE_RATE_LIMITED'].includes(code);
+    if (capacityPause && !dirty && livePayload._dispatchToken) nextPayload._dispatchToken = id();
+    const capacityPauses =
+      Math.max(0, Math.min(job.attempts, Number(livePayload._capacityPauses) || 0)) +
+      (capacityPause ? 1 : 0);
+    if (dirty) delete nextPayload._capacityPauses;
+    else nextPayload._capacityPauses = capacityPauses;
     const delay = Math.max(
       15,
       Math.min(3600, Number(error.retryAfterSeconds) || 2 ** Math.min(job.attempts, 8) * 15),
@@ -337,7 +365,13 @@ export async function failSyncJob(db, job, error) {
     await tx.exec(
       "UPDATE outbox SET status=?,last_error=?,next_attempt_at=?,payload=?,attempts=? WHERE id=? AND workspace_id=? AND status='processing' AND attempts=?",
       [
-        dirty ? 'pending' : permanent ? 'blocked' : job.attempts >= 8 ? 'failed' : 'pending',
+        dirty || capacityPause
+          ? 'pending'
+          : permanent
+            ? 'blocked'
+            : job.attempts - capacityPauses >= 8
+              ? 'failed'
+              : 'pending',
         code,
         dirty ? now() : new Date(Date.now() + delay * 1000).toISOString(),
         canonical(nextPayload),

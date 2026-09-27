@@ -1,3 +1,5 @@
+import { NATIVE_EXPORT_COLLECTIONS } from './engine.mjs';
+import { scanRecordIsUnchanged } from './scan-unchanged.mjs';
 import { assert } from '../../core/errors.mjs';
 
 import { readSourcePage, verifySourceOrganization, SOURCE_MODELS } from './client.mjs';
@@ -22,17 +24,7 @@ export async function startReconciliation(tx, config) {
         'scan:' + collection + ':' + pass,
       ),
     );
-  for (const collection of [
-    'issues',
-    'comments',
-    'projects',
-    'documents',
-    'initiatives',
-    'issueLabels',
-    'workflowStates',
-    'cycles',
-    'projectMilestones',
-  ])
+  for (const collection of NATIVE_EXPORT_COLLECTIONS)
     jobs.push(
       await enqueueSyncJob(
         tx,
@@ -83,15 +75,22 @@ export async function reconcileScanJob(db, env, id, generation, options = {}) {
     }
     return db.transaction(async (tx) => {
       await assertJobFence(tx, job);
+      let unchanged = 0,
+        queued = 0;
       for (const record of records) {
         let sourceId = record.id;
         if (side === 'native') {
-          const mapping = await tx.one(
+          const mapping = await tx.all(
             'SELECT source_id FROM linear_source_map WHERE workspace_id=? AND source_workspace_id=? AND collection=? AND target_id=?',
             [job.workspace_id, job.config.organizationId, collection, record.id],
           );
-          sourceId = mapping?.source_id ?? record.id;
+          sourceId = mapping.length === 1 ? mapping[0].source_id : record.id;
         }
+        if (await scanRecordIsUnchanged(tx, job.config, collection, record, sourceId, side)) {
+          unchanged++;
+          continue;
+        }
+        queued++;
         await enqueueSyncJob(
           tx,
           job.workspace_id,
@@ -119,8 +118,13 @@ export async function reconcileScanJob(db, env, id, generation, options = {}) {
           lastCompleteAt: new Date().toISOString(),
           pass,
         });
-      await finishSyncJob(tx, job, { queued: records.length, hasNext: Boolean(next) });
-      return { status: 'scanned', queued: records.length };
+      await finishSyncJob(tx, job, {
+        queued,
+        unchanged,
+        examined: records.length,
+        hasNext: Boolean(next),
+      });
+      return { status: 'scanned', queued, unchanged };
     });
   } catch (error) {
     await failSyncJob(db, job, error);
