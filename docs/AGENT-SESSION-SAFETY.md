@@ -41,3 +41,9 @@ HTTP 429 and Retry-After: https://developer.mozilla.org/en-US/docs/Web/HTTP/Refe
 OpenAI general troubleshooting describes several possible causes, not a diagnosis of this incident: https://help.openai.com/en/articles/7996703-troubleshooting-chatgpt-error-messages
 
 Browser storage limits: https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria . Never clear browser site data as routine troubleshooting while unsent drafts remain only there; export first.
+
+## 26 September: verified handoff regression and correction
+
+`WORK-CHECKPOINT.md` had reverted to a tracked 13 September draft record while live Git was on the 26 September calendar branch. The canonical resumption record now lives outside every Git worktree at `/Users/ultra/xp/.tasks-work-evidence/tasks-app-continuity/CURRENT.json` (human view: `CURRENT.md`). Always read and verify it before trusting this tracked checkpoint; branch/HEAD/hash mismatch invalidates old assumptions. Preserve archived evidence before replacing a checkpoint.
+
+Keep incident diagnosis bounded too: one source/process/log readback, then a durable finding and an explicit user-visible result. Do not turn a complaint about repeated long interruptions into another unbounded cross-feature implementation/review session. Report long conversation size as a risk hypothesis, never as a proven internal ChatGPT failure. Details and original evidence paths: `docs/INTERRUPTION-RECOVERY.md`.
