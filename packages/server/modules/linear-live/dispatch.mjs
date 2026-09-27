@@ -1,6 +1,6 @@
 import { pendingSyncJobs, readSyncConfig } from './store.mjs';
 // Queue messages contain only job UUIDs. Private data and retry state remain in the authorized database.
-export async function dispatchLinearJobs(db, env, { send, limit = 20 } = {}) {
+export async function dispatchLinearJobs(db, env, { send, limit = 20, clock = Date.now } = {}) {
   if (!env.LINEAR_SYNC_WORKSPACE_ID) return { sent: 0 };
   const state = await db.transaction(
     async (tx) => {
@@ -11,6 +11,10 @@ export async function dispatchLinearJobs(db, env, { send, limit = 20 } = {}) {
   );
   if (!state) return { sent: 0 };
   const publish = send ?? (await import('@vercel/queue')).send;
+  // At-least-once outbox repair: a lost/obsolete broker delivery must not pin a
+  // durable unclaimed job to the same deduplication key for an entire day.
+  // Active database leases are still excluded by pendingSyncJobs.
+  const recoveryWindow = Math.floor(clock() / 120000);
   await Promise.all(
     state.jobs.map((job) =>
       publish(
@@ -23,7 +27,9 @@ export async function dispatchLinearJobs(db, env, { send, limit = 20 } = {}) {
             ':' +
             job.id +
             ':' +
-            (JSON.parse(job.payload)._dispatchToken ?? 'source-' + job.attempts),
+            (JSON.parse(job.payload)._dispatchToken ?? 'source-' + job.attempts) +
+            ':window-' +
+            recoveryWindow,
           retentionSeconds: 86400,
         },
       ),
