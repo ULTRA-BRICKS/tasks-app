@@ -75,9 +75,8 @@ test('estimate and dates chosen during inline creation persist on the server', a
     ['Start date', '2026-10-01'],
     ['Due date', '2026-10-08'],
   ]) {
-    await page.getByRole('button', { name, exact: true }).click();
-    await page.getByLabel(name + ' value', { exact: true }).fill(value);
-    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    await page.getByRole('textbox', { name, exact: true }).fill(value);
+    await page.getByRole('textbox', { name, exact: true }).press('Enter');
   }
   await page.getByRole('button', { name: 'Create task', exact: true }).click();
   await expect(page).toHaveURL(/\/tasks\/(?!new)[^/]+$/);
@@ -163,9 +162,8 @@ test('project and cycle creation use document pages and persist inline name edit
         ['Start date', '2026-10-01'],
         ['End date', '2026-10-14'],
       ]) {
-        await page.getByRole('button', { name, exact: true }).click();
-        await page.getByLabel(name + ' value', { exact: true }).fill(value);
-        await page.getByRole('button', { name: 'Apply', exact: true }).click();
+        await page.getByRole('textbox', { name, exact: true }).fill(value);
+        await page.getByRole('textbox', { name, exact: true }).press('Enter');
       }
     }
     await page
