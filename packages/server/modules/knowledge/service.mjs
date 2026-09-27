@@ -1,3 +1,4 @@
+import { queueNativeLinearChange } from '../../core/linear-events.mjs';
 import { id, now } from '../../core/crypto.mjs';
 import { assert, missing, conflict, requirePermission } from '../../core/errors.mjs';
 import { assertModule } from '../../core/modules.mjs';
@@ -103,6 +104,7 @@ export async function createKnowledge(tx, actor, kind, input) {
         'INSERT INTO initiative_projects(workspace_id,initiative_id,project_id) VALUES(?,?,?)',
         [actor.workspace_id, row.id, project],
       );
+  await queueNativeLinearChange(tx, actor, kind, row.id, row.version);
   return getKnowledge(tx, actor, kind, row.id);
 }
 export async function updateKnowledge(tx, actor, kind, key, input) {
@@ -151,5 +153,6 @@ export async function updateKnowledge(tx, actor, kind, key, input) {
         [actor.workspace_id, key, project],
       );
   }
+  await queueNativeLinearChange(tx, actor, kind, key, row.version + 1);
   return getKnowledge(tx, actor, kind, key);
 }

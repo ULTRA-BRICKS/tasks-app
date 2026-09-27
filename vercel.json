@@ -12,6 +12,17 @@
     "api/index.mjs": {
       "maxDuration": 60,
       "includeFiles": "{packages/db/migrations/*.sql,packages/linear/schema.graphql,packages/generated/server-markdown.mjs,docs/openapi.json}"
+    },
+    "api/linear-consumer.mjs": {
+      "maxDuration": 60,
+      "includeFiles": "{packages/db/migrations/*.sql,packages/linear/schema.graphql,packages/generated/server-markdown.mjs,docs/openapi.json}",
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "tasks-linear-sync",
+          "retryAfterSeconds": 30
+        }
+      ]
     }
   },
   "rewrites": [
@@ -40,6 +51,10 @@
     {
       "path": "/api/internal/account-email",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/internal/linear-sync",
+      "schedule": "30 4 * * *"
     }
   ]
 }
