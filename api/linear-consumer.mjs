@@ -12,7 +12,7 @@ export default {
       await processLinearMessage(database, process.env, message, { deadline: Date.now() + 45000 });
     },
     {
-      visibilityTimeout: 90,
+      visibilityTimeoutSeconds: 90,
       retry: (_error, metadata) => ({
         afterSeconds: Math.min(300, Math.max(15, 2 ** Math.min(metadata.deliveryCount, 6) * 5)),
       }),
