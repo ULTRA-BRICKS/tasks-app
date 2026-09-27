@@ -25,6 +25,13 @@ export function toType(schema) {
   throw new Error('Unrecognized request schema');
 }
 const operations = [
+  [
+    '/v1/sync/linear/retry',
+    'post',
+    'LinearSyncRetry',
+    'Retry selected terminal synchronization jobs without dropping proof',
+    'admin',
+  ],
   ['/v1/sync/linear/status', 'get', null, 'Read bidirectional synchronization status', 'admin'],
   [
     '/v1/sync/linear/configure',

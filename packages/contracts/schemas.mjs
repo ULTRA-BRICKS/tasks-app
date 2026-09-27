@@ -100,6 +100,10 @@ export const schemas = {
     },
     ['source_workspace_id', 'records'],
   ),
+  LinearSyncRetry: object(
+    { jobIds: { type: 'array', minItems: 1, maxItems: 100, uniqueItems: true, items: uuid } },
+    ['jobIds'],
+  ),
   LinearSyncConfig: object(
     {
       organizationId: uuid,

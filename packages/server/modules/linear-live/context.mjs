@@ -56,6 +56,10 @@ export async function loadNative(tx, config, collection, targetId) {
   return row;
 }
 export function normalizedNative(collection, row, fields) {
+  // Related is symmetric. Imported rows can preserve the opposite endpoint order;
+  // normalize the view without rewriting identities or directed relationships.
+  if (collection === 'issueRelations' && row.type === 'related' && row.source_id > row.target_id)
+    row = { ...row, source_id: row.target_id, target_id: row.source_id };
   const result = {};
   for (const field of fields) {
     if (field === 'archived') result[field] = Boolean(row.archived_at);

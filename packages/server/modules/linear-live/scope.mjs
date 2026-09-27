@@ -1,3 +1,6 @@
+import { readEntityState } from './store.mjs';
+import { TABLES } from './model.mjs';
+import { uuid } from '../../../imports/linear-source.mjs';
 import { assert } from '../../core/errors.mjs';
 import { readSourceEntity } from './client.mjs';
 export async function sourceInScope(db, env, config, collection, record, options = {}, depth = 0) {
@@ -25,6 +28,26 @@ export async function sourceInScope(db, env, config, collection, record, options
 }
 export async function nativeInScope(tx, config, collection, row) {
   if (!row) return false;
+  const disposition = await readEntityState(tx, config.workspaceId, collection, row.id);
+  if (disposition?.resolution === 'operator-duplicate-resolution' && disposition.supersededBy) {
+    assert(
+      TABLES[collection] && uuid(disposition.supersededBy) && disposition.supersededBy !== row.id,
+      409,
+      'SYNC_ALIAS_INVALID',
+      'Invalid duplicate-resolution identity',
+    );
+    const canonical = await tx.one(
+      'SELECT id FROM ' + TABLES[collection] + ' WHERE workspace_id=? AND id=?',
+      [config.workspaceId, disposition.supersededBy],
+    );
+    assert(
+      canonical,
+      409,
+      'SYNC_ALIAS_INVALID',
+      'Resolved duplicate target is not in this workspace',
+    );
+    return false;
+  }
   const ids = row.team_id ? [row.team_id] : (row.team_ids ?? []);
   if (!ids.length && collection === 'comments') {
     const issue = await tx.one('SELECT team_id FROM issues WHERE workspace_id=? AND id=?', [
