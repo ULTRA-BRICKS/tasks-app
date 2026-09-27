@@ -100,6 +100,14 @@ export const schemas = {
     },
     ['source_workspace_id', 'records'],
   ),
+  LinearSyncConfig: object(
+    {
+      organizationId: uuid,
+      enabled: { type: 'boolean' },
+      teamIds: { type: 'array', maxItems: 100, items: uuid },
+    },
+    ['organizationId', 'enabled'],
+  ),
   LinearBind: object(
     {
       source_workspace_id: uuid,

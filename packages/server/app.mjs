@@ -1,4 +1,3 @@
-import { canonicalNumbering } from './modules/linear-numbering/service.mjs';
 import { numberingGraphPage } from './modules/linear-numbering/graph-page.mjs';
 import { listInvitations } from './modules/identity/invitation-list.mjs';
 import * as teamManagement from './modules/identity/teams.mjs';
@@ -7,7 +6,18 @@ import { navigationCounts } from './core/navigation-counts.mjs';
 import * as importFiles from './modules/linear-import/files.mjs';
 import * as knowledge from './modules/knowledge/service.mjs';
 import * as linearImport from './modules/linear-import/service.mjs';
+import { canonicalNumbering } from './modules/linear-numbering/service.mjs';
+import { configureSync, readSyncConfig, readSyncStatus } from './modules/linear-live/store.mjs';
+import {
+  verifySourceWebhook,
+  receiveSourceWebhook,
+  readWebhookBytes,
+} from './modules/linear-live/webhook.mjs';
+import { verifySourceOrganization } from './modules/linear-live/client.mjs';
+import { startReconciliation } from './modules/linear-live/scans.mjs';
+import { dispatchLinearJobs } from './modules/linear-live/dispatch.mjs';
 import { appendLinearRecords } from './modules/linear-import/append.mjs';
+import { queueNativeLinearChange } from './core/linear-events.mjs';
 import { bindLinearSources } from './modules/linear-import/bind.mjs';
 import { listSourcePeople } from './core/source-people.mjs';
 import { PRODUCT_NAME, PRODUCT_VERSION } from '../config/product.mjs';
@@ -324,6 +334,59 @@ export function createApp({
             await run(false, (tx, a) => knowledge.updateKnowledge(tx, a, kind, key, input)),
           );
         } else throw missing('Route');
+      } else if (path === '/api/webhooks/linear' && method === 'POST') {
+        const raw = await readWebhookBytes(request);
+        const event = verifySourceWebhook(request.headers, raw, env);
+        const received = await db.transaction((tx) => receiveSourceWebhook(tx, event, env));
+        assert(
+          !received.mismatch,
+          409,
+          'WEBHOOK_REPLAY_MISMATCH',
+          'Delivery ID was reused with different contents',
+        );
+        response = json(received);
+      } else if (path === '/api/v1/sync/linear/status' && method === 'GET') {
+        response = json(await run(true, (tx, a) => readSyncStatus(tx, a, env)));
+      } else if (path === '/api/v1/sync/linear/configure' && method === 'POST') {
+        const input = await body(request, schemas.LinearSyncConfig);
+        await run(true, async (tx, a) => {
+          requirePermission(a, 'admin');
+          assert(
+            a.workspace_id === env.LINEAR_SYNC_WORKSPACE_ID,
+            403,
+            'SYNC_WORKSPACE',
+            'Workspace is not configured',
+          );
+        });
+        await verifySourceOrganization(env, input.organizationId, { deadline: Date.now() + 10000 });
+        response = json(await run(false, (tx, a) => configureSync(tx, a, input, env)));
+      } else if (path === '/api/v1/sync/linear/reconcile' && method === 'POST') {
+        response = json(
+          await run(false, async (tx, a) => {
+            requirePermission(a, 'admin');
+            const config = await readSyncConfig(tx, env);
+            assert(
+              config.workspaceId === a.workspace_id,
+              403,
+              'SYNC_WORKSPACE',
+              'Workspace mismatch',
+            );
+            return { jobs: await startReconciliation(tx, config) };
+          }),
+        );
+      } else if (path === '/api/internal/linear-sync' && method === 'GET') {
+        assert(
+          env.CRON_SECRET && constantEqual(bearer ?? '', env.CRON_SECRET),
+          401,
+          'UNAUTHORIZED',
+          'Cron authorization required',
+        );
+        response = json(
+          await db.transaction(async (tx) => {
+            const config = await readSyncConfig(tx, env);
+            return { jobs: await startReconciliation(tx, config) };
+          }),
+        );
       } else if (path === '/api/v1/sync/linear/numbering/graph' && method === 'GET') {
         response = json(
           await run(true, (tx, a) =>
@@ -491,6 +554,7 @@ export function createApp({
               'INSERT INTO statuses(id,workspace_id,team_id,name,category,color,position) VALUES(?,?,?,?,?,?,?)',
               Object.values(row),
             );
+            await queueNativeLinearChange(tx, a, 'workflowStates', row.id, 1);
             return row;
           }),
           201,
@@ -510,6 +574,7 @@ export function createApp({
               'INSERT INTO labels(id,workspace_id,name,color) VALUES(?,?,?,?)',
               Object.values(row),
             );
+            await queueNativeLinearChange(tx, a, 'issueLabels', row.id, 1);
             return row;
           }),
           201,
@@ -1094,6 +1159,17 @@ export function createApp({
     response.headers.set('x-frame-options', 'DENY');
     if (production)
       response.headers.set('strict-transport-security', 'max-age=31536000; includeSubDomains');
+    if (
+      response.ok &&
+      defer &&
+      env.LINEAR_SYNC_WORKSPACE_ID &&
+      (!['GET', 'HEAD', 'OPTIONS'].includes(method) || path === '/api/internal/linear-sync')
+    )
+      defer(
+        dispatchLinearJobs(db, env).catch(() =>
+          logger.error?.({ code: 'LINEAR_DISPATCH_RETRY_REQUIRED' }),
+        ),
+      );
     return response;
   }
   return { fetch: handle };

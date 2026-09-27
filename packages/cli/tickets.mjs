@@ -22,7 +22,7 @@ const usage = `${PRODUCT_NAME} CLI ${PRODUCT_VERSION}
   tasks-app catalog
   tasks-app api GET /api/v1/issues [--data JSON]
 
-Global: --url URL --json --help. Environment: TICKETS_URL, TICKETS_TOKEN.
+Global: --url URL --json --help --timeout-ms 1..60000 (default15000). Environment: TICKETS_URL, TICKETS_TOKEN.
 Token login reads stdin, never a command-line argument. No automatic write retries.
 Exit codes: 0 success, 1 error, 2 validation/usage, 3 authentication, 4 conflict.
 `;
@@ -48,6 +48,7 @@ const types = {
   end: 'string',
   data: 'string',
   'idempotency-key': 'string',
+  'timeout-ms': 'string',
 };
 const dir = process.env.TICKETS_CONFIG_DIR || join(homedir(), '.config', 'tickets-app'),
   configPath = join(dir, 'config.json');
@@ -97,6 +98,11 @@ async function main() {
     console.log(usage);
     return;
   }
+  const timeout = o['timeout-ms'] === undefined ? 15000 : Number(o['timeout-ms']);
+  if (!Number.isInteger(timeout) || timeout < 1 || timeout > 60000)
+    throw Object.assign(new Error('--timeout-ms must be an integer from1 to60000'), {
+      status: 422,
+    });
   const config = await load(),
     url =
       o.url || process.env.TICKETS_URL || config.url || resolveDevelopment(process.env).apiTarget;
@@ -109,7 +115,7 @@ async function main() {
       if (token.length > 4096) throw new Error('Token input is too long');
     }
     token = required(token.trim(), 'token');
-    await new TicketsClient({ url, token }).request('/api/v1/me');
+    await new TicketsClient({ url, token, timeout }).request('/api/v1/me');
     await mkdir(dir, { recursive: true, mode: 0o700 });
     await writeFile(configPath, JSON.stringify({ url, token }), { mode: 0o600 });
     await chmod(configPath, 0o600);
@@ -124,7 +130,7 @@ async function main() {
     return;
   }
   const token = required(process.env.TICKETS_TOKEN || config.token, 'TICKETS_TOKEN or auth login'),
-    client = new TicketsClient({ url, token });
+    client = new TicketsClient({ url, token, timeout });
   let result, cached;
   const catalog = () => (cached ??= client.catalog());
   async function team(v) {
@@ -234,7 +240,7 @@ main().catch((e) => {
       ? 4
       : [401, 403].includes(e.status)
         ? 3
-        : [400, 422].includes(e.status)
+        : [400, 422].includes(e.status) || String(e.code).startsWith('ERR_PARSE_ARGS_')
           ? 2
           : 1;
 });
