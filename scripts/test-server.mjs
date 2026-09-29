@@ -48,7 +48,21 @@ const server = createServer(
   ),
 );
 await new Promise((resolve) => server.listen(dev.apiPort, dev.apiHost, resolve));
-const vite = spawn(process.execPath, ['run', 'dev:web'], {
+// TASKS_E2E_WEB=preview serves the built dist (real Service Worker) with the same API proxy.
+const web =
+  process.env.TASKS_E2E_WEB === 'preview'
+    ? [
+        '--bun',
+        'vite',
+        'preview',
+        '--host',
+        '127.0.0.1',
+        '--port',
+        String(dev.webPort),
+        '--strictPort',
+      ]
+    : ['run', 'dev:web'];
+const vite = spawn(process.execPath, web, {
   stdio: 'inherit',
   env: {
     ...process.env,

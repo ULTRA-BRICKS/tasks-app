@@ -310,8 +310,21 @@ export const draftPersistence = {
     ensureIndex();
     return [...byKey.keys()].some((key) => draftBelongsTo(key, owner));
   },
+  /** Unsent drafts of this account on this device: this tab's copies plus durable recovery copies. */
+  unsentCount: (owner: DraftOwner) => {
+    const keys = new Set(draftPersistence.list(owner).map((item) => item.key));
+    try {
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && draftBelongsTo(key, owner)) keys.add(key);
+      }
+    } catch {
+      /* Tab storage unavailable: durable copies are still counted. */
+    }
+    return keys.size;
+  },
   removeLocalCopies: (owner: DraftOwner) => {
-    // Called only after explicit confirmation in recovery UI, never on autosave.
+    // Called only after explicit confirmation (recovery UI or sign-out), never on autosave.
     const names = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
     for (const name of names) {
       if (!name?.startsWith(prefix)) continue;

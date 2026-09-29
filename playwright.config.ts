@@ -26,10 +26,14 @@ export default defineConfig({
   expect: { toHaveScreenshot: { animations: 'disabled', maxDiffPixelRatio: 0.003 } },
   snapshotPathTemplate: `{testDir}/__screenshots__/${process.platform}-${process.arch}/{testFilePath}/{arg}-{projectName}{ext}`,
   projects: [
-    { name: 'chromium', testIgnore: /visual\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      testIgnore: /visual\.spec\.ts|\.shell\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
     {
       name: 'webkit',
-      testIgnore: /visual\.spec\.ts/,
+      testIgnore: /visual\.spec\.ts|\.shell\.spec\.ts/,
       use: { ...devices['Desktop Safari'], launchOptions: {} },
     },
     {
