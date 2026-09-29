@@ -35,19 +35,19 @@ Deployment identifier: dpl_2JB68g9X29iQUDzHrXzqrN2Zkefc.
 
 Explicit production migration returned applied=true,version=8 after a verified private backup. Before/after task, account and membership counts were unchanged. Candidate readiness and metadata passed before promotion; the canonical service passed the following checks after promotion:
 
-| Check | HTTP | Result |
-|---|---:|---|
-| schema ready | 200 | Passed |
-| resource metadata is JSON | 200 | Passed |
-| issuer discovery and PKCE | 200 | Passed |
-| anonymous MCP denied with OAuth challenge | 401 | Passed |
-| invalid access token denied | 401 | Passed |
-| private REST remains anonymous denied | 401 | Passed |
-| bare OAuth token cannot bypass MCP audience through GraphQL | 401 | Passed |
-| exact ChatGPT DCR callback accepted | 201 | Passed |
-| consent requires existing sign-in | 200 | Passed |
-| invalid authorization code rejected | 400 | Passed |
-| unregistered callback denied | 400 | Passed |
+| Check                                                       | HTTP | Result |
+| ----------------------------------------------------------- | ---: | ------ |
+| schema ready                                                |  200 | Passed |
+| resource metadata is JSON                                   |  200 | Passed |
+| issuer discovery and PKCE                                   |  200 | Passed |
+| anonymous MCP denied with OAuth challenge                   |  401 | Passed |
+| invalid access token denied                                 |  401 | Passed |
+| private REST remains anonymous denied                       |  401 | Passed |
+| bare OAuth token cannot bypass MCP audience through GraphQL |  401 | Passed |
+| exact ChatGPT DCR callback accepted                         |  201 | Passed |
+| consent requires existing sign-in                           |  200 | Passed |
+| invalid authorization code rejected                         |  400 | Passed |
+| unregistered callback denied                                |  400 | Passed |
 
 Verified at 2026-09-21T11:24:42.944Z. Both discovery responses are actual JSON, not the SPA fallback.
 

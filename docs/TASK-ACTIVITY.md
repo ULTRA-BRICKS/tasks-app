@@ -44,6 +44,7 @@ People (assignee values and imported Linear users) use the canonical person proj
 | Native events map to old → new for every field type, labels added/removed, description before/after, legacy rows, unknown keys hidden       | `tests/unit/activity-changes.test.mjs` (HTTP: real updates then `GET /api/v1/issues/:id`) |
 | Imported Linear history presents the same `changes` shape; description marked as not recorded                                               | `tests/unit/activity-presentation.test.mjs`                                               |
 | Grouping window/actor/verb rules and the line/word diff                                                                                     | `tests/unit/activity-view.test.ts`                                                        |
+| Assignee values (native and imported) show the canonical person name across Linear/Slack aliases                                            | `tests/unit/identity-bindings.test.mjs`                                                   |
 | Browser: change status + assignee + description, then see precise rows and expand the diff with the keyboard; phone layout without overflow | `tests/e2e/task-activity.spec.ts` (Chromium + WebKit)                                     |
 | Imported history on desktop/mobile                                                                                                          | `tests/e2e/imported-history.spec.ts`                                                      |
 

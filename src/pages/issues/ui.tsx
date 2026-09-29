@@ -1,4 +1,4 @@
-import { peopleDirectory } from '@/shared/lib/people';
+import { canonicalPersonValue, peopleDirectory, personOptions } from '@/shared/lib/people';
 import { IssueAssignee } from '@/features/issue-edit';
 import { useLiveFeed } from '@/shared/lib/use-live-feed';
 import { useState, useMemo } from 'react';
@@ -297,21 +297,17 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
           />
           <Picker
             aria-label="Filter by assignee"
-            value={params.get('assignee_id') ?? 'all'}
+            value={
+              params.get('assignee_id')
+                ? canonicalPersonValue(catalog, params.get('assignee_id'))
+                : 'all'
+            }
             options={[
               { value: 'all', label: 'All assignees' },
               { value: 'me', label: 'Assigned to me' },
               { value: 'unassigned', label: 'Unassigned' },
-              ...(catalog?.people.map((p) => ({
-                value: p.id,
-                label: p.name,
-                avatar_url: p.avatar_url ?? null,
-              })) ?? []),
-              ...(catalog?.source_people?.map((p) => ({
-                value: p.id,
-                label: p.name,
-                avatar_url: p.avatar_url,
-              })) ?? []),
+              // One entry per person; the server expands it to every stored alias.
+              ...personOptions(catalog),
             ]}
             onChange={(v) => setFilter('assignee_id', v)}
           />

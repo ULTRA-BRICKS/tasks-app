@@ -1,4 +1,5 @@
 import { uuid, targetId } from '../../../imports/linear-source.mjs';
+import { identityDirectory } from '../../core/source-people.mjs';
 
 // Linear history suffix, display label, source collection, empty value, presented field.
 const fields = [
@@ -89,7 +90,11 @@ const verbs = new Set([
   'restored the task from trash',
 ]);
 // A presentation only: preserve the immutable action code, source payload and timestamps.
-export function describeImportedChange(raw, resolve = (collection) => unavailable[collection]) {
+export function describeImportedChange(
+  raw,
+  resolve = (collection) => unavailable[collection],
+  person = () => '',
+) {
   const event = payload(raw),
     notes = [],
     changes = [];
@@ -103,6 +108,8 @@ export function describeImportedChange(raw, resolve = (collection) => unavailabl
       if (value === null) return empty;
       if (collection)
         return (
+          // A Linear user shown by its canonical Tasks name when the projection knows it.
+          (collection === 'users' && person(object(value) ? value.id : value)) ||
           (object(value) ? text(value.name) : '') ||
           resolve(collection, object(value) ? value.id : value)
         );
@@ -260,6 +267,18 @@ async function nativeNames(tx, workspace, events) {
     for (const value of [...list(labels?.from), ...list(labels?.to)]) add('labels', value);
   }
   const found = new Map();
+  // A stored person ID (member, Linear or Slack alias) shows its canonical name from the identity
+  // projection, as elsewhere on the server; IDs it does not know fall back to their stored names.
+  const people = groups.get('people');
+  if (people) {
+    const directory = await identityDirectory(tx, workspace);
+    for (const id of people) {
+      const canonical = text(directory.byAlias.get(id)?.name);
+      if (!canonical) continue;
+      found.set('people:' + id, canonical);
+      people.delete(id);
+    }
+  }
   for (const [table, ids] of groups) {
     const values = [...ids],
       [missing, ...queries] = nativeTables[table];
@@ -317,14 +336,11 @@ export function describeNativeChange(action, data, name) {
     if (stored(data, 'position')) details.push('reordered the task');
   }
   // Archiving is its own entry, like imported history, so it never merges into a group of edits.
-  const summary =
-    action === 'updated' && typeof data.archived === 'boolean'
-      ? data.archived
-        ? 'archived the task'
-        : 'restored the task from the archive'
-      : Object.hasOwn(nativeActions, action)
-        ? nativeActions[action]
-        : 'updated the task';
+  // Writers record archiving as an `updated` row with `archived`; no current writer emits the
+  // `archived` action code, which nativeActions still words for any stored row that has it.
+  let summary = Object.hasOwn(nativeActions, action) ? nativeActions[action] : 'updated the task';
+  if (action === 'updated' && typeof data.archived === 'boolean')
+    summary = data.archived ? 'archived the task' : 'restored the task from the archive';
   return { summary, changes, details };
 }
 export async function presentActivity(tx, workspace, issueId, rows, links = []) {
@@ -368,11 +384,21 @@ export async function presentActivity(tx, workspace, issueId, rows, links = []) 
   }
   const resolve = (collection, key) =>
     lookup.get(collection + ':' + key) ?? unavailable[collection];
+  const mentionsPeople = imported.some((row) =>
+    fields.some(
+      ([suffix, , collection]) =>
+        collection === 'users' &&
+        (valueAt(row.data, 'from' + suffix) ?? valueAt(row.data, 'to' + suffix)) !== null,
+    ),
+  );
+  const directory = mentionsPeople ? await identityDirectory(tx, workspace) : null;
+  // Payloads name Linear user IDs (source_id), not stored person IDs; issueDetails names the row actor.
+  const person = (key) => directory?.bySource.get('linear:' + key)?.name ?? '';
   return parsed.map((row) =>
     row.action === 'linear_imported_change'
       ? {
           ...row,
-          ...describeImportedChange(row.data, resolve),
+          ...describeImportedChange(row.data, resolve, person),
           actor_name: row.actor_source_id ? row.actor_name : 'Linear',
         }
       : { ...row, ...describeNativeChange(row.action, row.data, name) },

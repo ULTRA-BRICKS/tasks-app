@@ -55,6 +55,14 @@ export interface SourcePerson {
   provider: string;
   source_id: string;
   avatar_url: string | null;
+  /** Supplied by a provider profile sync; absent means not known to be a bot. */
+  bot?: boolean;
+}
+/** Administrator-verified member ↔ source profile link (docs/PEOPLE-IDENTITY.md). */
+export interface IdentityBinding {
+  member_id: Id;
+  source_person_id: Id;
+  via: 'slack_user_map';
 }
 export interface Catalog {
   counts?: Record<
@@ -67,6 +75,7 @@ export interface Catalog {
   labels: Label[];
   people: Person[];
   source_people?: SourcePerson[];
+  identity_bindings?: IdentityBinding[];
   imported_files?: {
     id: Id;
     source_url: string;
@@ -162,6 +171,22 @@ export interface IssueDetail extends Issue {
   activity: Activity[];
   links: { id: Id; url: string; title: string; provider: string }[];
   subscribed: boolean;
+}
+/** GET /v1/issues/pre-canonical/{code}: every task that held a code before canonical renumbering. */
+export interface PreCanonicalCodeHistory {
+  code: string;
+  origin: 'pre-canonical';
+  ambiguous: boolean;
+  /** The task that holds the bare code today; context only, never a substitute for a match. */
+  current: Pick<Issue, 'id' | 'key' | 'title'> | null;
+  matches: {
+    /** Null when the task was deleted; its code chain stays visible. */
+    task: Pick<
+      Issue,
+      'id' | 'key' | 'title' | 'status_name' | 'status_category' | 'status_color'
+    > | null;
+    steps: { migration_id: Id; at: string; from: string; to: string }[];
+  }[];
 }
 export interface IssueFilters {
   q?: string;
