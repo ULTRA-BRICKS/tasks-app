@@ -54,6 +54,33 @@ test('a missing task code and native task history use task wording', async ({ pa
   await expect(page.getByText('Task not found', { exact: true })).toBeVisible();
   await expect(page.getByText(/issue not found/i)).toHaveCount(0);
 });
+test('the task not-found state puts Retry below the message, full width on a phone', async ({
+  page,
+}) => {
+  await login(page);
+  const task = (await (await page.request.get('/api/v1/issues')).json()).data[0];
+  const missing = '/tasks/' + task.key.replace(/\d+$/, '99999');
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto(missing);
+    const alert = page.getByRole('alert').filter({ hasText: 'Task not found' });
+    const message = alert.getByText('Task not found', { exact: true });
+    const retry = alert.getByRole('button', { name: 'Retry', exact: true });
+    await expect(retry).toBeVisible();
+    const [text, button, box] = await Promise.all([
+      message.boundingBox(),
+      retry.boundingBox(),
+      alert.boundingBox(),
+    ]);
+    expect(button!.y).toBeGreaterThanOrEqual(text!.y + text!.height);
+    // Retry starts where the message text starts, not after the icon column or beside the text.
+    expect(Math.abs(button!.x - text!.x)).toBeLessThanOrEqual(1);
+    if (width === 390) {
+      expect(button!.height).toBeGreaterThanOrEqual(44);
+      expect(button!.x + button!.width).toBeGreaterThanOrEqual(box!.x + box!.width - 14);
+    }
+  }
+});
 
 test('task details keep the document-specific mobile chrome', async ({ browser }) => {
   const context = await browser.newContext({
