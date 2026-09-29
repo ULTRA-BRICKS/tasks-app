@@ -124,7 +124,7 @@ function IssueDraftPage() {
   });
   return (
     <section className="issue-detail-panel new-issue-page" aria-label="New task">
-      <header className="issue-detail-toolbar">
+      <header className="issue-detail-toolbar" data-page-header>
         <div className="breadcrumb">
           <Button
             variant="ghost"

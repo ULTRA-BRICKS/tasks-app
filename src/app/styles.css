@@ -811,6 +811,12 @@ kbd {
   min-height: 0;
   overflow: auto;
 }
+.issues-content[data-view='board'] {
+  min-width: 0;
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
 .issue-list {
   padding-bottom: var(--space-32);
 }
@@ -945,8 +951,11 @@ kbd {
 }
 .board {
   display: flex;
-  align-items: flex-start;
+  /* Equal-height columns keep each sticky column heading stuck for the whole board scroll. */
+  align-items: stretch;
   gap: var(--space-20);
+  width: max-content;
+  min-width: 100%;
   padding: var(--space-20) var(--space-24);
   min-height: 100%;
 }
@@ -968,6 +977,13 @@ kbd {
   gap: var(--space-8);
   padding-bottom: var(--space-16);
   height: 40px;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-board-column-header);
+  background: var(--color-canvas);
+}
+.board-column.drop-active > header {
+  background: var(--color-selected);
 }
 .board-column h2 {
   font-size: var(--font-size-12);
@@ -3214,11 +3230,19 @@ button,
   flex-direction: column;
   border: 1px solid var(--color-border);
   border-radius: 20px;
-  background: var(--color-elevated);
+  background: color-mix(in srgb, var(--color-elevated) 88%, transparent);
+  backdrop-filter: var(--chrome-glass-filter);
+  -webkit-backdrop-filter: var(--chrome-glass-filter);
   color: var(--color-text);
   box-shadow: 0 18px 64px #0006;
   overflow: hidden;
-  animation: peek-enter 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+  animation: peek-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@supports (animation-timing-function: linear(0, 1)) {
+  .peek-surface {
+    animation-timing-function: linear(0, 0.32, 0.65, 0.86, 0.98, 1.025, 1.018, 1.005, 1);
+  }
 }
 .peek-heading {
   display: flex;
@@ -3253,20 +3277,31 @@ button,
 .peek-content .markdown {
   font-size: 13px;
 }
+/* One horizontal toolbar at every width, matching its aria-orientation. It sits inside the
+   surface's own backdrop, so a second blur here would only resample the surface. */
 .peek-actions {
-  padding: 5px;
-  border-top: 1px solid var(--color-border);
-  display: grid;
+  display: flex;
   flex-shrink: 0;
+  gap: 4px;
+  margin: 0 8px 8px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: var(--chrome-glass);
 }
 .peek-actions button {
+  flex: 1 1 0;
+  min-width: 0;
   border: 0;
   background: transparent;
   color: inherit;
-  text-align: left;
+  text-align: center;
   min-height: 40px;
-  padding: 8px 13px;
+  padding: 6px 4px;
   border-radius: 12px;
+  font-size: var(--font-size-12);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
   cursor: pointer;
 }
 .peek-actions button:hover,
@@ -3284,7 +3319,7 @@ button,
 @keyframes peek-enter {
   from {
     opacity: 0;
-    transform: translateY(6px) scale(0.98);
+    transform: translateY(8px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -3292,18 +3327,21 @@ button,
   }
 }
 @media (max-width: 767px) {
+  html {
+    scroll-padding-bottom: var(--mobile-dock-clearance);
+  }
   .workspace-main {
-    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+    padding-bottom: var(--mobile-dock-clearance);
   }
   .mobile-navigation-bar {
     position: fixed;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    left: 12px;
-    right: 12px;
+    gap: 8px;
+    bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+    left: 10px;
+    right: 10px;
     z-index: 60;
     pointer-events: none;
   }
@@ -3311,41 +3349,48 @@ button,
     pointer-events: auto;
     display: flex;
     flex: 1;
-    max-width: 340px;
+    max-width: 300px;
     align-items: center;
-    gap: 3px;
-    padding: 5px;
-    min-height: 61px;
+    gap: 2px;
+    padding: 4px;
+    min-height: 54px;
     border: 1px solid var(--color-border);
     border-radius: 32px;
-    background: color-mix(in srgb, var(--color-elevated) 91%, transparent);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     box-shadow: 0 6px 24px #0004;
+  }
+  .mobile-dock,
+  .mobile-create {
+    background: var(--chrome-glass);
+    backdrop-filter: var(--chrome-glass-filter);
+    -webkit-backdrop-filter: var(--chrome-glass-filter);
   }
   .mobile-dock .nav-item {
     display: flex;
     flex: 1;
     min-width: 0;
-    min-height: 49px;
+    min-height: var(--mobile-tap);
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
     justify-content: center;
-    padding: 5px 2px;
+    padding: 2px 1px;
     border-radius: 26px;
     font-size: 10px;
+    line-height: 12px;
     text-decoration: none;
+  }
+  .mobile-dock .nav-item > svg {
+    width: 18px;
+    height: 18px;
   }
   .mobile-create {
     pointer-events: auto;
     display: grid;
     place-items: center;
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     flex-shrink: 0;
     border: 1px solid var(--color-border);
     border-radius: 50%;
-    background: var(--color-elevated);
     color: var(--color-text);
     box-shadow: 0 6px 24px #0004;
   }
@@ -3364,7 +3409,7 @@ button,
     border-bottom-color: transparent;
   }
   .peek-actions button {
-    min-height: 44px;
+    min-height: var(--mobile-tap);
   }
   .page-toolbar {
     min-height: 74px;
@@ -3397,7 +3442,6 @@ button,
   }
   .group-heading {
     border: 0;
-    background: transparent;
     padding-top: 12px;
     padding-bottom: 8px;
   }
@@ -3989,7 +4033,7 @@ button,
 /* Touch uses document scrolling so Safari owns its address-bar and status-bar gestures. */
 @media (pointer: coarse) {
   html {
-    scroll-padding-top: calc(96px + env(safe-area-inset-top));
+    scroll-padding-top: calc(var(--page-header-height) + var(--space-8));
   }
   body {
     overflow-x: clip;
@@ -4025,8 +4069,10 @@ button,
   .issue-detail-toolbar {
     position: sticky;
     top: 0;
-    z-index: 40;
-    background: color-mix(in srgb, var(--color-canvas) 84%, transparent);
+    z-index: var(--z-page-header);
+    /* Dense enough that rows scrolled beneath stay unreadable where no backdrop blur is painted
+       (automated WebKit); at 84% the Settings tab labels read through the title strip. */
+    background: color-mix(in srgb, var(--color-canvas) 96%, transparent);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
   }
@@ -4051,24 +4097,9 @@ button,
   .search-field {
     min-width: 0;
   }
-  .mobile-dock,
-  .mobile-create {
-    background: color-mix(in srgb, var(--color-elevated) 72%, transparent);
-    backdrop-filter: blur(24px) saturate(145%);
-    -webkit-backdrop-filter: blur(24px) saturate(145%);
-  }
-  .mobile-navigation-bar {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
   .sidebar .nav-count {
     margin-left: auto;
     font-variant-numeric: tabular-nums;
-  }
-}
-@supports not (backdrop-filter: blur(1px)) {
-  .mobile-dock,
-  .mobile-create {
-    background: var(--color-elevated);
   }
 }
 
@@ -4135,7 +4166,7 @@ button,
 }
 @media (pointer: coarse) {
   .feed-update-anchor {
-    top: calc(96px + env(safe-area-inset-top));
+    top: calc(var(--page-header-height) + var(--space-8));
   }
   .feed-update-badge {
     min-height: 44px;
@@ -4189,11 +4220,12 @@ button,
     overflow: hidden;
   }
   .mobile-navigation-bar[data-collapsed='true']:not(:focus-within) .mobile-dock {
-    max-width: 250px;
-    min-height: 54px;
+    max-width: 232px;
+    min-height: 52px;
+    padding: 3px;
   }
   .mobile-navigation-bar[data-collapsed='true']:not(:focus-within) .mobile-dock .nav-item {
-    min-height: 44px;
+    min-height: var(--mobile-tap);
     gap: 0;
   }
   .mobile-navigation-bar[data-collapsed='true']:not(:focus-within) .mobile-dock .nav-item span {
@@ -4382,6 +4414,115 @@ button,
 @media (max-width: 767px) {
   .detail-properties > .compact-property:has(> .cycle-help-trigger) {
     grid-column: 1 / -1;
+  }
+}
+
+/* Mobile feedback: glass chrome over document scrolling, and a board with independent axes. */
+:root {
+  --chrome-glass: color-mix(in srgb, var(--color-elevated) 58%, transparent);
+  /* Single floating glass surfaces (dock, create, preview) share one filter. */
+  --chrome-glass-filter: blur(24px) saturate(145%);
+  /* Repeated sticky headings blur less, so a denser tint keeps rows beneath from competing. */
+  --sticky-glass: color-mix(in srgb, var(--color-elevated) 72%, transparent);
+  /* useMobileChrome writes the measured value; this covers the first frame. */
+  --page-header-height: calc(88px + env(safe-area-inset-top));
+  /* Dock (4px edge + 54px) plus breathing room: page end padding and scroll-into-view inset. */
+  --mobile-dock-clearance: calc(88px + env(safe-area-inset-bottom));
+  /* Sticky layers: board column headings stay local; group headings pass under the header. */
+  --z-board-column-header: 3;
+  --z-sticky-group: 35;
+  --z-page-header: 40;
+}
+/* Touch and narrow layouts scroll rows beneath sticky headings. One small blur without
+   saturation per heading keeps several simultaneously stuck layers affordable. */
+@media (pointer: coarse), (max-width: 767px) {
+  .group-heading,
+  .board-column > header {
+    background: var(--sticky-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .board-column > header {
+    min-height: var(--mobile-tap);
+    padding: 0 var(--space-8);
+    margin-bottom: var(--space-16);
+    border-radius: var(--radius-md);
+  }
+  @supports not (backdrop-filter: blur(1px)) {
+    .group-heading,
+    .board-column > header {
+      background: var(--color-elevated);
+    }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .group-heading,
+    .board-column > header {
+      background: var(--color-elevated);
+    }
+  }
+}
+@media (pointer: coarse) {
+  .group-heading {
+    top: var(--page-header-height);
+    z-index: var(--z-sticky-group);
+  }
+  /* Tablets have no dock: 94px = the 50px view toolbar + the 28px status bar + the workspace's
+     8px top and bottom insets, so the status bar closes the board at the bottom edge. */
+  .issues-content[data-view='board'] {
+    height: calc(100dvh - var(--page-header-height) - 94px);
+    min-height: 220px;
+    flex: none;
+  }
+}
+/* Phones: the tall 88px header compacts, and the board leaves room for the dock. On tablets
+   the header already has its short desktop geometry, so compacting would only grow it. */
+@media (pointer: coarse) and (max-width: 767px) {
+  /* 176px = the 49px view toolbar + 127px below the board. That covers the page's dock
+     clearance (88px + bottom inset) up to a 39px inset, so a 34px home indicator needs no
+     page scrolling and the board still ends above the dock (safe-area regression test). */
+  .issues-content[data-view='board'] {
+    height: calc(100dvh - var(--page-header-height) - 176px);
+  }
+  :root[data-header-compact] .page-toolbar {
+    min-height: 56px;
+    padding-block: 4px;
+    padding-top: max(4px, env(safe-area-inset-top));
+  }
+  :root[data-header-compact] .page-heading h1 {
+    font-size: 20px;
+    letter-spacing: -0.4px;
+  }
+  :root[data-header-compact] .issue-detail-toolbar {
+    min-height: 48px;
+    padding-block: 2px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-page-header] {
+    transition:
+      min-height 200ms ease-out,
+      padding 200ms ease-out;
+  }
+  .page-heading h1 {
+    transition:
+      font-size 200ms ease-out,
+      letter-spacing 200ms ease-out;
+  }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .mobile-dock,
+  .mobile-create,
+  .peek-actions,
+  .peek-surface {
+    background: var(--color-elevated);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .mobile-dock,
+  .mobile-create,
+  .peek-actions,
+  .peek-surface {
+    background: var(--color-elevated);
   }
 }
 

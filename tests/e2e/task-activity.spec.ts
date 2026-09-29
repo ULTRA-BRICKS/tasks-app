@@ -88,6 +88,8 @@ test('activity shows precise field changes and a keyboard-operable description d
     await phoneEntry.getByText('View changes', { exact: true }).click();
     await expect(phoneEntry.locator('.activity-diff')).toBeVisible();
     await phoneEntry.scrollIntoViewIfNeeded();
+    // The description editor loads lazily after the reload; capture the settled page.
+    await expect(page.locator('.document-description[aria-busy="true"]')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       width,
     );

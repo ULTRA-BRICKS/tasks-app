@@ -173,7 +173,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
   const [uploading, setUploading] = useState(false);
   return (
     <>
-      <header className="issue-detail-toolbar">
+      <header className="issue-detail-toolbar" data-page-header>
         <div className="breadcrumb">
           <Layers size={14} />
           <span>{catalog?.teams.find((t) => t.id === issue.team_id)?.name}</span>
