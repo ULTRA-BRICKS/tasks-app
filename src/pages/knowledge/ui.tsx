@@ -7,7 +7,7 @@ import { api, errorMessage } from '@/shared/api/client';
 import {
   ActionMenu,
   Button,
-  Picker,
+  Combobox,
   ErrorState,
   Loading,
   EmptyState,
@@ -228,7 +228,7 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
           />
           <div className="knowledge-properties">
             {kind === 'documents' ? (
-              <Picker
+              <Combobox
                 aria-label="Project"
                 value={model.draft.project_id ?? 'none'}
                 disabled={disabled}
@@ -243,7 +243,7 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
               />
             ) : (
               <>
-                <Picker
+                <Combobox
                   aria-label="Status"
                   value={model.draft.status}
                   disabled={disabled}
@@ -258,7 +258,7 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
                     // The owner's avatar opens their card; the picker stays the value editor.
                     <PersonChip id={model.draft.owner_id} />
                   )}
-                  <Picker
+                  <Combobox
                     aria-label="Owner"
                     value={canonicalPersonValue(catalog, model.draft.owner_id)}
                     disabled={disabled}
@@ -297,7 +297,7 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
                 </span>
               ))}
               {!readOnly && (
-                <Picker
+                <Combobox
                   aria-label="Link project"
                   value="none"
                   disabled={disabled}

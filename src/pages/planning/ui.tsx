@@ -14,7 +14,7 @@ import {
 import { usePreferences } from '@/features/preferences';
 import {
   Button,
-  Picker,
+  Combobox,
   EmptyState,
   ErrorState,
   Loading,
@@ -213,7 +213,7 @@ function ProjectCard({ project }: { project: Project }) {
           <span className="project-icon">
             <FolderKanban size={19} />
           </span>
-          <Picker
+          <Combobox
             aria-label={`Health of ${project.name}`}
             value={project.health}
             options={[

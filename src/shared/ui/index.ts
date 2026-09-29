@@ -1,6 +1,12 @@
 export { Button } from './button';
 export { Input, Textarea } from './input';
 export { Picker, type Option } from './select';
+export {
+  Combobox,
+  type ComboboxAction,
+  type ComboboxCreate,
+  type ComboboxCreated,
+} from './combobox';
 export { Modal } from './dialog';
 export { Avatar } from './avatar';
 export { PersonPopover } from './person-popover';
