@@ -7,6 +7,7 @@ import * as importFiles from './modules/linear-import/files.mjs';
 import * as knowledge from './modules/knowledge/service.mjs';
 import * as linearImport from './modules/linear-import/service.mjs';
 import { canonicalNumbering } from './modules/linear-numbering/service.mjs';
+import { resolvePreCanonicalCode } from './modules/linear-numbering/history.mjs';
 import { configureSync, readSyncConfig, readSyncStatus } from './modules/linear-live/store.mjs';
 import {
   verifySourceWebhook,
@@ -706,6 +707,10 @@ export function createApp({
       } else if (path === '/api/v1/issues/bulk' && method === 'PATCH') {
         const input = await body(request, schemas.IssueBulk);
         response = json(await run(false, (tx, a) => tickets.bulkUpdate(tx, a, input.updates)));
+      } else if (/^\/api\/v1\/issues\/pre-canonical\/[^/]+$/.test(path) && method === 'GET') {
+        // Codes are ASCII; any percent-encoded segment is simply not a code, so it is never decoded.
+        const code = path.split('/').at(-1);
+        response = json(await run(true, (tx, a) => resolvePreCanonicalCode(tx, a, code)));
       } else if (/^\/api\/v1\/issues\/[^/]+$/.test(path)) {
         const key = decodeURIComponent(path.split('/').at(-1));
         if (method === 'GET')

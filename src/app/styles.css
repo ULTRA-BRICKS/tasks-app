@@ -4191,3 +4191,95 @@ button,
     grid-column: 1 / -1;
   }
 }
+
+/* Pre-canonical code lookup: a quiet list of tasks with their code chains, never a form. */
+.code-history {
+  overflow: auto;
+  flex: 1;
+  padding: var(--space-16) var(--space-24);
+}
+.code-history-code {
+  white-space: nowrap;
+}
+.code-history-summary,
+.code-history-current {
+  max-width: 72ch;
+  color: var(--color-muted);
+  font-size: var(--font-size-13);
+  line-height: 1.6;
+}
+.code-history-summary {
+  margin-bottom: var(--space-12);
+}
+.code-history-current {
+  margin-top: var(--space-16);
+}
+.code-history-current a {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.code-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+}
+.code-history-match {
+  padding: var(--space-6) 0 var(--space-10);
+  border-bottom: 1px solid var(--color-border);
+}
+.code-history-task {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  min-width: 0;
+  min-height: var(--size-control);
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-md);
+}
+a.code-history-task:hover {
+  background: var(--color-hover);
+}
+.code-history-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-13);
+}
+.code-history-steps {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-6) 0 calc(var(--space-6) + 15px + var(--space-10));
+  font-size: var(--font-size-12);
+  color: var(--color-muted);
+}
+.code-history-steps li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-8);
+}
+.code-history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-8);
+}
+@media (max-width: 767px) {
+  .code-history {
+    padding: var(--space-8) var(--space-12);
+  }
+}
+@media (pointer: coarse) {
+  .code-history {
+    overflow: visible;
+    flex: none;
+  }
+  .code-history-task {
+    min-height: var(--mobile-tap);
+  }
+}

@@ -153,6 +153,22 @@ export interface IssueDetail extends Issue {
   links: { id: Id; url: string; title: string; provider: string }[];
   subscribed: boolean;
 }
+/** GET /v1/issues/pre-canonical/{code}: every task that held a code before canonical renumbering. */
+export interface PreCanonicalCodeHistory {
+  code: string;
+  origin: 'pre-canonical';
+  ambiguous: boolean;
+  /** The task that holds the bare code today; context only, never a substitute for a match. */
+  current: Pick<Issue, 'id' | 'key' | 'title'> | null;
+  matches: {
+    /** Null when the task was deleted; its code chain stays visible. */
+    task: Pick<
+      Issue,
+      'id' | 'key' | 'title' | 'status_name' | 'status_category' | 'status_color'
+    > | null;
+    steps: { migration_id: Id; at: string; from: string; to: string }[];
+  }[];
+}
 export interface IssueFilters {
   q?: string;
   team_id?: Id;

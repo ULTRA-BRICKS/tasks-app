@@ -13,6 +13,7 @@ import { CreateIssue } from '@/features/issue-create';
 import { CommandMenu } from '@/features/command-menu';
 import { Navigation } from '@/widgets/navigation';
 import { IssuesPage, TaskDetailRoute, LegacyTaskRoute } from '@/pages/issues';
+import { PreCanonicalCodePage } from '@/pages/task-code-history';
 import { PlanningPage } from '@/pages/planning';
 import { InboxPage } from '@/pages/inbox';
 import { SettingsPage } from '@/pages/settings';
@@ -92,6 +93,7 @@ function Workspace() {
             <Route path="/login" element={<Navigate to="/tasks" replace />} />
             <Route path="/tasks" element={<IssuesPage />} />
             <Route path="/tasks/new" element={<NewIssuePage />} />
+            <Route path="/tasks/pre-canonical/:code/:slug?" element={<PreCanonicalCodePage />} />
             <Route path="/tasks/:issueId/:slug?" element={<TaskDetailRoute />} />
             <Route path="/issues/*" element={<LegacyTaskRoute />} />
             <Route path="/my-issues" element={<LegacyTaskRoute />} />
