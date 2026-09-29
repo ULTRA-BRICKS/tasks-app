@@ -33,14 +33,21 @@ export function InlineTitle({
   useLayoutEffect(() => {
     const element = input.current;
     if (!element) return;
-    let previousWidth = -1;
+    let previousWidth = -1,
+      frame = 0;
     const observer = new ResizeObserver(([entry]) => {
       if (!entry || entry.contentRect.width === previousWidth) return;
       previousWidth = entry.contentRect.width;
-      resize();
+      // Resizing inside the callback changes the observed box again during delivery, which
+      // browsers report as a ResizeObserver loop error (e.g. when a scrollbar appears).
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(resize);
     });
     observer.observe(element);
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [resize]);
   return (
     <textarea

@@ -19,7 +19,16 @@ import {
 } from 'lucide-react';
 import { useCatalog, useMe } from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
-import { Button, Input, Textarea, Picker, Avatar, ErrorState, Loading } from '@/shared/ui';
+import {
+  Button,
+  Input,
+  Textarea,
+  Picker,
+  Combobox,
+  Avatar,
+  ErrorState,
+  Loading,
+} from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
 type IntegrationState = {
@@ -214,7 +223,7 @@ export function SettingsPage() {
                       </strong>
                       <span>{p.email}</span>
                     </div>
-                    <Picker
+                    <Combobox
                       aria-label={`Role of ${p.name}`}
                       value={p.role}
                       options={['owner', 'admin', 'member', 'viewer'].map((v) => ({

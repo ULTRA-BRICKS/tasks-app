@@ -39,6 +39,7 @@ import {
 } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
+import { ActivityFeed } from './activity-feed';
 export function IssueDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const query = useIssue(id);
   return (
@@ -448,25 +449,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                 {issue.subscribed ? 'Unsubscribe' : 'Subscribe'}
               </Button>
             </header>
-            {issue.activity
-              .slice(0, 8)
-              .reverse()
-              .map((a) => (
-                <div className="activity-event" key={a.id}>
-                  <span className="activity-dot" />
-                  <div className="activity-message">
-                    <div>
-                      <strong>{a.actor_name}</strong> {a.summary ?? 'updated the task'}
-                    </div>
-                    {a.details?.map((detail, index) => (
-                      <div className="activity-detail" key={index}>
-                        {detail}
-                      </div>
-                    ))}
-                  </div>
-                  <time dateTime={a.created_at}>{formatDate(a.created_at)}</time>
-                </div>
-              ))}
+            <ActivityFeed activity={issue.activity} />
             {issue.comments.map((c) => (
               <article className="comment" key={c.id}>
                 <header>

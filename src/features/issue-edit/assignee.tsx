@@ -1,5 +1,5 @@
 import type { Issue } from '@tickets/contracts';
-import { Avatar, Picker } from '@/shared/ui';
+import { Avatar, Combobox } from '@/shared/ui';
 import { personInDirectory, assigneeOptions, type PersonDirectory } from '@/shared/lib/people';
 import { errorMessage } from '@/shared/api/client';
 import { useIssueUpdate } from './model';
@@ -19,8 +19,9 @@ export function IssueAssignee({
   const options = assigneeOptions(people, !canWrite);
   return (
     <div className="row-assignee">
-      <Picker
+      <Combobox
         aria-label={'Assignee for ' + issue.key + ': ' + name}
+        searchLabel="Search people"
         value={person?.id ?? issue.assignee_id ?? 'none'}
         className="avatar-picker"
         triggerContent={

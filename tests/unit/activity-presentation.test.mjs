@@ -3,6 +3,12 @@ import { fixture } from './helpers.mjs';
 import { sourceFixture } from './linear-import-fixture.mjs';
 import { targetId } from '../../packages/imports/linear-source.mjs';
 
+// Structured field changes are the presentation contract; `from → to` keeps assertions readable.
+const pair = (event, field) => {
+  const change = event.changes.find((c) => c.field === field);
+  return change && `${change.from} → ${change.to}`;
+};
+
 async function importedFixture() {
   const f = await fixture(),
     source = sourceFixture();
@@ -90,17 +96,26 @@ test('already-imported activity resolves original values without rewriting audit
     const detail = await f.request('GET', '/api/v1/issues/' + issue);
     expect(detail.status).toBe(200);
     const events = detail.data.activity;
-    expect(events.find((a) => a.data.toStateId).summary).toBe('changed status: Todo → Done');
-    expect(events.find((a) => a.data.updatedDescription).summary).toBe('updated the description');
-    expect(events.find((a) => a.data.updatedDescription).actor_name).toBe('Linear');
+    const status = events.find((a) => a.data.toStateId);
+    expect(status.summary).toBe('updated the task');
+    expect(status.changes).toEqual([
+      { kind: 'value', field: 'status', label: 'Status', from: 'Todo', to: 'Done' },
+    ]);
+    const description = events.find((a) => a.data.updatedDescription);
+    // Linear history records that the description changed, never its text.
+    expect(description.changes).toEqual([
+      { kind: 'text', field: 'description', label: 'Description', from: null, to: null },
+    ]);
+    expect(description.actor_name).toBe('Linear');
     const combined = events.find((a) => a.data.toPriority === 1);
-    expect([combined.summary, ...combined.details].join(' ')).toContain('No priority → Urgent');
-    expect([combined.summary, ...combined.details].join(' ')).toContain(
-      'Unassigned → Source author',
-    );
-    expect([combined.summary, ...combined.details].join(' ')).toContain('Original milestone');
-    expect([combined.summary, ...combined.details].join(' ')).toContain('Imported fixture');
-    expect(events.find((a) => a.data.relationChanges).summary).toContain('SRC-8');
+    expect(pair(combined, 'priority')).toBe('No priority → Urgent');
+    expect(pair(combined, 'assignee')).toBe('Unassigned → Source author');
+    expect(pair(combined, 'milestone')).toBe('No milestone → Original milestone');
+    expect(combined.changes.find((c) => c.field === 'labels')).toMatchObject({
+      added: ['Imported fixture'],
+      removed: [],
+    });
+    expect(events.find((a) => a.data.relationChanges).summary).toBe('updated task links: SRC-8');
     expect(events.every((a) => a.action === 'linear_imported_change')).toBe(true);
     const after = await f.db.transaction((tx) =>
       tx.all('SELECT id,action,data,created_at FROM activity ORDER BY id'),
@@ -127,8 +142,8 @@ test('unresolved and unsupported historical values stay readable without leaking
     let row = (await f.request('GET', '/api/v1/issues/' + issue)).data.activity.find(
       (a) => a.id === record.id,
     );
-    expect(row.summary).toContain('status');
-    expect(row.summary).not.toContain(unavailable);
+    expect(pair(row, 'status')).toBe('Unavailable status → Not set');
+    expect(JSON.stringify([row.summary, row.changes, row.details])).not.toContain(unavailable);
     await f.db.transaction((tx) =>
       tx.exec('UPDATE activity SET data=? WHERE id=?', [
         JSON.stringify({
@@ -143,6 +158,7 @@ test('unresolved and unsupported historical values stay readable without leaking
     );
     expect(row.summary).toBe('updated the task in Linear');
     expect(row.details).toEqual([]);
+    expect(row.changes).toEqual([]);
     expect(
       (await f.request('GET', '/api/v1/issues/' + issue, undefined, { anonymous: true })).status,
     ).toBe(401);
@@ -162,22 +178,26 @@ test('historical booleans and empty selections are distinguished from source met
     'restored the task from the archive',
   );
   expect(describeImportedChange({ trashed: false }).summary).toBe('restored the task from trash');
-  expect(describeImportedChange({ fromEstimate: 3, toEstimate: 0 }).summary).toBe(
-    'changed estimate: 3 → 0',
+  expect(pair(describeImportedChange({ fromEstimate: 3, toEstimate: 0 }), 'estimate')).toBe(
+    '3 → 0',
   );
-  expect(describeImportedChange({ fromPriority: 1, toPriority: 0 }).summary).toBe(
-    'changed priority: Urgent → No priority',
+  expect(pair(describeImportedChange({ fromPriority: 1, toPriority: 0 }), 'priority')).toBe(
+    'Urgent → No priority',
   );
   expect(
-    describeImportedChange({ changes: { descriptionUpdatedByIds: ['source-author'] } }).summary,
-  ).toBe('updated the description');
+    describeImportedChange({ changes: { descriptionUpdatedByIds: ['source-author'] } }).changes,
+  ).toEqual([{ kind: 'text', field: 'description', label: 'Description', from: null, to: null }]);
   expect(describeImportedChange('{broken')).toEqual({
     summary: 'updated the task in Linear',
+    changes: [],
     details: [],
   });
-  expect(describeImportedChange({ fromPriority: 0, toPriority: 'map' }).summary).toBe(
-    'changed priority: No priority → Unknown priority',
+  expect(pair(describeImportedChange({ fromPriority: 0, toPriority: 'map' }), 'priority')).toBe(
+    'No priority → Unknown priority',
   );
+  expect(
+    pair(describeImportedChange({ fromDueDate: null, toDueDate: '2024-03-10' }), 'due_date'),
+  ).toBe('No due date → Mar 10, 2024');
 });
 
 test('unknown native event codes never become UI labels or inherited object properties', async () => {
@@ -208,28 +228,37 @@ test('explicit cleared fields override stale nested values and schema-shaped mil
   const resolve = (_collection, id) =>
     id === 'old-person' ? 'Previous assignee' : 'Stale assignee';
   expect(
-    describeImportedChange(
-      {
-        fromAssigneeId: 'old-person',
-        toAssigneeId: null,
-        changes: { toAssigneeId: 'stale-person' },
-      },
-      resolve,
-    ).summary,
-  ).toBe('changed assignee: Previous assignee → Unassigned');
+    pair(
+      describeImportedChange(
+        {
+          fromAssigneeId: 'old-person',
+          toAssigneeId: null,
+          changes: { toAssigneeId: 'stale-person' },
+        },
+        resolve,
+      ),
+      'assignee',
+    ),
+  ).toBe('Previous assignee → Unassigned');
   expect(
-    describeImportedChange({
-      fromProjectMilestone: { id: crypto.randomUUID(), name: 'Initial release' },
-      toProjectMilestone: { id: crypto.randomUUID(), name: 'Public release' },
-    }).summary,
-  ).toBe('changed milestone: Initial release → Public release');
+    pair(
+      describeImportedChange({
+        fromProjectMilestone: { id: crypto.randomUUID(), name: 'Initial release' },
+        toProjectMilestone: { id: crypto.randomUUID(), name: 'Public release' },
+      }),
+      'milestone',
+    ),
+  ).toBe('Initial release → Public release');
   expect(
-    describeImportedChange({
-      fromProjectMilestone: { id: crypto.randomUUID(), name: 'Initial release' },
-      toProjectMilestone: null,
-      changes: { toProjectMilestoneId: crypto.randomUUID() },
-    }).summary,
-  ).toBe('changed milestone: Initial release → No milestone');
+    pair(
+      describeImportedChange({
+        fromProjectMilestone: { id: crypto.randomUUID(), name: 'Initial release' },
+        toProjectMilestone: null,
+        changes: { toProjectMilestoneId: crypto.randomUUID() },
+      }),
+      'milestone',
+    ),
+  ).toBe('Initial release → No milestone');
 });
 
 test('native comment-edit and unlink verbs are preserved', async () => {
@@ -277,13 +306,26 @@ test('every history summary and fallback name uses task wording', async () => {
     trashed: true,
   });
   expect(imported.summary).toBe('created the task in Linear');
+  expect(imported.changes).toEqual([
+    {
+      kind: 'value',
+      field: 'parent',
+      label: 'Parent task',
+      from: 'Unavailable task',
+      to: 'No parent',
+    },
+  ]);
   expect(imported.details).toEqual([
-    'changed parent task: Unavailable task → No parent',
     'updated task links: ENG-2',
     'archived the task',
     'moved the task to trash',
   ]);
-  for (const line of [...nativeSummaries, imported.summary, ...imported.details])
+  for (const line of [
+    ...nativeSummaries,
+    imported.summary,
+    ...imported.details,
+    ...imported.changes.map((c) => c.label),
+  ])
     expect(line).not.toMatch(/\bissues?\b/i);
 });
 
