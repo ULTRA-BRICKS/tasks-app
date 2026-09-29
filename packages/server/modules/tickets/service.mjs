@@ -1,7 +1,7 @@
 import { withSourceState } from '../linear-live/presentation.mjs';
 import { presentActivity } from './activity.mjs';
 import { queueNativeLinearChange } from '../../core/linear-events.mjs';
-import { resolvePerson } from '../../core/source-people.mjs';
+import { identityDirectory, personAliases, resolvePerson } from '../../core/source-people.mjs';
 import { id, now, sha256, hmac, constantEqual } from '../../core/crypto.mjs';
 import { assert, missing, conflict, requirePermission } from '../../core/errors.mjs';
 import { assertModule } from '../../core/modules.mjs';
@@ -19,6 +19,10 @@ export async function getIssue(tx, actor, key, { includeDeleted = false } = {}) 
   );
   issue.label_ids = issue.labels.map((l) => l.id);
   issue.assignee_id ??= issue.assignee_source_id;
+  // Stored-name SQL stays the fallback for former members; current people use the shared projection.
+  issue.assignee_name =
+    (await identityDirectory(tx, actor.workspace_id)).byAlias.get(issue.assignee_id)?.name ??
+    issue.assignee_name;
   issue.creator_id = issue.creator_source_id ?? issue.creator_id;
   return issue;
 }
@@ -448,9 +452,12 @@ export async function listIssues(
     if (filters.assignee_id === 'unassigned')
       where.push('i.assignee_id IS NULL AND i.assignee_source_id IS NULL');
     else {
-      where.push('(i.assignee_id=? OR i.assignee_source_id=?)');
       const person = filters.assignee_id === 'me' ? actor.id : filters.assignee_id;
-      args.push(person, person);
+      // A canonical person matches every stored alias: its account and email-matched source rows.
+      const ids = await personAliases(tx, actor.workspace_id, person),
+        slots = ids.map(() => '?').join(',');
+      where.push(`(i.assignee_id IN (${slots}) OR i.assignee_source_id IN (${slots}))`);
+      args.push(...ids, ...ids);
     }
   }
   if (filters.category) {
@@ -501,8 +508,10 @@ export async function listIssues(
         [actor.workspace_id, ...data.map((i) => i.id)],
       )
     : [];
+  const people = (await identityDirectory(tx, actor.workspace_id)).byAlias;
   for (const row of data) {
     row.assignee_id ??= row.assignee_source_id;
+    row.assignee_name = people.get(row.assignee_id)?.name ?? row.assignee_name;
     row.creator_id = row.creator_source_id ?? row.creator_id;
     row.labels = labels.filter((l) => l.issue_id === row.id);
     row.label_ids = row.labels.map((l) => l.id);
@@ -588,10 +597,12 @@ export async function addComment(tx, actor, key, body) {
     [actor.workspace_id, issue.id, actor.id],
   );
   await recordActivity(tx, actor, issue, 'commented', { comment_id: comment.id });
-  return { ...comment, author_name: actor.name };
+  const people = (await identityDirectory(tx, actor.workspace_id)).byAlias;
+  return { ...comment, author_name: people.get(actor.id)?.name ?? actor.name };
 }
 export async function issueDetails(tx, actor, key) {
   const issue = await getIssue(tx, actor, key);
+  // The SQL names below are the fallback for IDs the projection does not know (former members).
   const comments = await tx.all(
     'SELECT c.*,COALESCE(sp.name,u.name) AS author_name FROM comments c JOIN users u ON u.id=c.author_id LEFT JOIN source_people sp ON sp.id=c.author_source_id AND sp.workspace_id=c.workspace_id WHERE c.workspace_id=? AND c.issue_id=? ORDER BY c.created_at,c.id',
     [actor.workspace_id, issue.id],
@@ -600,6 +611,14 @@ export async function issueDetails(tx, actor, key) {
     "SELECT a.*,CASE WHEN a.action='linear_imported_change' THEN COALESCE(sp.name,'Linear automation') ELSE u.name END AS actor_name FROM activity a JOIN users u ON u.id=a.actor_id LEFT JOIN source_people sp ON sp.id=a.actor_source_id AND sp.workspace_id=a.workspace_id WHERE a.workspace_id=? AND a.issue_id=? ORDER BY a.created_at DESC,a.id DESC LIMIT 200",
     [actor.workspace_id, issue.id],
   );
+  const people = (await identityDirectory(tx, actor.workspace_id)).byAlias;
+  for (const comment of comments)
+    comment.author_name =
+      people.get(comment.author_source_id ?? comment.author_id)?.name ?? comment.author_name;
+  for (const row of activity) {
+    const person = row.action === 'linear_imported_change' ? row.actor_source_id : row.actor_id;
+    if (person) row.actor_name = people.get(person)?.name ?? row.actor_name;
+  }
   const relations = await tx.all(
     'SELECT r.*,s.key AS source_key,t.key AS target_key,s.title AS source_title,t.title AS target_title FROM relations r JOIN issues s ON s.id=r.source_id JOIN issues t ON t.id=r.target_id WHERE r.workspace_id=? AND (r.source_id=? OR r.target_id=?)',
     [actor.workspace_id, issue.id, issue.id],
