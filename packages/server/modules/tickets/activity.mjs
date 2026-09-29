@@ -1,4 +1,5 @@
 import { uuid, targetId } from '../../../imports/linear-source.mjs';
+import { identityDirectory } from '../../core/source-people.mjs';
 
 const fields = [
   ['StateId', 'status', 'workflowStates', 'Not set'],
@@ -57,7 +58,11 @@ const unavailable = {
 };
 
 // A presentation only: preserve the immutable action code, source payload and timestamps.
-export function describeImportedChange(raw, resolve = (collection) => unavailable[collection]) {
+export function describeImportedChange(
+  raw,
+  resolve = (collection) => unavailable[collection],
+  person = () => '',
+) {
   const event = payload(raw),
     lines = [];
   if (event.sourceCreated === true) lines.push('created the task in Linear');
@@ -70,6 +75,8 @@ export function describeImportedChange(raw, resolve = (collection) => unavailabl
       if (value === null) return empty;
       if (collection)
         return (
+          // A Linear user shown by its canonical Tasks name when the projection knows it.
+          (collection === 'users' && person(object(value) ? value.id : value)) ||
           (object(value) ? text(value.name) : '') ||
           resolve(collection, object(value) ? value.id : value)
         );
@@ -203,11 +210,21 @@ export async function presentActivity(tx, workspace, issueId, rows, links = []) 
   }
   const resolve = (collection, key) =>
     lookup.get(collection + ':' + key) ?? unavailable[collection];
+  const mentionsPeople = imported.some((row) =>
+    fields.some(
+      ([suffix, , collection]) =>
+        collection === 'users' &&
+        (valueAt(row.data, 'from' + suffix) ?? valueAt(row.data, 'to' + suffix)) !== null,
+    ),
+  );
+  const directory = mentionsPeople ? await identityDirectory(tx, workspace) : null;
+  // Payloads name Linear user IDs (source_id), not stored person IDs; issueDetails names the row actor.
+  const person = (key) => directory?.bySource.get('linear:' + key)?.name ?? '';
   return parsed.map((row) =>
     row.action === 'linear_imported_change'
       ? {
           ...row,
-          ...describeImportedChange(row.data, resolve),
+          ...describeImportedChange(row.data, resolve, person),
           actor_name: row.actor_source_id ? row.actor_name : 'Linear',
         }
       : {

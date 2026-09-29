@@ -10,6 +10,8 @@ export interface Option {
   avatar_url?: string | null;
   /** Label colour, shown as a swatch beside searchable options. */
   color?: string;
+  /** Secondary text that tells otherwise identical labels apart. */
+  description?: string;
 }
 export function Picker({
   value,
@@ -64,6 +66,9 @@ export function Picker({
                     </span>
                   )}
                   <Select.ItemText className="picker-item-text">{o.label}</Select.ItemText>
+                  {o.description && (
+                    <span className="picker-item-description">{o.description}</span>
+                  )}
                   <Select.ItemIndicator>
                     <Check size={13} />
                   </Select.ItemIndicator>

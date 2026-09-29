@@ -143,3 +143,10 @@ export function sourceFixture() {
   };
   return { ids, data, manifest };
 }
+/** The same source under another team key, so each browser project can import its own copy. */
+export function teamSourceFixture(teamKey) {
+  const source = sourceFixture();
+  source.data.teams[0].key = teamKey;
+  for (const issue of source.data.issues) issue.identifier = teamKey + '-' + issue.number;
+  return source;
+}

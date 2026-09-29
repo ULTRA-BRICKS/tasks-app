@@ -1,11 +1,7 @@
 {
   "verifiedAt": "2026-09-12T22:25:49.893484+00:00",
   "baseRevision": "df63af577c7beec78b51c40f0a92d07f926fe94d",
-  "platforms": [
-    "darwin-arm64",
-    "linux-arm64",
-    "linux-x64"
-  ],
+  "platforms": ["darwin-arm64", "linux-arm64", "linux-x64"],
   "linuxContainer": "mcr.microsoft.com/playwright:v1.63.0-noble",
   "comparison": "Five ordinary comparisons passed on each platform after explicit capture. These are regression baselines, not a Linear parity percentage.",
   "sha256": {

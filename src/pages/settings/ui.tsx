@@ -1,5 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { PeopleInvitations } from '@/features/people-invitations';
+import { selectedPerson } from '@/shared/lib/people';
+import { IdentityReview } from './identity-review';
 import { WorkspacePolicySettings } from '@/features/workspace-policy';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -213,7 +215,12 @@ export function SettingsPage() {
                   <div className="member-row" key={p.id}>
                     <Avatar name={p.name} size="md" />
                     <div>
-                      <strong>{p.name}</strong>
+                      <strong>
+                        {p.name}
+                        {selectedPerson(catalog, p.id)?.needs_review && (
+                          <span className="review-badge">Needs review</span>
+                        )}
+                      </strong>
                       <span>{p.email}</span>
                     </div>
                     <Combobox
@@ -232,6 +239,7 @@ export function SettingsPage() {
                   </div>
                 ))}
               </div>
+              <IdentityReview catalog={catalog} />
               {admin && <PeopleInvitations />}
             </>
           )}

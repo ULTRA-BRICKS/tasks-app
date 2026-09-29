@@ -10,23 +10,23 @@ Full CI for commit [`73763a18549bf9eb7fb288b773aae586fbf610f4`](https://github.c
 
 **[CI run 34504461915](https://github.com/alex-mextner/tickets-app/actions/runs/34504461915)**
 
-| Check | Result |
-| --- | --- |
-| Frozen Bun dependency installation | Passed |
-| DTCG token generation/drift checks | Passed |
-| REST OpenAPI generation/drift checks | Passed |
-| GraphQL subset comparison to pinned Linear schema | Passed |
-| FSD imports, Oxlint and type-aware checking | Passed |
-| Independent TypeScript `tsc --noEmit` | Passed |
-| Unit/HTTP/CLI/GraphQL/Markdown tests on Bun + SQLite | 76 passed |
-| Shared acceptance suite on a real PostgreSQL 17 service | 66 passed |
-| Production Vite build | Passed |
-| Source formatting and tracked generator-output checks | Passed |
-| Repository secret-pattern scan | Passed; not a security audit |
-| Storybook production build | Passed |
-| Storybook interactions and axe accessibility, Chromium | 13 passed |
-| Playwright end-to-end scenarios, Chromium | 4 passed |
-| Playwright comparisons against reviewed visual baselines | 5 passed |
+| Check                                                    | Result                       |
+| -------------------------------------------------------- | ---------------------------- |
+| Frozen Bun dependency installation                       | Passed                       |
+| DTCG token generation/drift checks                       | Passed                       |
+| REST OpenAPI generation/drift checks                     | Passed                       |
+| GraphQL subset comparison to pinned Linear schema        | Passed                       |
+| FSD imports, Oxlint and type-aware checking              | Passed                       |
+| Independent TypeScript `tsc --noEmit`                    | Passed                       |
+| Unit/HTTP/CLI/GraphQL/Markdown tests on Bun + SQLite     | 76 passed                    |
+| Shared acceptance suite on a real PostgreSQL 17 service  | 66 passed                    |
+| Production Vite build                                    | Passed                       |
+| Source formatting and tracked generator-output checks    | Passed                       |
+| Repository secret-pattern scan                           | Passed; not a security audit |
+| Storybook production build                               | Passed                       |
+| Storybook interactions and axe accessibility, Chromium   | 13 passed                    |
+| Playwright end-to-end scenarios, Chromium                | 4 passed                     |
+| Playwright comparisons against reviewed visual baselines | 5 passed                     |
 
 The PostgreSQL suite deliberately reuses domain/API/GraphQL cases, so do not sum the two backends as distinct behavioral scenarios. No PostgreSQL fallback to SQLite is accepted by the test harness. The browser job checks creation, Markdown editing, status/filter changes, keyboard command navigation, a 393 px layout and read-only token permissions. It does not yet cover every drag-and-drop path, browser engine or concurrency scenario.
 

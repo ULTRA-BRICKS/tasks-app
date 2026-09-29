@@ -3,6 +3,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
 import { schemas, filters } from '../packages/contracts/schemas.mjs';
+import { TASK_CODE_PATTERN } from '../packages/server/modules/linear-numbering/history.mjs';
 export function toType(schema) {
   if (schema.anyOf) return schema.anyOf.map(toType).join(' | ');
   if (schema.enum) return schema.enum.map((v) => JSON.stringify(v)).join(' | ');
@@ -223,6 +224,13 @@ const operations = [
     'read',
   ],
   [
+    '/v1/issues/pre-canonical/{code}',
+    'get',
+    null,
+    'List every task that held a code before canonical renumbering, with its code chain',
+    'read',
+  ],
+  [
     '/v1/issues/{id}',
     'patch',
     'IssuePatch',
@@ -437,6 +445,14 @@ export function generateOpenAPI() {
         description: path.startsWith('/v1/issues/')
           ? 'Issue UUID or human-readable key, e.g. TKT-42'
           : 'Resource identifier',
+      });
+    if (path.includes('{code}'))
+      operation.parameters.push({
+        name: 'code',
+        in: 'path',
+        required: true,
+        schema: { type: 'string', pattern: TASK_CODE_PATTERN },
+        description: 'Task code as it was before canonical renumbering, e.g. UB-27',
       });
     if (path === '/v1/issues' && method === 'get')
       for (const [name, schema] of Object.entries({
