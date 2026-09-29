@@ -1,6 +1,12 @@
 import { test, expect } from 'bun:test';
 import type { Catalog } from '@tickets/contracts';
-import { peopleDirectory, personOptions, selectedPerson } from '../../src/shared/lib/people';
+import {
+  canonicalPersonValue,
+  identityConflicts,
+  peopleDirectory,
+  personOptions,
+  selectedPerson,
+} from '../../src/shared/lib/people';
 const catalog = () =>
   ({
     people: [{ id: 'member', name: 'Person', email: 'person@example.test' }],
@@ -32,4 +38,47 @@ test('new catalog identity refreshes names without leaking another workspace pro
   expect(peopleDirectory(first)).not.toBe(peopleDirectory(second));
   expect(selectedPerson(second, 'member')?.name).toBe('Updated');
   expect(selectedPerson(first, 'member')?.name).toBe('Person');
+});
+test('every legacy ID resolves to one picker entry while review conflicts and bots stay labeled', () => {
+  const profile = (id: string, name: string, email: string, provider: string, extra = {}) => ({
+    id,
+    name,
+    email,
+    provider,
+    source_id: id,
+    avatar_url: null,
+    ...extra,
+  });
+  const c = {
+    people: [
+      { id: 'ultra', name: 'Ultra', email: 'ultra@example.test', role: 'owner' },
+      { id: 'danny', name: 'Danny', email: 'danny@example.test', role: 'member' },
+    ],
+    source_people: [
+      profile('ultra-linear', 'Ultra L', 'ULTRA@example.test', 'linear'),
+      profile('ultra-slack', 'Ultra S', 'private@example.test', 'slack'),
+      profile('ci-bot', 'CI', 'ultra@example.test', 'slack', { bot: true }),
+      profile('danny-linear-1', 'Danny', 'danny@example.test', 'linear'),
+      profile('danny-linear-2', 'Danny', 'danny@example.test', 'linear'),
+    ],
+    identity_bindings: [
+      { member_id: 'ultra', source_person_id: 'ultra-slack', via: 'slack_user_map' },
+    ],
+  } as Catalog;
+  const options = personOptions(c);
+  expect(options.map((option) => [option.value, option.label, option.description])).toEqual([
+    ['ci-bot', 'CI', 'Bot'],
+    ['danny', 'Danny', 'Member · Needs review'],
+    ['danny-linear-1', 'Danny', 'Linear · Needs review'],
+    ['danny-linear-2', 'Danny', 'Linear · Needs review'],
+    ['ultra', 'Ultra S', undefined],
+  ]);
+  for (const id of ['ultra', 'ultra-linear', 'ultra-slack'])
+    expect(canonicalPersonValue(c, id)).toBe('ultra');
+  for (const id of ['danny', 'danny-linear-1', 'danny-linear-2'])
+    expect(canonicalPersonValue(c, id)).toBe(id);
+  expect(identityConflicts(c)).toMatchObject([
+    { kind: 'same_provider_email', email: 'danny@example.test', providers: ['linear'] },
+  ]);
+  expect(identityConflicts(c)).toBe(identityConflicts(c));
 });

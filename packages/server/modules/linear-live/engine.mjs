@@ -28,6 +28,18 @@ import {
 } from './context.mjs';
 import { sourceReferences, normalizedSource } from './model.mjs';
 import { applyNativePatch, createNativeSource, assignLinearCode } from './domain.mjs';
+const EXPORTERS = Object.freeze({
+  issues: exportNativeIssue,
+  comments: exportNativeComment,
+  projects: exportNativeMetadata,
+  documents: exportNativeMetadata,
+  initiatives: exportNativeMetadata,
+  issueLabels: exportNativeMetadata,
+  workflowStates: exportNativeMetadata,
+  cycles: exportNativeMetadata,
+  projectMilestones: exportNativeMetadata,
+});
+export const NATIVE_EXPORT_COLLECTIONS = Object.freeze(Object.keys(EXPORTERS));
 const ISSUE_REFS = {
   team_id: ['teamId', 'teams'],
   status_id: ['stateId', 'workflowStates'],
@@ -160,6 +172,12 @@ async function ensureDependencies(db, env, job, record, options, seen = new Set(
       { readOnly: true },
     );
     if (known) continue;
+    const pendingExport = await db.transaction(
+      (tx) => readEntityState(tx, job.workspace_id, ref.collection, ref.id),
+      { readOnly: true },
+    );
+    if (pendingExport?.intent?.kind === 'create')
+      throw new SourceError('SYNC_REFERENCE_PENDING', 15);
     const child = await readSourceEntity(env, ref.collection, ref.id, options);
     assert(child, 409, 'SYNC_REFERENCE_MISSING', 'Source dependency is unavailable');
     const childJob = { ...job, data: { ...job.data, collection: ref.collection } };
@@ -250,23 +268,16 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
   try {
     if (job.data.action === 'remove') return await markRemoval(db, env, job, io);
     await verifySourceOrganization(env, job.config.organizationId, io);
-    if (
-      job.data.side === 'native' &&
-      [
-        'issues',
-        'comments',
-        'projects',
-        'documents',
-        'initiatives',
-        'issueLabels',
-        'workflowStates',
-        'cycles',
-        'projectMilestones',
-      ].includes(job.data.collection)
-    ) {
+    if (job.data.side === 'native' && NATIVE_EXPORT_COLLECTIONS.includes(job.data.collection)) {
       const known = await db.transaction(
         (tx) => sourceMapping(tx, job.config, job.data.collection, job.data.sourceId),
         { readOnly: true },
+      );
+      assert(
+        !known || !job.data.targetId || known.target_id === job.data.targetId,
+        409,
+        'SYNC_NATIVE_MAPPING_MISMATCH',
+        'Native job identity differs from its source mapping',
       );
       if (!known) {
         const allowed = await db.transaction(
@@ -287,18 +298,7 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
             return { status: 'out-of-scope' };
           });
       }
-      if (!known)
-        return await {
-          issues: exportNativeIssue,
-          comments: exportNativeComment,
-          projects: exportNativeMetadata,
-          documents: exportNativeMetadata,
-          initiatives: exportNativeMetadata,
-          issueLabels: exportNativeMetadata,
-          workflowStates: exportNativeMetadata,
-          cycles: exportNativeMetadata,
-          projectMilestones: exportNativeMetadata,
-        }[job.data.collection](db, env, job, io);
+      if (!known) return await EXPORTERS[job.data.collection](db, env, job, io);
     }
     let remote = await readSourceEntity(env, job.data.collection, job.data.sourceId, io);
     assert(
@@ -321,6 +321,42 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
         await finishSyncJob(tx, job, { ignored: 'stale-after-removal' });
         return { status: 'stale' };
       });
+    // Source create webhooks can outrun the retry after a lost create response.
+    // A persisted creation intent is identity proof; never allocate a second native copy.
+    if (
+      lifecycle?.intent?.kind === 'create' &&
+      lifecycle.targetId === remote.id &&
+      EXPORTERS[job.data.collection]
+    ) {
+      const known = await db.transaction(
+        (tx) => sourceMapping(tx, job.config, job.data.collection, remote.id),
+        { readOnly: true },
+      );
+      if (!known) {
+        const allowed = await db.transaction(
+          async (tx) =>
+            nativeInScope(
+              tx,
+              job.config,
+              job.data.collection,
+              await loadNative(tx, job.config, job.data.collection, lifecycle.targetId),
+            ),
+          { readOnly: true },
+        );
+        assert(
+          allowed,
+          403,
+          'SYNC_SCOPE_UNAVAILABLE',
+          'Pending export is not in the configured scope',
+        );
+        return await EXPORTERS[job.data.collection](
+          db,
+          env,
+          { ...job, data: { ...job.data, targetId: lifecycle.targetId } },
+          io,
+        );
+      }
+    }
     await ensureDependencies(db, env, job, remote, io);
     let context = await db.transaction(
       (tx) => contextFor(tx, job.config, job.data.collection, remote),

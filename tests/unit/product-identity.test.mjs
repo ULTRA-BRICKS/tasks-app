@@ -9,6 +9,8 @@ test('tasks-app branding and executable alias retain the legacy command', async 
   expect(config.bin['tasks-app']).toBe(config.bin.tickets);
   const html = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
   expect(html).toContain('<title>tasks-app</title>');
+  expect(html).toMatch(/<meta name="description" content="Tasks — [^"]*\btask\b[^"]*"/);
+  expect(html).not.toMatch(/<meta name="description" content="[^"]*\bissues?\b/i);
   const schema = JSON.parse(
     await readFile(new URL('../../docs/openapi.json', import.meta.url), 'utf8'),
   );

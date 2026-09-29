@@ -7,6 +7,7 @@ import * as importFiles from './modules/linear-import/files.mjs';
 import * as knowledge from './modules/knowledge/service.mjs';
 import * as linearImport from './modules/linear-import/service.mjs';
 import { canonicalNumbering } from './modules/linear-numbering/service.mjs';
+import { resolvePreCanonicalCode } from './modules/linear-numbering/history.mjs';
 import { configureSync, readSyncConfig, readSyncStatus } from './modules/linear-live/store.mjs';
 import {
   verifySourceWebhook,
@@ -15,11 +16,12 @@ import {
 } from './modules/linear-live/webhook.mjs';
 import { verifySourceOrganization } from './modules/linear-live/client.mjs';
 import { startReconciliation } from './modules/linear-live/scans.mjs';
+import { retrySyncJobs } from './modules/linear-live/retry.mjs';
 import { dispatchLinearJobs } from './modules/linear-live/dispatch.mjs';
 import { appendLinearRecords } from './modules/linear-import/append.mjs';
 import { queueNativeLinearChange } from './core/linear-events.mjs';
 import { bindLinearSources } from './modules/linear-import/bind.mjs';
-import { listSourcePeople } from './core/source-people.mjs';
+import { identityDirectory } from './core/source-people.mjs';
 import { PRODUCT_NAME, PRODUCT_VERSION } from '../config/product.mjs';
 import { requestPasswordReset, resetPassword } from './modules/identity/password-reset.mjs';
 import {
@@ -268,30 +270,32 @@ export function createApp({
         );
       } else if (path === '/api/v1/catalog' && method === 'GET')
         response = json(
-          await run(true, async (tx, actor) => ({
-            workspace: await tx.one('SELECT * FROM workspaces WHERE id=?', [actor.workspace_id]),
-            counts: await navigationCounts(tx, actor),
-            teams: await tx.all('SELECT * FROM teams WHERE workspace_id=? ORDER BY key', [
-              actor.workspace_id,
-            ]),
-            statuses: await tx.all(
-              'SELECT * FROM statuses WHERE workspace_id=? ORDER BY team_id,position',
-              [actor.workspace_id],
-            ),
-            labels: await tx.all('SELECT * FROM labels WHERE workspace_id=? ORDER BY name', [
-              actor.workspace_id,
-            ]),
-            people: await tx.all(
-              'SELECT u.id,u.name,u.email,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.workspace_id=? ORDER BY u.name',
-              [actor.workspace_id],
-            ),
-            source_people: await listSourcePeople(tx, actor.workspace_id),
-            imported_files: await tx.all(
-              "SELECT f.id,f.source_url,f.status,f.source_status FROM linear_import_files f JOIN linear_imports r ON r.id=f.import_id AND r.workspace_id=f.workspace_id WHERE f.workspace_id=? AND r.status='completed' AND f.status<>'pending' ORDER BY r.completed_at,f.id",
-              [actor.workspace_id],
-            ),
-            modules: await listModules(tx, actor.workspace_id),
-          })),
+          await run(true, async (tx, actor) => {
+            const workspace = actor.workspace_id,
+              identity = await identityDirectory(tx, workspace);
+            return {
+              workspace: await tx.one('SELECT * FROM workspaces WHERE id=?', [workspace]),
+              counts: await navigationCounts(tx, actor),
+              teams: await tx.all('SELECT * FROM teams WHERE workspace_id=? ORDER BY key', [
+                workspace,
+              ]),
+              statuses: await tx.all(
+                'SELECT * FROM statuses WHERE workspace_id=? ORDER BY team_id,position',
+                [workspace],
+              ),
+              labels: await tx.all('SELECT * FROM labels WHERE workspace_id=? ORDER BY name', [
+                workspace,
+              ]),
+              people: identity.inputs.members,
+              source_people: identity.inputs.sources,
+              identity_bindings: identity.bindings,
+              imported_files: await tx.all(
+                "SELECT f.id,f.source_url,f.status,f.source_status FROM linear_import_files f JOIN linear_imports r ON r.id=f.import_id AND r.workspace_id=f.workspace_id WHERE f.workspace_id=? AND r.status='completed' AND f.status<>'pending' ORDER BY r.completed_at,f.id",
+                [workspace],
+              ),
+              modules: await listModules(tx, workspace),
+            };
+          }),
         );
       else if (/^\/api\/v1\/(documents|initiatives)(\/[^/]+)?$/.test(path)) {
         const kind = path.split('/')[3],
@@ -360,6 +364,9 @@ export function createApp({
         });
         await verifySourceOrganization(env, input.organizationId, { deadline: Date.now() + 10000 });
         response = json(await run(false, (tx, a) => configureSync(tx, a, input, env)));
+      } else if (path === '/api/v1/sync/linear/retry' && method === 'POST') {
+        const input = await body(request, schemas.LinearSyncRetry);
+        response = json(await run(false, (tx, a) => retrySyncJobs(tx, a, env, input)));
       } else if (path === '/api/v1/sync/linear/reconcile' && method === 'POST') {
         response = json(
           await run(false, async (tx, a) => {
@@ -702,6 +709,10 @@ export function createApp({
       } else if (path === '/api/v1/issues/bulk' && method === 'PATCH') {
         const input = await body(request, schemas.IssueBulk);
         response = json(await run(false, (tx, a) => tickets.bulkUpdate(tx, a, input.updates)));
+      } else if (/^\/api\/v1\/issues\/pre-canonical\/[^/]+$/.test(path) && method === 'GET') {
+        // Codes are ASCII; any percent-encoded segment is simply not a code, so it is never decoded.
+        const code = path.split('/').at(-1);
+        response = json(await run(true, (tx, a) => resolvePreCanonicalCode(tx, a, code)));
       } else if (/^\/api\/v1\/issues\/[^/]+$/.test(path)) {
         const key = decodeURIComponent(path.split('/').at(-1));
         if (method === 'GET')

@@ -3,6 +3,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
 import { schemas, filters } from '../packages/contracts/schemas.mjs';
+import { TASK_CODE_PATTERN } from '../packages/server/modules/linear-numbering/history.mjs';
 export function toType(schema) {
   if (schema.anyOf) return schema.anyOf.map(toType).join(' | ');
   if (schema.enum) return schema.enum.map((v) => JSON.stringify(v)).join(' | ');
@@ -25,6 +26,13 @@ export function toType(schema) {
   throw new Error('Unrecognized request schema');
 }
 const operations = [
+  [
+    '/v1/sync/linear/retry',
+    'post',
+    'LinearSyncRetry',
+    'Retry selected terminal synchronization jobs without dropping proof',
+    'admin',
+  ],
   ['/v1/sync/linear/status', 'get', null, 'Read bidirectional synchronization status', 'admin'],
   [
     '/v1/sync/linear/configure',
@@ -213,6 +221,13 @@ const operations = [
     'get',
     null,
     'Get issue, comments, history, children, files and relationships',
+    'read',
+  ],
+  [
+    '/v1/issues/pre-canonical/{code}',
+    'get',
+    null,
+    'List every task that held a code before canonical renumbering, with its code chain',
     'read',
   ],
   [
@@ -430,6 +445,14 @@ export function generateOpenAPI() {
         description: path.startsWith('/v1/issues/')
           ? 'Issue UUID or human-readable key, e.g. TKT-42'
           : 'Resource identifier',
+      });
+    if (path.includes('{code}'))
+      operation.parameters.push({
+        name: 'code',
+        in: 'path',
+        required: true,
+        schema: { type: 'string', pattern: TASK_CODE_PATTERN },
+        description: 'Task code as it was before canonical renumbering, e.g. UB-27',
       });
     if (path === '/v1/issues' && method === 'get')
       for (const [name, schema] of Object.entries({

@@ -1,4 +1,5 @@
 import { uuid, targetId } from '../../../imports/linear-source.mjs';
+import { identityDirectory } from '../../core/source-people.mjs';
 
 const fields = [
   ['StateId', 'status', 'workflowStates', 'Not set'],
@@ -9,7 +10,7 @@ const fields = [
   ['ProjectId', 'project', 'projects', 'No project'],
   ['ProjectMilestoneId', 'milestone', 'projectMilestones', 'No milestone'],
   ['CycleId', 'cycle', 'cycles', 'No cycle'],
-  ['ParentId', 'parent issue', 'issues', 'No parent'],
+  ['ParentId', 'parent task', 'issues', 'No parent'],
   ['Estimate', 'estimate', null, 'Not estimated'],
   ['DueDate', 'due date', null, 'No due date'],
 ];
@@ -51,16 +52,20 @@ const unavailable = {
   projects: 'Unavailable project',
   projectMilestones: 'Unavailable milestone',
   cycles: 'Unavailable cycle',
-  issues: 'Unavailable issue',
+  issues: 'Unavailable task',
   issueLabels: 'Unavailable label',
   attachments: 'Unavailable attachment',
 };
 
 // A presentation only: preserve the immutable action code, source payload and timestamps.
-export function describeImportedChange(raw, resolve = (collection) => unavailable[collection]) {
+export function describeImportedChange(
+  raw,
+  resolve = (collection) => unavailable[collection],
+  person = () => '',
+) {
   const event = payload(raw),
     lines = [];
-  if (event.sourceCreated === true) lines.push('created the issue in Linear');
+  if (event.sourceCreated === true) lines.push('created the task in Linear');
   if (event.sourceCommented === true) lines.push('commented in Linear');
   for (const [suffix, label, collection, empty] of fields) {
     const before = valueAt(event, 'from' + suffix),
@@ -70,6 +75,8 @@ export function describeImportedChange(raw, resolve = (collection) => unavailabl
       if (value === null) return empty;
       if (collection)
         return (
+          // A Linear user shown by its canonical Tasks name when the projection knows it.
+          (collection === 'users' && person(object(value) ? value.id : value)) ||
           (object(value) ? text(value.name) : '') ||
           resolve(collection, object(value) ? value.id : value)
         );
@@ -105,7 +112,7 @@ export function describeImportedChange(raw, resolve = (collection) => unavailabl
   // Linear's abbreviated relation operation codes are not an API contract: do not invent their meaning.
   if (list(event.relationChanges).length) {
     lines.push(
-      'updated issue links' +
+      'updated task links' +
         (related.length
           ? ': ' +
             related.slice(0, 8).join(', ') +
@@ -113,12 +120,12 @@ export function describeImportedChange(raw, resolve = (collection) => unavailabl
           : ''),
     );
   }
-  if (event.archived === true) lines.push('archived the issue');
-  else if (event.archived === false) lines.push('restored the issue from the archive');
-  if (event.trashed === true) lines.push('moved the issue to trash');
-  else if (event.trashed === false) lines.push('restored the issue from trash');
+  if (event.archived === true) lines.push('archived the task');
+  else if (event.archived === false) lines.push('restored the task from the archive');
+  if (event.trashed === true) lines.push('moved the task to trash');
+  else if (event.trashed === false) lines.push('restored the task from trash');
   const unique = [...new Set(lines)];
-  return { summary: unique[0] ?? 'updated the issue in Linear', details: unique.slice(1) };
+  return { summary: unique[0] ?? 'updated the task in Linear', details: unique.slice(1) };
 }
 
 function references(events) {
@@ -156,16 +163,16 @@ function sourceName(collection, record) {
   return text(label) || unavailable[collection];
 }
 const nativeActions = {
-  created: 'created the issue',
-  updated: 'updated the issue',
-  deleted: 'moved the issue to trash',
-  restored: 'restored the issue',
+  created: 'created the task',
+  updated: 'updated the task',
+  deleted: 'moved the task to trash',
+  restored: 'restored the task',
   commented: 'added a comment',
-  linked: 'linked an issue',
-  unlinked: 'removed an issue link',
+  linked: 'linked a task',
+  unlinked: 'removed a task link',
   'edited comment': 'edited a comment',
   attached: 'attached a file',
-  archived: 'archived the issue',
+  archived: 'archived the task',
 };
 export async function presentActivity(tx, workspace, issueId, rows, links = []) {
   const parsed = rows.map((row) => ({ ...row, data: payload(row.data) }));
@@ -203,18 +210,28 @@ export async function presentActivity(tx, workspace, issueId, rows, links = []) 
   }
   const resolve = (collection, key) =>
     lookup.get(collection + ':' + key) ?? unavailable[collection];
+  const mentionsPeople = imported.some((row) =>
+    fields.some(
+      ([suffix, , collection]) =>
+        collection === 'users' &&
+        (valueAt(row.data, 'from' + suffix) ?? valueAt(row.data, 'to' + suffix)) !== null,
+    ),
+  );
+  const directory = mentionsPeople ? await identityDirectory(tx, workspace) : null;
+  // Payloads name Linear user IDs (source_id), not stored person IDs; issueDetails names the row actor.
+  const person = (key) => directory?.bySource.get('linear:' + key)?.name ?? '';
   return parsed.map((row) =>
     row.action === 'linear_imported_change'
       ? {
           ...row,
-          ...describeImportedChange(row.data, resolve),
+          ...describeImportedChange(row.data, resolve, person),
           actor_name: row.actor_source_id ? row.actor_name : 'Linear',
         }
       : {
           ...row,
           summary: Object.hasOwn(nativeActions, row.action)
             ? nativeActions[row.action]
-            : 'updated the issue',
+            : 'updated the task',
           details: [],
         },
   );

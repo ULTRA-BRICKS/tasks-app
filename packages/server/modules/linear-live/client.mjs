@@ -234,7 +234,7 @@ export async function readSourcePage(
         .join(',') +
       '}}';
   }
-  const query = `query SyncPage($after:String){${definition.many}(first:${limit},after:$after,includeArchived:true${filter}){nodes{id updatedAt}pageInfo{hasNextPage endCursor}}}`;
+  const query = `query SyncPage($after:String){${definition.many}(first:${limit},after:$after,includeArchived:true${filter}){nodes{id updatedAt archivedAt${collection === 'issues' ? ' identifier' : ''}}pageInfo{hasNextPage endCursor}}}`;
   const result = (await requestLinear(env, query, { after: cursor }, options))[definition.many];
   assert(
     result && Array.isArray(result.nodes) && typeof result.pageInfo?.hasNextPage === 'boolean',

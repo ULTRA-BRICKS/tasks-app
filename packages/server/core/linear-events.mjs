@@ -8,7 +8,7 @@ export async function queueNativeLinearChange(tx, actor, collection, targetIdVal
   const settings = config ? JSON.parse(config.config) : null;
   if (!settings?.enabled) return;
   const organization = settings.organizationId;
-  const mapped = await tx.one(
+  const mapped = await tx.all(
     'SELECT source_id FROM linear_source_map WHERE workspace_id=? AND source_workspace_id=? AND collection=? AND target_id=?',
     [actor.workspace_id, organization, collection, targetIdValue],
   );
@@ -16,7 +16,7 @@ export async function queueNativeLinearChange(tx, actor, collection, targetIdVal
     kind: 'entity',
     collection,
     targetId: targetIdValue,
-    sourceId: mapped?.source_id ?? targetIdValue,
+    sourceId: mapped.length === 1 ? mapped[0].source_id : targetIdValue,
     side: 'native',
     revision,
   };

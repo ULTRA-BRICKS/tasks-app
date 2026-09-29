@@ -187,7 +187,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
               body: draft.description,
               key: issue.key,
               path: '/tasks/' + issue.id,
-              kind: 'issue',
+              kind: issue.kind === 'epic' ? 'epic' : 'task',
             })}
           />
           <Button
@@ -285,8 +285,9 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
               </Button>
             </section>
           )}
-          {mutation.error && <ErrorState message={errorMessage(mutation.error)} />}{' '}
-          {localError && <ErrorState message={localError} />}
+          {(localError || mutation.error) && (
+            <ErrorState message={localError || errorMessage(mutation.error)} />
+          )}
           <section
             className={'detail-section' + (issue.children.length ? '' : ' empty-detail-section')}
           >
