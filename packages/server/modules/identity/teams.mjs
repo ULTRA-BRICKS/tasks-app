@@ -68,7 +68,7 @@ export async function removeEmptyTeam(tx, actor, id, input) {
     team.can_delete,
     409,
     'TEAM_NOT_EMPTY',
-    'Move the linked issues, projects and cycles before deleting this team. No related data was removed.',
+    'Move the linked tasks, projects and cycles before deleting this team. No related data was removed.',
     team.linked,
   );
   await tx.exec('DELETE FROM statuses WHERE workspace_id=? AND team_id=?', [

@@ -420,6 +420,21 @@ button {
   margin: var(--space-12);
   font-size: var(--font-size-12);
 }
+/* Recovery sits under the message so a long error never squeezes it into a side column. */
+.error-state-body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-8);
+}
+@media (max-width: 767px) {
+  .error-state-body > button {
+    align-self: stretch;
+    min-height: var(--mobile-tap);
+  }
+}
 .stack-form .error-state {
   margin: 0;
 }

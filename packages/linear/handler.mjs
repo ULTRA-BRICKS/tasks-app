@@ -82,7 +82,7 @@ function errorShape(error) {
     original instanceof AppError || (error instanceof GraphQLError && !error.originalError);
   const status = original.status;
   return {
-    message: known ? error.message : 'Request could not be completed',
+    message: known ? (original.linearMessage ?? error.message) : 'Request could not be completed',
     ...(error.locations ? { locations: error.locations } : {}),
     ...(error.path ? { path: error.path } : {}),
     extensions: {

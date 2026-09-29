@@ -10,7 +10,11 @@ export class AppError extends Error {
 export function assert(condition, status, code, message, details) {
   if (!condition) throw new AppError(status, code, message, details);
 }
-export const missing = (thing = 'Resource') => new AppError(404, 'NOT_FOUND', `${thing} not found`);
+// `linearType` keeps /graphql on Linear's type vocabulary when the product noun differs (Task vs Issue).
+export const missing = (thing = 'Resource', linearType = thing) =>
+  Object.assign(new AppError(404, 'NOT_FOUND', `${thing} not found`), {
+    linearMessage: `${linearType} not found`,
+  });
 export function conflict(current) {
   throw new AppError(
     409,
