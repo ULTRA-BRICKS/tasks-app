@@ -1,6 +1,6 @@
 # Agent session failures and safe continuation
 
-Updated: 2026-09-13. Read this file and WORK-CHECKPOINT.md before every request, including «продолжай».
+Updated: 2026-09-29. Read this file and WORK-CHECKPOINT.md before every request, including «продолжай».
 
 ## Observed failures: do not collapse these into one diagnosis
 
@@ -11,6 +11,7 @@ Updated: 2026-09-13. Read this file and WORK-CHECKPOINT.md before every request,
 5. Shared-worktree races: edits and tests overlapped; duplicate helpers and duplicate regression tests appeared. Only one agent writes a given worktree. Review agents are read-only and must not start browser suites. Reuse the designated current worktree rather than creating overlapping release branches.
 6. Excessive output: reading/minified-grep calls dumped hundreds of lines and bundled JavaScript. Keep tool replies under about 120 lines/8 KB, log verbose output to disk, and read summaries. Bound searches to relevant paths; never print private env/config values.
 7. Missing checkpoints and overlong cycles: work continued for tens of minutes with repeated whole-release reviews, without a stable resumption point. Complete one bounded change, test it, record exact result/SHA/PID, then proceed. Re-review findings and changed code, not already settled unrelated scope.
+8. Host overload changes browser results: on 29 September a load average above 100 on a 14-core host made popup focus and document creation slower than test timeouts. With `CI=true`, Playwright retries start fresh workers that sign in again, so a few slow failures exhausted the real login limit and cascaded into unrelated sign-in failures. Agent shells can export `CI=true` themselves (verified on 29 September); run local browser suites as `env -u CI bun run test:e2e …`. Stop that run, record it as unfinished, fix only genuine test races, rerun the affected specs, then rerun the whole suite. Never raise the login limit or disable retries to hide it.
 
 ## What is NOT proven
 
@@ -41,3 +42,9 @@ HTTP 429 and Retry-After: https://developer.mozilla.org/en-US/docs/Web/HTTP/Refe
 OpenAI general troubleshooting describes several possible causes, not a diagnosis of this incident: https://help.openai.com/en/articles/7996703-troubleshooting-chatgpt-error-messages
 
 Browser storage limits: https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria . Never clear browser site data as routine troubleshooting while unsent drafts remain only there; export first.
+
+## 26 September: verified handoff regression and correction
+
+`WORK-CHECKPOINT.md` had reverted to a tracked 13 September draft record while live Git was on the 26 September calendar branch. The canonical resumption record now lives outside every Git worktree at `/Users/ultra/xp/.tasks-work-evidence/tasks-app-continuity/CURRENT.json` (human view: `CURRENT.md`). Always read and verify it before trusting this tracked checkpoint; branch/HEAD/hash mismatch invalidates old assumptions. Preserve archived evidence before replacing a checkpoint.
+
+Keep incident diagnosis bounded too: one source/process/log readback, then a durable finding and an explicit user-visible result. Do not turn a complaint about repeated long interruptions into another unbounded cross-feature implementation/review session. Report long conversation size as a risk hypothesis, never as a proven internal ChatGPT failure. Details and original evidence paths: `docs/INTERRUPTION-RECOVERY.md`.
