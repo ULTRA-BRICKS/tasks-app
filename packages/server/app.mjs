@@ -569,21 +569,32 @@ export function createApp({
       } else if (path === '/api/v1/labels' && method === 'POST') {
         const input = await body(request, schemas.Label);
         response = json(
-          await run(false, async (tx, a) => {
-            requirePermission(a, 'write');
-            const row = {
-              id: id(),
-              workspace_id: a.workspace_id,
-              name: input.name.trim(),
-              color: input.color,
-            };
-            await tx.exec(
-              'INSERT INTO labels(id,workspace_id,name,color) VALUES(?,?,?,?)',
-              Object.values(row),
-            );
-            await queueNativeLinearChange(tx, a, 'issueLabels', row.id, 1);
-            return row;
-          }),
+          await run(false, (tx, a) =>
+            createIdempotently(
+              tx,
+              a,
+              {
+                key: request.headers.get('idempotency-key'),
+                operation: 'label:create',
+                module: 'tickets',
+                input,
+              },
+              async () => {
+                const row = {
+                  id: id(),
+                  workspace_id: a.workspace_id,
+                  name: input.name.trim(),
+                  color: input.color,
+                };
+                await tx.exec(
+                  'INSERT INTO labels(id,workspace_id,name,color) VALUES(?,?,?,?)',
+                  Object.values(row),
+                );
+                await queueNativeLinearChange(tx, a, 'issueLabels', row.id, 1);
+                return row;
+              },
+            ),
+          ),
           201,
         );
       } else if (path === '/api/v1/invitations' && method === 'GET') {
@@ -846,7 +857,22 @@ export function createApp({
         );
       else if (path === '/api/v1/milestones' && method === 'POST') {
         const input = await body(request, schemas.Milestone);
-        response = json(await run(false, (tx, a) => planning.createMilestone(tx, a, input)), 201);
+        response = json(
+          await run(false, (tx, a) =>
+            createIdempotently(
+              tx,
+              a,
+              {
+                key: request.headers.get('idempotency-key'),
+                operation: 'milestone:create',
+                module: 'planning',
+                input,
+              },
+              () => planning.createMilestone(tx, a, input),
+            ),
+          ),
+          201,
+        );
       } else if (path === '/api/v1/cycles' && method === 'GET')
         response = json(
           await run(true, async (tx, a) => {

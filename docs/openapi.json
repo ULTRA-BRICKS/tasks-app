@@ -2271,7 +2271,17 @@
             "description": "Provider or production configuration missing"
           }
         },
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "description": "Optional stable key. Reusing with a different body returns 409."
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -3913,7 +3923,17 @@
             "description": "Provider or production configuration missing"
           }
         },
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "description": "Optional stable key. Reusing with a different body returns 409."
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
