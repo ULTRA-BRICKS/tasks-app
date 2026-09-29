@@ -23,9 +23,17 @@ export interface ComboboxCreated {
   value: string;
   notice?: string;
 }
+/** A command listed before the options (for example `View profile`); it never becomes a value. */
+export interface ComboboxAction {
+  label: string;
+  icon?: ReactNode;
+  onSelect: () => void;
+}
 interface Item extends Option {
   /** Visible text of the Create action; only the Create item has it. */
   action?: string;
+  /** Present only on command items. */
+  command?: ComboboxAction;
 }
 interface SharedProps {
   options: Option[];
@@ -36,6 +44,8 @@ interface SharedProps {
   /** Accessible name of the search field; defaults to `Search <field>`. */
   searchLabel?: string;
   create?: ComboboxCreate;
+  /** Commands shown while the query is empty; choosing one runs it and keeps the value. */
+  actions?: ComboboxAction[];
 }
 interface SingleProps extends SharedProps {
   multiple?: false;
@@ -47,8 +57,9 @@ interface MultipleProps extends SharedProps {
   value: string[];
   onChange: (value: string[]) => void;
 }
-// U+0000 cannot occur in server identifiers, so the action never collides with a real option.
-const createValue = '\u0000create';
+// U+0000 cannot occur in server identifiers, so these items never collide with a real option.
+const createValue = '\u0000create',
+  commandValue = '\u0000command';
 
 export function Combobox(props: SingleProps | MultipleProps) {
   const {
@@ -59,6 +70,7 @@ export function Combobox(props: SingleProps | MultipleProps) {
     triggerContent,
     searchLabel = 'Search ' + props['aria-label'].toLowerCase(),
     create,
+    actions,
   } = props;
   const [open, setOpen] = useState(false),
     [query, setQuery] = useState(''),
@@ -81,10 +93,15 @@ export function Combobox(props: SingleProps | MultipleProps) {
       ? create.label(typed)
       : null;
   const unavailable = create?.unavailable;
-  const items = useMemo<Item[]>(
-    () => (action ? [...options, { value: createValue, label: typed, action }] : options),
-    [options, action, typed],
-  );
+  const items = useMemo<Item[]>(() => {
+    const commands = (actions ?? []).map((command, index) => ({
+      value: commandValue + index,
+      label: command.label,
+      command,
+    }));
+    const listed = commands.length ? [...commands, ...options] : options;
+    return action ? [...listed, { value: createValue, label: typed, action }] : listed;
+  }, [actions, options, action, typed]);
   const collection = useMemo(
     () =>
       BaseCombobox.createItems(items, {
@@ -136,8 +153,16 @@ export function Combobox(props: SingleProps | MultipleProps) {
       multiple={props.multiple}
       value={props.value}
       onValueChange={(next: string | string[] | null, details) => {
-        const chosen = Array.isArray(next) ? next.includes(createValue) : next === createValue;
-        if (chosen) {
+        const values = Array.isArray(next) ? next : [next];
+        const command = items.find((item) => item.command && values.includes(item.value))?.command;
+        if (command) {
+          // A command is never a value: cancel the change, close and run it.
+          details.cancel();
+          setOpen(false);
+          command.onSelect();
+          return;
+        }
+        if (values.includes(createValue)) {
           // Choosing Create is the only write trigger; it never becomes a selected value.
           details.cancel();
           void runCreate();
@@ -160,7 +185,10 @@ export function Combobox(props: SingleProps | MultipleProps) {
           setFeedback(null);
         }
       }}
-      filter={(item: Item, search) => Boolean(item.action) || contains(item.label, search)}
+      // Commands only lead an empty query, so Enter after typing always picks a match.
+      filter={(item: Item, search) =>
+        item.command ? search.trim() === '' : Boolean(item.action) || contains(item.label, search)
+      }
       disabled={disabled}
       autoHighlight
     >
@@ -187,7 +215,16 @@ export function Combobox(props: SingleProps | MultipleProps) {
             <BaseCombobox.Empty className="combobox-empty">No matches</BaseCombobox.Empty>
             <BaseCombobox.List className="combobox-list" aria-label={label}>
               {(item: Item) =>
-                item.action ? (
+                item.command ? (
+                  <BaseCombobox.Item
+                    key={item.value}
+                    value={item.value}
+                    className="picker-item combobox-command"
+                  >
+                    {item.command.icon && <span aria-hidden="true">{item.command.icon}</span>}
+                    <span className="picker-item-text">{item.label}</span>
+                  </BaseCombobox.Item>
+                ) : item.action ? (
                   <BaseCombobox.Item
                     key={createValue}
                     value={createValue}
@@ -226,6 +263,9 @@ export function Combobox(props: SingleProps | MultipleProps) {
                       </span>
                     )}
                     <span className="picker-item-text">{item.label}</span>
+                    {item.description && (
+                      <span className="picker-item-description">{item.description}</span>
+                    )}
                     <BaseCombobox.ItemIndicator>
                       <Check size={13} />
                     </BaseCombobox.ItemIndicator>

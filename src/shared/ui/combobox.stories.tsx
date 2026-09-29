@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within, waitFor } from 'storybook/test';
+import { UserRound } from 'lucide-react';
 import { Combobox, type ComboboxCreate, type Option } from './index';
 
 const meta = {
@@ -104,6 +105,8 @@ const people: Option[] = [
   { value: 'none', label: 'Unassigned' },
   { value: 'ada', label: 'Ada Lovelace', avatar_url: '/favicon.svg' },
   { value: 'grace', label: 'Grace Hopper', avatar_url: null },
+  // Same display name from another source: the description tells them apart.
+  { value: 'grace-slack', label: 'Grace Hopper', description: 'Slack', avatar_url: null },
 ];
 function AssigneeField() {
   const [value, setValue] = useState('none');
@@ -124,6 +127,10 @@ export const PeopleShowAvatars: Story = {
     const grace = await page.findByRole('option', { name: 'Grace Hopper' });
     await expect(grace.querySelector('.avatar')).toHaveTextContent('GH');
     await expect(page.queryByRole('option', { name: 'Ada Lovelace' })).not.toBeInTheDocument();
+    await expect(page.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'GHGrace Hopper',
+      'GHGrace HopperSlack',
+    ]);
     await userEvent.clear(page.getByRole('combobox', { name: 'Search assignee' }));
     const ada = await page.findByRole('option', { name: 'Ada Lovelace' });
     // Photo loading is covered in the browser suite; here the option carries the person's avatar.
@@ -363,6 +370,76 @@ export const OfflineCreateIsUnavailable: CreateStory = {
     await userEvent.click(option);
     await userEvent.keyboard('{Enter}');
     await expect(onCreate).not.toHaveBeenCalled();
+  },
+};
+
+interface ActionArgs {
+  onViewProfile: () => void;
+}
+function AssigneeWithProfile({ onViewProfile }: ActionArgs) {
+  const [value, setValue] = useState('');
+  const people: Option[] = [
+    { value: '', label: 'No assignee' },
+    { value: 'ana', label: 'Ana Ivanova' },
+    { value: 'boris', label: 'Boris Petrov' },
+  ];
+  return (
+    <>
+      <Combobox
+        aria-label="Assignee"
+        value={value}
+        onChange={setValue}
+        options={people}
+        actions={[
+          { label: 'View profile', icon: <UserRound size={13} />, onSelect: onViewProfile },
+        ]}
+      />
+      <p data-testid="value">{value || 'none'}</p>
+    </>
+  );
+}
+
+export const LeadingActionIsNeverSaved: StoryObj<ActionArgs> = {
+  args: { onViewProfile: fn() },
+  render: (args) => <AssigneeWithProfile onViewProfile={args.onViewProfile} />,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement),
+      page = body(canvasElement);
+    await openSearch(canvasElement, 'Assignee');
+    // The command leads the list while nothing is typed.
+    await waitFor(() =>
+      expect(page.getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'View profile',
+        'No assignee',
+        'Ana Ivanova',
+        'Boris Petrov',
+      ]),
+    );
+    // Typing searches people only, so Enter can never run the command by accident.
+    await userEvent.keyboard('ana');
+    await waitFor(() =>
+      expect(page.getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'Ana Ivanova',
+      ]),
+    );
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(canvas.getByTestId('value')).toHaveTextContent('ana'));
+    await expect(args.onViewProfile).not.toHaveBeenCalled();
+
+    // Enter straight after opening never runs the leading command either.
+    await openSearch(canvasElement, 'Assignee');
+    await userEvent.keyboard('{Enter}');
+    await expect(args.onViewProfile).not.toHaveBeenCalled();
+    await expect(canvas.getByTestId('value')).toHaveTextContent('ana');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(page.queryByRole('listbox')).not.toBeInTheDocument());
+
+    await openSearch(canvasElement, 'Assignee');
+    await userEvent.click(await page.findByRole('option', { name: 'View profile' }));
+    await expect(args.onViewProfile).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(page.queryByRole('listbox')).not.toBeInTheDocument());
+    // Choosing the command never changes the saved value.
+    await expect(canvas.getByTestId('value')).toHaveTextContent('ana');
   },
 };
 

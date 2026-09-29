@@ -23,6 +23,7 @@ Use search in appropriate selectors and permit creating a typed missing value wh
 - IME: Base UI ignores Enter while composing (`keyCode 229`) and keeps the composing text out of controlled updates; no option is chosen and nothing is created until composition ends.
 - People: options render the avatar (image or initials) beside the name; search matches the displayed name.
 - Multiple mode (labels) keeps the popup open after each toggle and shows a check for selected values; label options show their colour swatch.
+- Commands (`actions`): non-value items such as `View profile` lead the list while the query is empty and hide as soon as the person types, so Enter after a search always picks a match. Choosing one closes the popup and runs its `onSelect`; it is never selected, saved or checked, and the value does not change. UB-77 uses this for the assignee picker's profile link.
 
 ## Per-field eligibility
 
