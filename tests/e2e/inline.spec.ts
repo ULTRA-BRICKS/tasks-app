@@ -75,9 +75,8 @@ test('estimate and dates chosen during inline creation persist on the server', a
     ['Start date', '2026-10-01'],
     ['Due date', '2026-10-08'],
   ]) {
-    await page.getByRole('button', { name, exact: true }).click();
-    await page.getByLabel(name + ' value', { exact: true }).fill(value);
-    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    await page.getByRole('textbox', { name, exact: true }).fill(value);
+    await page.getByRole('textbox', { name, exact: true }).press('Enter');
   }
   await page.getByRole('button', { name: 'Create task', exact: true }).click();
   await expect(page).toHaveURL(/\/tasks\/(?!new)[^/]+$/);
@@ -163,9 +162,8 @@ test('project and cycle creation use document pages and persist inline name edit
         ['Start date', '2026-10-01'],
         ['End date', '2026-10-14'],
       ]) {
-        await page.getByRole('button', { name, exact: true }).click();
-        await page.getByLabel(name + ' value', { exact: true }).fill(value);
-        await page.getByRole('button', { name: 'Apply', exact: true }).click();
+        await page.getByRole('textbox', { name, exact: true }).fill(value);
+        await page.getByRole('textbox', { name, exact: true }).press('Enter');
       }
     }
     await page
@@ -315,7 +313,9 @@ test('command menu works inside text editors without treating ordinary letters a
   const title = page.getByRole('textbox', { name: 'Title', exact: true });
   await title.focus();
   await page.keyboard.press('Control+k');
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(
+    page.getByRole('combobox', { name: 'Search commands and tasks', exact: true }),
+  ).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(title).toHaveValue('Editor command menu');
@@ -461,9 +461,12 @@ test('extended Markdown Escape cancels and command menu works from the source ed
   await expect(editor).toHaveValue(description);
   await editor.focus();
   await editor.press('Control+k');
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(
+    page.getByRole('combobox', { name: 'Search commands and tasks', exact: true }),
+  ).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(editor).toHaveValue(description);
   expect((await (await page.request.get('/api/v1/issues/' + issue.id)).json()).description).toBe(
     description,
   );
