@@ -48,16 +48,29 @@ export const TitleKeyboard: Story = {
     await waitFor(() => expect(c.getByLabelText('Commit count')).toHaveTextContent('1'));
   },
 };
-export const SourcePreservation: Story = {
-  render: () => <Example source={'Before\n\n[guide]: https://example.com\n\nAfter'} />,
+const STRUCTURED =
+  '## Acceptance criteria\n\n- [ ] Headings render as rich text.\n\nBefore <Routes> after\n\n[guide]: https://example.com';
+export const StructuredMarkdown: Story = {
+  render: () => <Example source={STRUCTURED} />,
   play: async ({ canvasElement }) => {
     const c = within(canvasElement),
       body = await c.findByRole('textbox', { name: 'Description' });
-    await expect(body).toHaveValue('Before\n\n[guide]: https://example.com\n\nAfter');
-    await userEvent.click(body);
-    await userEvent.type(body, ' additional');
+    await expect(body).toHaveAttribute('contenteditable', 'true');
+    await expect(within(body).getByRole('heading', { name: 'Acceptance criteria' })).toBeVisible();
+    const preserved = within(body).getByText('[guide]: https://example.com');
+    await expect(preserved).toHaveAttribute('contenteditable', 'false');
+    await expect(within(body).getByText('<Routes>')).toHaveAttribute('contenteditable', 'false');
+    await expect(c.queryByText(/extended Markdown/)).not.toBeInTheDocument();
+    await userEvent.click(within(body).getByText('Before', { exact: false }));
+    await userEvent.keyboard(' additional');
     await userEvent.keyboard('{Escape}');
-    await expect(body).toHaveValue('Before\n\n[guide]: https://example.com\n\nAfter');
+    await expect(body).not.toHaveTextContent('additional');
+    await expect(within(body).getByText('[guide]: https://example.com')).toBeVisible();
+    await expect(c.getByLabelText('Commit count')).toHaveTextContent('0');
+    await userEvent.click(
+      within(body).getByRole('checkbox', { name: 'Headings render as rich text.' }),
+    );
+    await waitFor(() => expect(c.getByLabelText('Commit count')).toHaveTextContent('1'));
   },
 };
 export const ReadOnly: Story = {
