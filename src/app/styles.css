@@ -3966,7 +3966,9 @@ button,
     position: sticky;
     top: 0;
     z-index: var(--z-page-header);
-    background: color-mix(in srgb, var(--color-canvas) 84%, transparent);
+    /* Dense enough that rows scrolled beneath stay unreadable where no backdrop blur is painted
+       (automated WebKit); at 84% the Settings tab labels read through the title strip. */
+    background: color-mix(in srgb, var(--color-canvas) 96%, transparent);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
   }

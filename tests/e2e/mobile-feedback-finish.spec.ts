@@ -467,3 +467,65 @@ test('a pending preview action keeps keyboard focus in the toolbar and reports f
   await page.keyboard.press('ArrowLeft');
   await expect(open).toBeFocused();
 });
+
+/** Largest per-channel difference between two same-size PNG screenshots, decoded by the page. */
+function maxChannelDifference(page: Page, a: Buffer, b: Buffer) {
+  return page.evaluate(
+    async (images) => {
+      const pixels = await Promise.all(
+        images.map(async (base64) => {
+          const blob = await (await fetch(`data:image/png;base64,${base64}`)).blob();
+          const bitmap = await createImageBitmap(blob);
+          const canvas = document.createElement('canvas');
+          canvas.width = bitmap.width;
+          canvas.height = bitmap.height;
+          const context = canvas.getContext('2d')!;
+          context.drawImage(bitmap, 0, 0);
+          return context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+        }),
+      );
+      let max = 0;
+      for (let i = 0; i < pixels[0].length; i++)
+        if (i % 4 !== 3) max = Math.max(max, Math.abs(pixels[0][i] - pixels[1][i]));
+      return max;
+    },
+    [a.toString('base64'), b.toString('base64')],
+  );
+}
+
+// 12 of 255 per channel is a contrast ratio of about 1.1:1 against the dark canvas: nothing
+// beneath the header reads as text, even where the engine paints no backdrop blur.
+const BLEED_THROUGH_LIMIT = 12;
+
+test('the sticky page header keeps settings tabs scrolled beneath it unreadable', async ({
+  page,
+}, info) => {
+  await login(page);
+  await page.goto('/settings');
+  await page
+    .locator('.settings-tabs')
+    .getByRole('button', { name: 'Modules', exact: true })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Only what your team needs.' })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        window.scrollTo(0, 40);
+        return window.scrollY;
+      }),
+    )
+    .toBe(40);
+  const header = page.locator('.page-toolbar');
+  await settle(header);
+  const box = (await header.boundingBox())!;
+  const tabs = (await page.locator('.settings-tabs').boundingBox())!;
+  // The tab labels must really be beneath the header's lower strip, or the check proves nothing.
+  expect(tabs.y).toBeLessThan(box.y + box.height - 8);
+  expect(tabs.y + tabs.height).toBeGreaterThan(box.y + box.height);
+  const clip = { x: 0, y: box.y + box.height - 24, width: box.width, height: 24 };
+  const beneath = await page.screenshot({ clip, animations: 'disabled' });
+  await page.screenshot({ animations: 'disabled', path: info.outputPath('settings-header.png') });
+  await page.addStyleTag({ content: '.settings-tabs { visibility: hidden !important; }' });
+  const empty = await page.screenshot({ clip, animations: 'disabled' });
+  expect(await maxChannelDifference(page, beneath, empty)).toBeLessThanOrEqual(BLEED_THROUGH_LIMIT);
+});
