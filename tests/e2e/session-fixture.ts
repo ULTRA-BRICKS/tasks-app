@@ -20,3 +20,16 @@ export async function login(page: Page) {
   await expect(page.getByTestId('issue-row').first()).toBeVisible();
   session = await page.context().cookies();
 }
+/** Replaces the page's clipboard; each write lands in `document.documentElement.dataset.copied`. */
+export function stubClipboard(page: Page) {
+  return page.evaluate(() =>
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          document.documentElement.dataset.copied = text;
+        },
+      },
+    }),
+  );
+}
