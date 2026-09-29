@@ -13,7 +13,7 @@ import {
   EmptyState,
   DocumentText,
 } from '@/shared/ui';
-import { useCatalog, useMe, useProjects } from '@/entities/workspace';
+import { useCatalog, useMe, useProjects, PersonChip } from '@/entities/workspace';
 import { useKnowledgeDraft, setKnowledgeArchive, type Knowledge, type Kind } from './model';
 
 const noun = (kind: Kind) => (kind === 'documents' ? 'document' : 'initiative');
@@ -252,13 +252,19 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
                   }))}
                   onChange={(status) => property({ status })}
                 />
-                <Combobox
-                  aria-label="Owner"
-                  value={canonicalPersonValue(catalog, model.draft.owner_id)}
-                  disabled={disabled}
-                  options={[{ value: 'none', label: 'No owner' }, ...personOptions(catalog)]}
-                  onChange={(value) => property({ owner_id: value === 'none' ? null : value })}
-                />
+                <span className="knowledge-person">
+                  {model.draft.owner_id && (
+                    // The owner's avatar opens their card; the picker stays the value editor.
+                    <PersonChip id={model.draft.owner_id} />
+                  )}
+                  <Combobox
+                    aria-label="Owner"
+                    value={canonicalPersonValue(catalog, model.draft.owner_id)}
+                    disabled={disabled}
+                    options={[{ value: 'none', label: 'No owner' }, ...personOptions(catalog)]}
+                    onChange={(value) => property({ owner_id: value === 'none' ? null : value })}
+                  />
+                </span>
               </>
             )}
           </div>

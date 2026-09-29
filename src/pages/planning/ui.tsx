@@ -3,7 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, FolderKanban, CalendarRange, PanelLeft, ArrowUpRight, Flag } from 'lucide-react';
 import type { Project } from '@tickets/contracts';
-import { useCatalog, useProjects, useCycles, useMe, moduleEnabled } from '@/entities/workspace';
+import {
+  useCatalog,
+  useProjects,
+  useCycles,
+  useMe,
+  moduleEnabled,
+  PersonChip,
+} from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
 import {
   Button,
@@ -11,7 +18,6 @@ import {
   EmptyState,
   ErrorState,
   Loading,
-  Avatar,
   PressPreview,
   Markdown,
   ActionMenu,
@@ -166,8 +172,7 @@ export function PlanningPage({ kind }: { kind: 'projects' | 'cycles' }) {
 }
 function ProjectCard({ project }: { project: Project }) {
   const navigate = useNavigate();
-  const { data: catalog } = useCatalog(),
-    { data: me } = useMe(),
+  const { data: me } = useMe(),
     client = useQueryClient();
   const mutation = useMutation({
     mutationFn: (health: string) =>
@@ -239,7 +244,7 @@ function ProjectCard({ project }: { project: Project }) {
             <Flag size={13} />
             {formatDate(project.target_date)}
           </span>
-          <Avatar name={catalog?.people.find((p) => p.id === project.lead_id)?.name} />
+          <PersonChip id={project.lead_id} />
         </footer>
         {mutation.error && <ErrorState message={errorMessage(mutation.error)} />}
       </article>

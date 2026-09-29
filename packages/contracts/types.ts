@@ -121,6 +121,8 @@ export interface Issue {
 export interface Comment {
   id: Id;
   author_id: Id;
+  // Imported source person, when the comment came from another tracker (author_id is the importer).
+  author_source_id?: Id | null;
   author_name: string;
   body: string;
   created_at: string;
