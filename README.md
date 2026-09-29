@@ -56,15 +56,15 @@ Explicit local demo credentials: `demo@example.test` / `local-demo-password`. Re
 
 ## Modules
 
-| Module | Implemented behavior |
-| --- | --- |
-| Identity | Workspaces, teams, owner/admin/member/viewer roles, password sessions, scoped expiring tokens, invitations and exact-domain invitation policy. |
-| Tickets | Identifiers, statuses, labels, assignees, priorities, Markdown, dates, estimates, comments, activity, epics/subissues, blocking/related/duplicate links, archive and soft deletion. |
-| Planning | Projects, leads, health/status, dates, milestones, team cycles and versioned edits. Projects/cycles use shared inline document pages. |
-| Views | Search, URL filters, list/board modes, ordering, bulk updates and saved views. |
-| Notifications | Subscriptions and in-app notifications. |
-| Attachments | Authenticated private local, S3/R2 or Vercel Blob storage; size/MIME checks and workspace limits. |
-| Provider integrations | Signed GitHub/Slack events, deduplication and durable inbox/outbox. Own provider credentials/installations are required for live delivery. |
+| Module                | Implemented behavior                                                                                                                                                                |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity              | Workspaces, teams, owner/admin/member/viewer roles, password sessions, scoped expiring tokens, invitations and exact-domain invitation policy.                                      |
+| Tickets               | Identifiers, statuses, labels, assignees, priorities, Markdown, dates, estimates, comments, activity, epics/subissues, blocking/related/duplicate links, archive and soft deletion. |
+| Planning              | Projects, leads, health/status, dates, milestones, team cycles and versioned edits. Projects/cycles use shared inline document pages.                                               |
+| Views                 | Search, URL filters, list/board modes, ordering, bulk updates and saved views.                                                                                                      |
+| Notifications         | Subscriptions and in-app notifications.                                                                                                                                             |
+| Attachments           | Authenticated private local, S3/R2 or Vercel Blob storage; size/MIME checks and workspace limits.                                                                                   |
+| Provider integrations | Signed GitHub/Slack events, deduplication and durable inbox/outbox. Own provider credentials/installations are required for live delivery.                                          |
 
 Optional modules are gated by the server, not only navigation. This is a modular monolith, not an untrusted plugin runtime. GraphQL and REST share domain services, workspace boundaries, audit history and transactional validation.
 
@@ -87,8 +87,19 @@ No full realtime collaboration, offline synchronization or account/password-reco
 ```graphql
 query WorkQueue {
   issues(first: 20, filter: { priority: { lte: 2 } }) {
-    nodes { id identifier title state { name type } }
-    pageInfo { hasNextPage endCursor }
+    nodes {
+      id
+      identifier
+      title
+      state {
+        name
+        type
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
   }
 }
 ```

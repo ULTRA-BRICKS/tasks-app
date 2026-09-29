@@ -11,6 +11,7 @@ The content describes only the existing manual cycle features in Tasks: optional
 Original missing-help browser tests are retained in `/tmp/tasks-cycle-help-red.log`. The focused Chromium/WebKit acceptance and a new Storybook keyboard/interactions check cover the hint, full-screen guide, focus restoration, no picker activation and no data write. An initial Storybook run failed to fetch newly optimized dependency modules; its next complete run passed without a product-code change or suppressed test. Final full-suite/review/publication results belong to the release receipt.
 
 References inspected25September2026:
+
 - https://linear.app/docs/use-cycles — time-boxed team work periods, not releases.
 - https://base-ui.com/react/components/popover — named popovers and explicit focus return.
 

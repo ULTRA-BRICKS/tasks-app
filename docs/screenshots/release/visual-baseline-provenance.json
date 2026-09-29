@@ -23,9 +23,6 @@
     "tests/e2e/__screenshots__/linux-arm64/visual.spec.ts/issue-detail-visual.png": "5682147e6a4126c2246eb68c26baacd1ecc008c4a4da633136933fedfe8adf02",
     "tests/e2e/__screenshots__/linux-arm64/visual.spec.ts/create-issue-visual.png": "37039e1008844ea3424a684f98efc8affeb50aaa31267d26dbd545094de4229a"
   },
-  "linuxArchitectures": [
-    "arm64",
-    "x64"
-  ],
+  "linuxArchitectures": ["arm64", "x64"],
   "snapshotTemplate": "{platform}-{arch}/{testFilePath}/{arg}-{projectName}.png"
 }

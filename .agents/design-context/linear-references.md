@@ -10,14 +10,14 @@ Spelling and punctuation normalized; intended scope retained. This requirement s
 
 ## Primary references
 
-| Source | What it establishes | How we use it |
-| --- | --- | --- |
-| [Create issues](https://linear.app/docs/creating-issues) | Linear documents both a modal (`C`) and fullscreen creation (`V`), plus draft behavior. | Choose fullscreen/page-first as our default. Do not copy the modal just because it is the first public screenshot. |
-| [Edit issues](https://linear.app/docs/editing-issues) | Title and description are edited directly by clicking them. | No separate edit form or navigation away from the object. |
-| [Inline editing announcement](https://linear.app/changelog/2022-06-09-inline-editing) | Historical primary evidence of inline editing, automatic saving and fullscreen creation. | Corroboration of the interaction model, not evidence of 2026 pixel geometry. |
-| [Editor](https://linear.app/docs/editor) | A rich editor with Markdown and keyboard workflows. | One document surface, contextual formatting, predictable text editing. |
-| [Documents](https://linear.app/docs/documents) | Projects share the issue editor and document bodies edit in place. | Shared editor primitives rather than one CRUD form per entity. |
-| [Labels](https://linear.app/docs/labels) | Labels are contextual issue properties with a compact picker. | Click the current value or placeholder to change it. |
+| Source                                                                                | What it establishes                                                                      | How we use it                                                                                                      |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| [Create issues](https://linear.app/docs/creating-issues)                              | Linear documents both a modal (`C`) and fullscreen creation (`V`), plus draft behavior.  | Choose fullscreen/page-first as our default. Do not copy the modal just because it is the first public screenshot. |
+| [Edit issues](https://linear.app/docs/editing-issues)                                 | Title and description are edited directly by clicking them.                              | No separate edit form or navigation away from the object.                                                          |
+| [Inline editing announcement](https://linear.app/changelog/2022-06-09-inline-editing) | Historical primary evidence of inline editing, automatic saving and fullscreen creation. | Corroboration of the interaction model, not evidence of 2026 pixel geometry.                                       |
+| [Editor](https://linear.app/docs/editor)                                              | A rich editor with Markdown and keyboard workflows.                                      | One document surface, contextual formatting, predictable text editing.                                             |
+| [Documents](https://linear.app/docs/documents)                                        | Projects share the issue editor and document bodies edit in place.                       | Shared editor primitives rather than one CRUD form per entity.                                                     |
+| [Labels](https://linear.app/docs/labels)                                              | Labels are contextual issue properties with a compact picker.                            | Click the current value or placeholder to change it.                                                               |
 
 ### Public visual reference: editor surface
 
@@ -29,12 +29,12 @@ The public creation image was also inspected: its title and body are visually pl
 
 ## Current implementation gaps
 
-| Current code | Problem | Required replacement |
-| --- | --- | --- |
-| `src/app/main.tsx` | `createOpen` opens a modal; no explicit draft-page route. | A dedicated new-object route in the normal workspace shell. |
-| `src/features/issue-create/ui.tsx` | Standalone `Modal` and `form`, visually boxed title/body, separate component from detail. | Empty instance of the shared entity editor. |
-| `src/widgets/issue-details/ui.tsx` | Permanent input presentation, Preview/Markdown switch, global Save bar. | Text-like resting state, click-in-place edit and field-level committed saves. |
-| Existing visual baselines | Approve what was implemented, not likeness to Linear. | Inspect new captures against references before deliberate baseline changes. |
+| Current code                       | Problem                                                                                   | Required replacement                                                          |
+| ---------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `src/app/main.tsx`                 | `createOpen` opens a modal; no explicit draft-page route.                                 | A dedicated new-object route in the normal workspace shell.                   |
+| `src/features/issue-create/ui.tsx` | Standalone `Modal` and `form`, visually boxed title/body, separate component from detail. | Empty instance of the shared entity editor.                                   |
+| `src/widgets/issue-details/ui.tsx` | Permanent input presentation, Preview/Markdown switch, global Save bar.                   | Text-like resting state, click-in-place edit and field-level committed saves. |
+| Existing visual baselines          | Approve what was implemented, not likeness to Linear.                                     | Inspect new captures against references before deliberate baseline changes.   |
 
 ## Target contract
 

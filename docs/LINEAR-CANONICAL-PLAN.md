@@ -3,6 +3,7 @@
 Decision: the user selected existing Linear codes as the canonical codes in both products. Preserve each native UUID and all business content. Never merge distinct tasks because their codes coincide. Stable links, reviewed source mappings, semantic content, chronology and provenance jointly establish identity. Existing archives and canceled duplicate predecessors remain intact.
 
 Execution:
+
 1. Produce an authenticated, paginated source snapshot plus the complete native source-mapping/reference graph. Include inactive issues and references in current issues, comments, projects, documents, initiatives, milestones, views and external-link labels. Separately audit reachable working repository files and connected conversation references; report access/coverage gaps instead of claiming an unbounded global graph.
 2. Classify every changed reference by origin and stable destination. Rewrite UUID-resolved links and unambiguous source/native occurrences only; retain ambiguous occurrences in a decision queue with context. A source-imported baseline is not assumed to contain native numbering. Never recursively replace newly generated codes.
 3. Preview and apply a hash/version-guarded canonical-code plan. Validate all source mappings, uniqueness and native team correspondence. Swap occupied codes atomically using temporary internal keys/numbers; no task recreation and no prefix/team transfer. Preserve original keys and content in a durable origin-scoped migration receipt. Reject stale/partial inputs. Never implement ambiguous bare legacy redirects.
