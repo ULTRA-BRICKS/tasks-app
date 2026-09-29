@@ -250,10 +250,10 @@ export function saveDescription(baseline: DescriptionBaseline, doc: ProseMirrorN
     const before = 'block' in piece ? piece.block : 'block' in next ? next.block - 1 : -1;
     // The last block's gap is the description's trailing whitespace, not a separator.
     const gap = (before < baseline.blocks.length - 1 && baseline.blocks[before]?.gap) || '\n\n';
-    const original = 'block' in piece && 'block' in next && next.block === piece.block + 1;
+    const adjacent = 'block' in piece && 'block' in next && next.block === piece.block + 1;
     // An original gap without a blank line is reused only while both sides stay separate blocks.
     result +=
-      original || /\n[ \t]*\r?\n/.test(gap) || separates(textOf(piece), gap, textOf(next))
+      adjacent || /\n[ \t]*\r?\n/.test(gap) || separates(textOf(piece), gap, textOf(next))
         ? gap
         : '\n\n';
   });

@@ -257,6 +257,28 @@ test('deleting a read-only element is an explicit edit; untouched ones keep thei
   expect(result).toBe(LINEAR_SHAPED.replace('<!-- tasklib:msgref-quote:8982 -->\n\n', ''));
 });
 
+test('text that already contains the private-use placeholder characters is kept verbatim', () => {
+  const markdown = [
+    'Intro paragraph',
+    '',
+    'Stored \uE0000\uE001 marker next to <b>html</b>',
+    '',
+    '```',
+    '\uE0001\uE001',
+    '```',
+    '',
+  ].join('\n');
+  expect(unchanged(markdown)).toBe(markdown);
+  expect(
+    edited(markdown, (doc) =>
+      appendText(
+        findBlock(doc, (node) => textOf(node) === 'Intro paragraph'),
+        ' edited',
+      ),
+    ),
+  ).toBe(markdown.replace('Intro paragraph', 'Intro paragraph edited'));
+});
+
 test('empty and whitespace-only descriptions open as one empty paragraph and save as empty', () => {
   for (const markdown of ['', '\n\n  \n']) {
     expect(types(markdown)).toEqual(['paragraph']);
