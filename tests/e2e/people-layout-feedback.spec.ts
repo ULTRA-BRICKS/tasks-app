@@ -199,16 +199,17 @@ test('long assignee and start-date popup stay inside a narrow viewport', async (
   try {
     await login(page);
     await page.locator('.issue-open').first().click();
-    await page.getByRole('button', { name: 'Start date', exact: true }).click();
-    const popup = page.locator('.property-popup');
+    await page.getByRole('button', { name: 'Open start date calendar', exact: true }).click();
+    const popup = page.getByRole('dialog', { name: 'Start date calendar', exact: true });
     await expect(popup).toBeVisible();
     const bounds = await popup.boundingBox(),
-      input = await page.getByLabel('Start date value', { exact: true }).boundingBox();
+      input = await page.getByRole('textbox', { name: 'Start date', exact: true }).boundingBox();
     expect(bounds).not.toBeNull();
     expect(input).not.toBeNull();
     expect(bounds!.x).toBeGreaterThanOrEqual(0);
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);
-    expect(input!.x + input!.width).toBeLessThanOrEqual(bounds!.x + bounds!.width);
+    expect(input!.x).toBeGreaterThanOrEqual(0);
+    expect(input!.x + input!.width).toBeLessThanOrEqual(320);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       320,
     );

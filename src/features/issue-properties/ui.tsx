@@ -1,16 +1,9 @@
+import { DateProperty } from './date-property';
 import { CycleHelp } from './cycle-help';
 import { selectedPerson, personOptions, canonicalPersonValue } from '@/shared/lib/people';
 import { useState, type ReactNode } from 'react';
 import { Popover } from '@base-ui/react/popover';
-import {
-  CalendarDays,
-  CircleDashed,
-  Folder,
-  Layers,
-  Plus,
-  Triangle,
-  UserRound,
-} from 'lucide-react';
+import { CircleDashed, Folder, Layers, Plus, Triangle, UserRound } from 'lucide-react';
 import type { IssuePatch } from '@tickets/contracts';
 import {
   useCatalog,
@@ -20,8 +13,7 @@ import {
   moduleEnabled,
 } from '@/entities/workspace';
 import { StatusIcon, PriorityIcon, priorities } from '@/entities/issue';
-import { Picker, Input, Button, Avatar } from '@/shared/ui';
-import { formatDate } from '@/shared/lib/date';
+import { Picker, Input, Avatar } from '@/shared/ui';
 export interface IssuePropertyValue {
   team_id: string;
   status_id: string;
@@ -273,69 +265,4 @@ function LabelPicker({
     </Popover.Root>
   );
 }
-export function DateProperty({
-  label,
-  value,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  value: string | null;
-  onChange: (value: string | null) => void;
-  disabled: boolean;
-}) {
-  const [open, setOpen] = useState(false),
-    [draft, setDraft] = useState(value ?? '');
-  return (
-    <Popover.Root
-      open={open}
-      onOpenChange={(next) => {
-        if (next) setDraft(value ?? '');
-        setOpen(next);
-      }}
-    >
-      <Popover.Trigger
-        className="date-property compact-property"
-        aria-label={label}
-        disabled={disabled}
-      >
-        <CalendarDays size={15} />
-        <span>{value ? formatDate(value) : 'Set ' + label.toLowerCase()}</span>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner sideOffset={6} align="start" className="popover-positioner">
-          <Popover.Popup className="property-popup">
-            <Popover.Title>{label}</Popover.Title>
-            <Input
-              type="date"
-              aria-label={label + ' value'}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-            />
-            <div className="toolbar-actions">
-              <Button
-                size="sm"
-                onClick={() => {
-                  onChange(draft || null);
-                  setOpen(false);
-                }}
-              >
-                Apply
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  onChange(null);
-                  setOpen(false);
-                }}
-              >
-                Clear
-              </Button>
-            </div>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-}
+export { DateProperty } from './date-property';
