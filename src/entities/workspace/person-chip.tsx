@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import { personProfile } from '@/shared/lib/people';
-import { Avatar, PersonPopover } from '@/shared/ui';
+import { Avatar, PersonCard, PersonPopover } from '@/shared/ui';
 // Same-slice cycle with the index is safe: the hooks are only called during render.
 import { useCatalog, useMe } from './index';
 
@@ -31,4 +31,14 @@ export function PersonChip({
   ) : (
     <Avatar name={text} />
   );
+}
+/** The card of any stored person ID, opened by another control (see `PersonCard`). */
+export function PersonCardById({
+  id,
+  ...card
+}: { id: string } & Omit<ComponentProps<typeof PersonCard>, 'profile'>) {
+  const { data: catalog } = useCatalog(),
+    { data: me } = useMe();
+  const profile = personProfile(catalog, id, me);
+  return profile && <PersonCard profile={profile} {...card} />;
 }

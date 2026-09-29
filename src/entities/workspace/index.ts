@@ -45,4 +45,4 @@ export const useViews = (enabled = true) =>
 export function moduleEnabled(catalog: Catalog | undefined, id: string) {
   return catalog?.modules.some((m) => m.id === id && m.enabled) ?? false;
 }
-export { PersonChip } from './person-chip';
+export { PersonCardById, PersonChip } from './person-chip';

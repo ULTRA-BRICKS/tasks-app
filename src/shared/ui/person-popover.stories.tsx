@@ -1,8 +1,9 @@
+import { useRef, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within, waitFor } from 'storybook/test';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { PersonProfile } from '../lib/people';
-import { PersonPopover } from './person-popover';
+import { PersonCard, PersonPopover } from './person-popover';
 
 const jamie: PersonProfile = {
   id: 'jamie',
@@ -212,5 +213,50 @@ export const ImportedNeedsReview: Story = {
     await expect(popup.getByText('Needs review')).toBeVisible();
     await expect(popup.getByText('No Tasks account')).toBeVisible();
     await expect(popup.getByText('Linear')).toBeVisible();
+  },
+};
+
+/** Test harness: another control opens the card, as a row's View profile command does. */
+function CardHarness({ onViewTasks }: { onViewTasks?: () => void }) {
+  const [open, setOpen] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <button ref={opener} type="button" onClick={() => setOpen(true)}>
+        Open card
+      </button>
+      <PersonCard
+        profile={jamie}
+        open={open}
+        onOpenChange={setOpen}
+        anchor={opener}
+        returnFocus={() => opener.current}
+        onViewTasks={onViewTasks}
+      />
+    </>
+  );
+}
+/** `PersonCard`: focus enters the card, Escape returns it to the control that opened it, and
+ * View tasks closes the card and runs the caller's hook. */
+export const OpenedByAnotherControl: Story = {
+  args: { onViewTasks: fn() },
+  render: (args) => <CardHarness onViewTasks={args.onViewTasks} />,
+  play: async ({ canvasElement, args }) => {
+    const opener = within(canvasElement).getByRole('button', { name: 'Open card' });
+    await userEvent.click(opener);
+    const popup = within(await card(canvasElement));
+    await focused(popup.getByRole('link', { name: 'View tasks' }));
+    await userEvent.keyboard('{Escape}');
+    await closed(canvasElement);
+    await focused(opener);
+    await userEvent.keyboard('{Enter}');
+    await userEvent.click(
+      within(await card(canvasElement)).getByRole('link', { name: 'View tasks' }),
+    );
+    await closed(canvasElement);
+    await expect(args.onViewTasks).toHaveBeenCalledOnce();
+    await expect(
+      within(canvasElement).getByRole('status', { name: 'Current location' }),
+    ).toHaveTextContent('/tasks?assignee_id=jamie');
   },
 };

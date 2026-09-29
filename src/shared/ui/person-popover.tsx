@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type Ref, type RefObject } from 'react';
 import { Popover } from '@base-ui/react/popover';
 import { ListTodo } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -9,6 +9,13 @@ import './person-popover.css';
 
 const openDelay = 500,
   closeDelay = 200;
+/** Where every person card sits against the element it opens from. */
+const cardPlacement = {
+  sideOffset: 8,
+  align: 'start',
+  collisionPadding: 8,
+  className: 'popover-positioner',
+} as const;
 /**
  * `peek`: opened by mouse hover or keyboard focus; focus stays where it was and hover-out closes.
  * `pinned`: opened by a press (click, tap, Enter, Space) or entered by focus; behaves as a dialog.
@@ -117,12 +124,7 @@ export function PersonPopover({
         {display !== 'avatar' && <span className="person-trigger-text">{name}</span>}
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Positioner
-          sideOffset={8}
-          align="start"
-          collisionPadding={8}
-          className="popover-positioner"
-        >
+        <Popover.Positioner {...cardPlacement}>
           <Popover.Popup
             ref={(element) => {
               if (element) lastPopup.current = element;
@@ -143,47 +145,130 @@ export function PersonPopover({
               mode.current = 'pinned';
             }}
           >
-            <div className="person-card-header">
-              <Avatar name={profile.name} src={profile.avatar_url} size="md" decorative />
-              <div className="person-card-identity">
-                <Popover.Title className="person-card-name">{profile.name}</Popover.Title>
-                {profile.email && <p className="person-card-email">{profile.email}</p>}
-              </div>
-            </div>
-            <dl className="person-card-facts">
-              <div>
-                <dt>Membership</dt>
-                <dd>
-                  {profile.membership}
-                  {profile.is_viewer && ' · You'}
-                </dd>
-              </div>
-              <div>
-                <dt>Accounts</dt>
-                <dd>{profile.accounts.join(' · ')}</dd>
-              </div>
-            </dl>
-            {profile.needs_review && (
-              <p className="person-card-review">
-                <span className="review-badge">Needs review</span>
-                Profiles with this identity were not merged automatically.
-              </p>
-            )}
-            <Link
-              ref={firstAction}
-              to={profile.tasks_href}
-              className="person-card-action"
-              onClick={() => {
+            <PersonCardContent
+              profile={profile}
+              firstAction={firstAction}
+              onViewTasks={() => {
                 handle.close();
                 onViewTasks?.();
               }}
-            >
-              <ListTodo size={15} aria-hidden="true" />
-              View tasks
-            </Link>
+            />
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>
     </Popover.Root>
+  );
+}
+
+/**
+ * The card opened by another control, e.g. View profile in a row's assignee picker: it sits
+ * against `anchor`, and focus returns to `returnFocus` when the person dismisses it.
+ */
+export function PersonCard({
+  profile,
+  open,
+  onOpenChange,
+  anchor,
+  returnFocus,
+  onViewTasks,
+}: {
+  profile: PersonProfile;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  anchor: RefObject<Element | null>;
+  /** The control that opened the card. */
+  returnFocus: () => HTMLElement | null | undefined;
+  onViewTasks?: () => void;
+}) {
+  const firstAction = useRef<HTMLAnchorElement>(null),
+    dismissed = useRef(true);
+  return (
+    <Popover.Root
+      open={open}
+      onOpenChange={(next, details) => {
+        // As with PersonPopover: tabbing or clicking elsewhere keeps focus where it went.
+        dismissed.current = details.reason === 'escape-key';
+        onOpenChange(next);
+      }}
+    >
+      <Popover.Portal>
+        <Popover.Positioner anchor={anchor} {...cardPlacement}>
+          <Popover.Popup
+            className="person-card"
+            initialFocus={firstAction}
+            finalFocus={() => dismissed.current && returnFocus()}
+            onKeyDown={(event) => {
+              // The card has no trigger of its own to continue from: Tab and Shift+Tab leave it
+              // from the control that opened it, as they would from a PersonPopover trigger.
+              if (event.key !== 'Tab') return;
+              returnFocus()?.focus();
+              dismissed.current = false;
+              onOpenChange(false);
+            }}
+          >
+            <PersonCardContent
+              profile={profile}
+              firstAction={firstAction}
+              onViewTasks={() => {
+                dismissed.current = true;
+                onOpenChange(false);
+                onViewTasks?.();
+              }}
+            />
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
+function PersonCardContent({
+  profile,
+  firstAction,
+  onViewTasks,
+}: {
+  profile: PersonProfile;
+  firstAction: Ref<HTMLAnchorElement>;
+  /** Closes the card and runs the caller's hook. */
+  onViewTasks: () => void;
+}) {
+  return (
+    <>
+      <div className="person-card-header">
+        <Avatar name={profile.name} src={profile.avatar_url} size="md" decorative />
+        <div className="person-card-identity">
+          <Popover.Title className="person-card-name">{profile.name}</Popover.Title>
+          {profile.email && <p className="person-card-email">{profile.email}</p>}
+        </div>
+      </div>
+      <dl className="person-card-facts">
+        <div>
+          <dt>Membership</dt>
+          <dd>
+            {profile.membership}
+            {profile.is_viewer && ' · You'}
+          </dd>
+        </div>
+        <div>
+          <dt>Accounts</dt>
+          <dd>{profile.accounts.join(' · ')}</dd>
+        </div>
+      </dl>
+      {profile.needs_review && (
+        <p className="person-card-review">
+          <span className="review-badge">Needs review</span>
+          Profiles with this identity were not merged automatically.
+        </p>
+      )}
+      <Link
+        ref={firstAction}
+        to={profile.tasks_href}
+        className="person-card-action"
+        onClick={onViewTasks}
+      >
+        <ListTodo size={15} aria-hidden="true" />
+        View tasks
+      </Link>
+    </>
   );
 }
