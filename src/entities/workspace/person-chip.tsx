@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { personProfile } from '@/shared/lib/people';
 import { Avatar, PersonPopover } from '@/shared/ui';
 // Same-slice cycle with the index is safe: the hooks are only called during render.
@@ -10,26 +11,19 @@ import { useCatalog, useMe } from './index';
 export function PersonChip({
   id,
   name,
-  display = 'avatar',
-  label,
-  className,
+  ...card
 }: {
   id: string | null | undefined;
   /** Name stored with the record, shown when the directory does not know the ID. */
   name?: string | null;
-  display?: 'avatar' | 'name';
-  label?: string;
-  className?: string;
-}) {
+} & Omit<ComponentProps<typeof PersonPopover>, 'profile'>) {
   const { data: catalog } = useCatalog(),
     { data: me } = useMe();
   const profile = personProfile(catalog, id, me);
-  if (profile)
-    return (
-      <PersonPopover profile={profile} display={display} label={label} className={className} />
-    );
-  const text = label ?? name;
-  return display === 'name' ? (
+  if (profile) return <PersonPopover profile={profile} {...card} />;
+  const text = card.label ?? name;
+  if (card.display === 'text') return <span className="person-static">{text}</span>;
+  return card.display === 'name' ? (
     <span className="person-static">
       <Avatar name={text} decorative />
       {text}

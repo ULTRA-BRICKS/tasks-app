@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within, waitFor } from 'storybook/test';
+import { expect, fn, userEvent, within, waitFor } from 'storybook/test';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { PersonProfile } from '../lib/people';
 import { PersonPopover } from './person-popover';
@@ -172,6 +172,22 @@ export const ViewTasksNavigatesAndCloses: Story = {
     await expect(
       within(canvasElement).getByRole('status', { name: 'Current location' }),
     ).toHaveTextContent('/tasks?assignee_id=jamie');
+  },
+};
+
+/** Inline text (activity, People list): the name alone opens the card. View tasks also runs the
+ * caller's hook; the sidebar uses it to close its phone drawer. */
+export const NameTextRunsViewTasksHook: Story = {
+  args: { display: 'text', onViewTasks: fn() },
+  play: async ({ canvasElement, args }) => {
+    const trigger = within(canvasElement).getByRole('button', { name: 'Jamie Chen' });
+    await expect(trigger).toHaveTextContent('Jamie Chen');
+    await expect(trigger.querySelector('.avatar')).toBeNull();
+    await userEvent.click(trigger);
+    const popup = within(await card(canvasElement));
+    await userEvent.click(popup.getByRole('link', { name: 'View tasks' }));
+    await closed(canvasElement);
+    await expect(args.onViewTasks).toHaveBeenCalledOnce();
   },
 };
 

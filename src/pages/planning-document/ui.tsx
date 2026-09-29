@@ -4,7 +4,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, Folder, CalendarRange } from 'lucide-react';
-import { useCatalog, useMe, useProjects, useCycles, moduleEnabled } from '@/entities/workspace';
+import {
+  useCatalog,
+  useMe,
+  useProjects,
+  useCycles,
+  moduleEnabled,
+  PersonChip,
+} from '@/entities/workspace';
 import { DateProperty } from '@/features/issue-properties';
 import { Button, Picker, DocumentText, InlineTitle, Loading, ErrorState } from '@/shared/ui';
 import { api, errorMessage, ApiError } from '@/shared/api/client';
@@ -488,6 +495,12 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
                 />
               </div>
               <div className="compact-property">
+                {draft.lead && (
+                  // The lead's avatar opens their card; the picker stays the value editor.
+                  <span className="property-icon">
+                    <PersonChip id={draft.lead} />
+                  </span>
+                )}
                 <Picker
                   aria-label="Project lead"
                   value={canonicalPersonValue(catalog, draft.lead)}

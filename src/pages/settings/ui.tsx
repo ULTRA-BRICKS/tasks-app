@@ -17,7 +17,7 @@ import {
   Palette,
   Plus,
 } from 'lucide-react';
-import { useCatalog, useMe } from '@/entities/workspace';
+import { useCatalog, useMe, PersonChip } from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
 import { Button, Input, Textarea, Picker, Avatar, ErrorState, Loading } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
@@ -207,7 +207,7 @@ export function SettingsPage() {
                     <Avatar name={p.name} size="md" />
                     <div>
                       <strong>
-                        {p.name}
+                        <PersonChip id={p.id} label={p.name} display="text" />
                         {selectedPerson(catalog, p.id)?.needs_review && (
                           <span className="review-badge">Needs review</span>
                         )}

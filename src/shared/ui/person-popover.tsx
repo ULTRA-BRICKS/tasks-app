@@ -21,13 +21,19 @@ export function PersonPopover({
   display = 'avatar',
   label,
   className,
+  onViewTasks,
 }: {
   profile: PersonProfile;
-  /** `avatar`: avatar only, named by `aria-label`; `name`: avatar and visible name. */
-  display?: 'avatar' | 'name';
+  /**
+   * `avatar`: avatar only, named by `aria-label`; `name`: avatar and visible name; `text`: the
+   * visible name alone, where an avatar would crowd a line of text (activity, previews).
+   */
+  display?: 'avatar' | 'name' | 'text';
   /** Visible text when it differs from the canonical name, e.g. an imported profile's own name. */
   label?: string;
   className?: string;
+  /** Runs with View tasks, e.g. to close a drawer the card was opened from. */
+  onViewTasks?: () => void;
 }) {
   const [handle] = useState(() => Popover.createHandle()),
     triggerId = useId();
@@ -86,7 +92,7 @@ export function PersonPopover({
       <Popover.Trigger
         ref={trigger}
         id={triggerId}
-        className={cn('person-trigger', display === 'name' && 'person-trigger-name', className)}
+        className={cn('person-trigger', display !== 'avatar' && 'person-trigger-name', className)}
         aria-label={display === 'avatar' ? name : undefined}
         onPointerEnter={(event) => {
           if (event.pointerType === 'mouse') peekSoon();
@@ -107,8 +113,8 @@ export function PersonPopover({
         }}
         onBlur={() => clearTimeout(openTimer.current)}
       >
-        <Avatar name={profile.name} src={profile.avatar_url} decorative />
-        {display === 'name' && <span className="person-trigger-text">{name}</span>}
+        {display !== 'text' && <Avatar name={profile.name} src={profile.avatar_url} decorative />}
+        {display !== 'avatar' && <span className="person-trigger-text">{name}</span>}
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner
@@ -167,7 +173,10 @@ export function PersonPopover({
               ref={firstAction}
               to={profile.tasks_href}
               className="person-card-action"
-              onClick={() => handle.close()}
+              onClick={() => {
+                handle.close();
+                onViewTasks?.();
+              }}
             >
               <ListTodo size={15} aria-hidden="true" />
               View tasks
