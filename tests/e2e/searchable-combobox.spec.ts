@@ -10,10 +10,16 @@ async function openTask(page: Page) {
   await expect(page).toHaveURL(/\/tasks\/[^/]+/);
   await expect(page.getByRole('combobox', { name: 'Status', exact: true })).toBeEnabled();
 }
-function creations(page: Page, path: string) {
+// A literal method: a typo would otherwise match nothing and pass every "sent nothing" check.
+function requests(page: Page, method: 'POST' | 'PATCH', path: string | RegExp) {
   const sent: Request[] = [];
   page.on('request', (request) => {
-    if (request.method() === 'POST' && new URL(request.url()).pathname === path) sent.push(request);
+    const pathname = new URL(request.url()).pathname;
+    if (
+      request.method() === method &&
+      (typeof path === 'string' ? pathname === path : path.test(pathname))
+    )
+      sent.push(request);
   });
   return sent;
 }
@@ -61,7 +67,7 @@ test('labels are created only by the explicit Create option, and a lost response
 }) => {
   await openTask(page);
   const name = unique('Needs design');
-  const sent = creations(page, '/api/v1/labels');
+  const sent = requests(page, 'POST', '/api/v1/labels');
   const trigger = page.getByRole('combobox', { name: 'Labels', exact: true });
   await trigger.click();
   const search = page.getByRole('combobox', { name: 'Search labels' });
@@ -189,7 +195,7 @@ test('project creation opens the page-first draft with the typed name and return
   await openTask(page);
   const taskUrl = page.url();
   const name = unique('Q4 launch');
-  const sent = creations(page, '/api/v1/projects');
+  const sent = requests(page, 'POST', '/api/v1/projects');
   const project = page.getByRole('combobox', { name: 'Project', exact: true });
   await project.click();
   await page.getByRole('combobox', { name: 'Search project' }).pressSequentially(name);
@@ -281,7 +287,7 @@ test('viewers cannot create and a server 403 keeps the typed text', async ({ pag
 test('offline disables Create without losing the typed text', async ({ page, context }) => {
   await openTask(page);
   const name = unique('Offline');
-  const sent = creations(page, '/api/v1/labels');
+  const sent = requests(page, 'POST', '/api/v1/labels');
   await page.getByRole('combobox', { name: 'Labels', exact: true }).click();
   await page.getByRole('combobox', { name: 'Search labels' }).pressSequentially(name);
   await context.setOffline(true);
@@ -295,4 +301,110 @@ test('offline disables Create without losing the typed text', async ({ page, con
   await context.setOffline(false);
   await expect(option).not.toHaveAttribute('aria-disabled', 'true');
   await expect(page.getByRole('combobox', { name: 'Search labels' })).toHaveValue(name);
+});
+
+// Real touch input at phone size. Base UI cancels an option's pointerdown (the search field
+// keeps focus) and chooses on the click that follows the tap, as iOS Safari and Android Chrome
+// dispatch it. Playwright's WebKit is not iOS: its emulated tap drops that click, so only
+// Chromium can prove a tap here (docs/SEARCHABLE-COMBOBOX.md, Touch selection).
+test.describe('touch phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test.skip(
+    ({ browserName }) => browserName === 'webkit',
+    'Emulated WebKit taps never click an option whose pointerdown was cancelled',
+  );
+
+  // The last unselected option: commands such as View profile lead the list and are not values.
+  async function tapUnselected(page: Page, listbox: string) {
+    const option = page
+      .getByRole('listbox', { name: listbox })
+      .getByRole('option', { selected: false })
+      .last();
+    const name = (await option.locator('.picker-item-text').innerText()).trim();
+    await option.tap();
+    return name;
+  }
+
+  // A second choice from the same tap follows within a frame or two of the first save, so the
+  // count is checked again after this quiet period instead of only when it first matches.
+  const DOUBLE_SAVE_SETTLE_MS = 500;
+  async function expectSaves(page: Page, sent: Request[], count: number) {
+    await expect.poll(() => sent.length).toBe(count);
+    await page.waitForTimeout(DOUBLE_SAVE_SETTLE_MS);
+    expect(sent).toHaveLength(count);
+  }
+
+  test('a tap chooses exactly one option in the row, property and label pickers', async ({
+    page,
+  }) => {
+    await login(page);
+    const sent = requests(page, 'PATCH', /^\/api\/v1\/issues\//);
+    const row = page.getByTestId('issue-row').first();
+    const assignee = row.getByRole('combobox', { name: /^Assignee for / });
+    await assignee.tap();
+    // The popup's listbox shares the trigger's label.
+    const listbox = (await assignee.getAttribute('aria-label')) ?? '';
+    const person = await tapUnselected(page, listbox);
+    // `Assignee for UB-1: Jamie Chen` names the trigger after its current value, `Unassigned`
+    // included (assignee.tsx), so the label always has one `: `; keys have no colon.
+    await expect(assignee).toHaveAccessibleName(
+      listbox.slice(0, listbox.indexOf(': ') + 2) + person,
+    );
+    await expect(page.getByRole('listbox')).toHaveCount(0);
+    await expectSaves(page, sent, 1);
+
+    await page.locator('.issue-open').first().click();
+    const status = page.getByRole('combobox', { name: 'Status', exact: true });
+    await expect(status).toBeEnabled();
+    await status.tap();
+    const chosen = await tapUnselected(page, 'Status');
+    await expect(status).toHaveText(chosen);
+    await expect(page.getByRole('listbox')).toHaveCount(0);
+    await expectSaves(page, sent, 2);
+
+    // Multiple choice stays open, and each tap toggles the label exactly once.
+    await page.getByRole('combobox', { name: 'Labels', exact: true }).tap();
+    const label = await tapUnselected(page, 'Labels');
+    const option = page.getByRole('option', { name: label, exact: true });
+    await expect(option).toHaveAttribute('aria-selected', 'true');
+    await expectSaves(page, sent, 3);
+    await option.tap();
+    await expect(option).toHaveAttribute('aria-selected', 'false');
+    await expectSaves(page, sent, 4);
+    await expect(page.getByRole('listbox', { name: 'Labels' })).toBeVisible();
+  });
+
+  test('a swipe over the options scrolls the list and chooses nothing', async ({ page }) => {
+    await openTask(page);
+    const sent = requests(page, 'PATCH', /^\/api\/v1\/issues\//);
+    const estimate = page.getByRole('combobox', { name: 'Estimate', exact: true });
+    // Mid-screen, clear of the dock, like a person tapping it.
+    await estimate.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await estimate.tap();
+    const list = page.locator('.combobox-list');
+    await expect(list).toBeVisible();
+    // The phone popup is capped at 340px, so the nine estimates overflow it.
+    expect(await list.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+    const start = await page.getByRole('option').nth(2).boundingBox();
+    if (!start) throw new Error('The third estimate has no box');
+    // The finger lands on an option and drags upwards.
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.synthesizeScrollGesture', {
+      x: Math.round(start.x + start.width / 2),
+      y: Math.round(start.y + start.height / 2),
+      yDistance: -120,
+      speed: 600,
+      gestureSourceType: 'touch',
+    });
+    await cdp.detach();
+    await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+    await expect(page.getByRole('listbox', { name: 'Estimate' })).toBeVisible();
+    await expect(page.getByRole('option', { selected: true })).toHaveCount(1);
+    expect(sent).toHaveLength(0);
+
+    // The list still takes a tap after the swipe.
+    const chosen = await tapUnselected(page, 'Estimate');
+    await expect(estimate).toHaveText(chosen);
+    await expectSaves(page, sent, 1);
+  });
 });
