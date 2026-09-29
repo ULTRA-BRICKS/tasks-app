@@ -16,20 +16,35 @@ test('large Markdown drafts stay editable and are retained after a reload', asyn
   expect(created.status()).toBe(201);
   const { id } = await created.json();
   await page.goto('/documents/' + id);
-  const field = page.locator('textarea.document-source');
-  await expect(field).toHaveValue(source);
-  await field.focus();
+  // The comment used to switch the body to a source textarea; it is now a read-only element.
+  const field = page.getByRole('textbox', { name: 'Description', exact: true });
+  await expect(field).toHaveAttribute('contenteditable', 'true');
+  await expect(field.getByText('<!-- preserve source -->', { exact: true })).toBeVisible();
+  const paragraph = field.locator('p').last();
+  await paragraph.click({ position: { x: 4, y: 4 } });
+  // Caret after the last character; platform End-key bindings differ inside contenteditable.
+  await paragraph.evaluate(async (element) => {
+    // The editor reads the DOM selection on `selectionchange`, which fires asynchronously.
+    const changed = Promise.withResolvers<void>();
+    document.addEventListener('selectionchange', () => changed.resolve(), { once: true });
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(false);
+    getSelection()?.removeAllRanges();
+    getSelection()?.addRange(range);
+    await changed.promise;
+  });
   const durations: number[] = [];
   for (const character of ['1', '2', '3', '4', '5']) {
     const start = Date.now();
-    await field.press('ControlOrMeta+End');
     await page.keyboard.insertText(character);
     durations.push(Date.now() - start);
   }
-  const expected = await field.inputValue();
-  expect(expected.length).toBe(source.length + 5);
+  await expect(field).toContainText('Synthetic paragraph.12345');
   await page.reload();
-  await expect(page.locator('textarea.document-source')).toHaveValue(expected);
+  const restored = page.getByRole('textbox', { name: 'Description', exact: true });
+  await expect(restored).toContainText('Synthetic paragraph.12345');
+  await expect(restored.getByText('<!-- preserve source -->', { exact: true })).toBeVisible();
   await info.attach('large-draft-input.json', {
     body: JSON.stringify({
       characters: source.length,
