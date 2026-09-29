@@ -100,6 +100,49 @@ export const StatusPicker: Story = {
     );
   },
 };
+function PeoplePickerExample() {
+  const [value, setValue] = useState('sam');
+  return (
+    <Picker
+      aria-label="Assignee"
+      value={value}
+      onChange={setValue}
+      options={[
+        { value: 'jamie', label: 'Jamie Chen', avatar_url: null },
+        {
+          value: 'sam',
+          label: 'Sam Rivera',
+          avatar_url: null,
+          description: 'Member · Needs review',
+        },
+        {
+          value: 'sam-linear',
+          label: 'Sam Rivera',
+          avatar_url: null,
+          description: 'Linear · Needs review',
+        },
+        { value: 'codex', label: 'Codex', avatar_url: null, description: 'Bot' },
+      ]}
+    />
+  );
+}
+/** Identical names held apart by an identity conflict stay distinguishable. */
+export const PeoplePicker: Story = {
+  render: () => <PeoplePickerExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const trigger = canvas.getByRole('combobox', { name: 'Assignee' });
+    await expect(trigger).toHaveTextContent('Sam Rivera');
+    await expect(trigger).not.toHaveTextContent('Needs review');
+    await userEvent.click(trigger);
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(await page.findByRole('option', { name: /Linear · Needs review/ })).toBeVisible();
+    await expect(page.getByRole('option', { name: /Codex/ })).toHaveTextContent('Bot');
+    await userEvent.click(page.getByRole('option', { name: /Linear · Needs review/ }));
+    await waitFor(() => expect(page.queryByRole('listbox')).not.toBeInTheDocument());
+    await expect(trigger).not.toHaveTextContent('Needs review');
+  },
+};
 function DialogExample() {
   const [open, setOpen] = useState(false);
   return (

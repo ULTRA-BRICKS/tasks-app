@@ -55,6 +55,14 @@ export interface SourcePerson {
   provider: string;
   source_id: string;
   avatar_url: string | null;
+  /** Supplied by a provider profile sync; absent means not known to be a bot. */
+  bot?: boolean;
+}
+/** Administrator-verified member ↔ source profile link (docs/PEOPLE-IDENTITY.md). */
+export interface IdentityBinding {
+  member_id: Id;
+  source_person_id: Id;
+  via: 'slack_user_map';
 }
 export interface Catalog {
   counts?: Record<
@@ -67,6 +75,7 @@ export interface Catalog {
   labels: Label[];
   people: Person[];
   source_people?: SourcePerson[];
+  identity_bindings?: IdentityBinding[];
   imported_files?: {
     id: Id;
     source_url: string;
