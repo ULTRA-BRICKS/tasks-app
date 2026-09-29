@@ -11,6 +11,8 @@ async function edit(f, key, patch) {
     ...patch,
   });
   expect(response.status).toBe(200);
+  // Activity orders by millisecond timestamp, then random ID: keep each edit in its own millisecond.
+  await Bun.sleep(2);
   return response.data;
 }
 const updates = async (f, key) =>
@@ -64,10 +66,19 @@ test('every native field update is presented as old → new with names, not IDs'
     });
     await edit(f, task.id, { label_ids: [backend.id], description: 'First line\nSecond line' });
     await edit(f, task.id, { assignee_id: null, due_date: null, estimate: 0, kind: 'epic' });
+    await edit(f, task.id, { archived: true });
+    await edit(f, task.id, { archived: false });
 
     const events = await updates(f, task.id);
-    expect(events).toHaveLength(5);
-    for (const event of events) expect(event.summary).toBe('updated the task');
+    expect(events.map((event) => event.summary)).toEqual([
+      ...Array(5).fill('updated the task'),
+      'archived the task',
+      'restored the task from the archive',
+    ]);
+    expect(events.slice(5).map((event) => [event.changes, event.details])).toEqual([
+      [[], []],
+      [[], []],
+    ]);
 
     const statusName = f.catalog.statuses.find((s) => s.id === todo).name;
     expect(events[0].changes).toEqual([
@@ -258,7 +269,9 @@ test('stored legacy rows are presented without rewriting audit bytes or leaking 
       changes: [],
       details: ['reordered the task'],
     });
+    // An archive is its own entry (it must not merge into a group of edits); its changes stay listed.
     expect(event('legacy-3')).toMatchObject({
+      summary: 'archived the task',
       changes: [
         {
           kind: 'labels',
@@ -268,7 +281,7 @@ test('stored legacy rows are presented without rewriting audit bytes or leaking 
           removed: [],
         },
       ],
-      details: ['archived the task'],
+      details: [],
     });
     expect(event('legacy-4')).toMatchObject({ changes: [], details: [] });
     expect(event('legacy-5')).toMatchObject({ summary: 'moved the task to trash', changes: [] });

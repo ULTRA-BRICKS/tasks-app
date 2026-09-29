@@ -5,8 +5,10 @@ export type DiffRow =
   | { type: 'same' | 'added' | 'removed'; parts: DiffPart[] }
   | { type: 'skip'; count: number };
 
-// Above this many line comparisons the caller shows plain before/after text instead.
+// Beyond either bound the caller shows the complete before/after texts instead of a diff:
+// comparisons cap the LCS table; lines cap rendered rows (a pasted document has no pairs).
 const LINE_CELLS = 1_000_000;
+const MAX_LINES = 4_000;
 const WORD_CELLS = 250_000;
 const CONTEXT = 2;
 
@@ -51,7 +53,8 @@ function lcs(a: string[], b: string[]): Op[] {
   for (const value of a.slice(endA)) ops.push({ type: 'same', value });
   return ops;
 }
-const middle = (a: string[], b: string[]) => {
+// LCS table cells left after trimming the common prefix and suffix: the cost of `lcs(a, b)`.
+const comparisonCells = (a: string[], b: string[]) => {
   let start = 0;
   while (start < a.length && start < b.length && a[start] === b[start]) start++;
   let end = 0;
@@ -77,7 +80,7 @@ function merge(parts: DiffPart[]): DiffPart[] {
 function pair(before: string, after: string): [DiffPart[], DiffPart[]] {
   const a = words(before),
     b = words(after);
-  if (middle(a, b) > WORD_CELLS)
+  if (comparisonCells(a, b) > WORD_CELLS)
     return [[{ type: 'removed', text: before }], [{ type: 'added', text: after }]];
   const ops = lcs(a, b);
   return [
@@ -92,7 +95,7 @@ export function diffText(before: string, after: string): DiffRow[] | null {
   // An empty description has no lines; `''.split('\n')` would invent one blank line.
   const a = before === '' ? [] : before.replace(/\r\n?/g, '\n').split('\n'),
     b = after === '' ? [] : after.replace(/\r\n?/g, '\n').split('\n');
-  if (middle(a, b) > LINE_CELLS) return null;
+  if (a.length + b.length > MAX_LINES || comparisonCells(a, b) > LINE_CELLS) return null;
   const ops = lcs(a, b),
     rows: Extract<DiffRow, { parts: DiffPart[] }>[] = [];
   for (let index = 0; index < ops.length;) {

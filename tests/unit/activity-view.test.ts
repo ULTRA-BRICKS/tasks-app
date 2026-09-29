@@ -116,4 +116,8 @@ test('description diff summarizes distant unchanged lines and handles empty and 
   expect(diffText('a\r\nb', 'a\nb')).toEqual([{ type: 'skip', count: 2 }]);
   const huge = (seed: string) => Array.from({ length: 1200 }, (_, i) => `${seed} ${i}`).join('\n');
   expect(diffText(huge('old'), huge('new'))).toBeNull();
+  // A pasted document has no pairs to compare but would still render one row per line.
+  const pasted = Array.from({ length: 4001 }, (_, i) => `pasted ${i}`).join('\n');
+  expect(diffText('', pasted)).toBeNull();
+  expect(diffText(pasted, '')).toBeNull();
 });

@@ -36,8 +36,17 @@ const day = (value) => {
       : NaN;
   return Number.isNaN(noon) ? text(value) || 'Unavailable value' : dayFormat.format(noon);
 };
-const priority = (value) =>
-  Number.isInteger(value) && value >= 0 && value <= 4 ? priorityNames[value] : 'Unknown priority';
+const kinds = { issue: 'Task', epic: 'Epic' };
+// Values that are not references, keyed by presented field; shared by native and imported history.
+function scalar(field, value) {
+  if (field === 'priority')
+    return Number.isInteger(value) && value >= 0 && value <= 4
+      ? priorityNames[value]
+      : 'Unknown priority';
+  if (field === 'type') return Object.hasOwn(kinds, value) ? kinds[value] : 'Unknown type';
+  if (field === 'start_date' || field === 'due_date') return day(value);
+  return text(value) || 'Unavailable value';
+}
 function payload(value) {
   try {
     const parsed = typeof value === 'string' ? JSON.parse(value) : value;
@@ -55,9 +64,9 @@ function valueAt(event, key) {
   return null;
 }
 function names(values, resolve, collection) {
-  const all = [...new Set(list(values).filter((value) => typeof value === 'string'))];
-  const shown = all.slice(0, 8).map((value) => resolve(collection, value));
-  return all.length > shown.length ? [...shown, `${all.length - shown.length} more`] : shown;
+  return [...new Set(list(values).filter((value) => typeof value === 'string'))].map((value) =>
+    resolve(collection, value),
+  );
 }
 const unavailable = {
   workflowStates: 'Unavailable status',
@@ -97,9 +106,7 @@ export function describeImportedChange(raw, resolve = (collection) => unavailabl
           (object(value) ? text(value.name) : '') ||
           resolve(collection, object(value) ? value.id : value)
         );
-      if (suffix === 'Priority') return priority(value);
-      if (suffix === 'DueDate') return day(value);
-      return text(value) || 'Unavailable value';
+      return scalar(field, value);
     };
     changes.push({ kind: 'value', field, label, from: render(before), to: render(after) });
   }
@@ -197,22 +204,22 @@ const nativeActions = {
   archived: 'archived the task',
 };
 // Native rows store `{ field: { from, to } }` for every edited field (tickets service updateIssue).
-// Stored field, presented field, display label, name table, empty value.
+// Same column order as `fields`: stored field, display label, name table, empty value, presented field.
 const nativeFields = [
-  ['title', 'title', 'Title', null, 'Untitled'],
-  ['status_id', 'status', 'Status', 'statuses', 'Not set'],
-  ['assignee_id', 'assignee', 'Assignee', 'people', 'Unassigned'],
-  ['priority', 'priority', 'Priority', null, 'No priority'],
-  ['kind', 'type', 'Type', null, 'No type'],
-  ['team_id', 'team', 'Team', 'teams', 'No team'],
-  ['key', 'id', 'ID', null, 'No ID'],
-  ['project_id', 'project', 'Project', 'projects', 'No project'],
-  ['milestone_id', 'milestone', 'Milestone', 'milestones', 'No milestone'],
-  ['cycle_id', 'cycle', 'Cycle', 'cycles', 'No cycle'],
-  ['parent_id', 'parent', 'Parent task', 'issues', 'No parent'],
-  ['estimate', 'estimate', 'Estimate', null, 'Not estimated'],
-  ['start_date', 'start_date', 'Start date', null, 'No start date'],
-  ['due_date', 'due_date', 'Due date', null, 'No due date'],
+  ['title', 'Title', null, 'Untitled', 'title'],
+  ['status_id', 'Status', 'statuses', 'Not set', 'status'],
+  ['assignee_id', 'Assignee', 'people', 'Unassigned', 'assignee'],
+  ['priority', 'Priority', null, 'No priority', 'priority'],
+  ['kind', 'Type', null, 'No type', 'type'],
+  ['team_id', 'Team', 'teams', 'No team', 'team'],
+  ['key', 'ID', null, 'No ID', 'id'],
+  ['project_id', 'Project', 'projects', 'No project', 'project'],
+  ['milestone_id', 'Milestone', 'milestones', 'No milestone', 'milestone'],
+  ['cycle_id', 'Cycle', 'cycles', 'No cycle', 'cycle'],
+  ['parent_id', 'Parent task', 'issues', 'No parent', 'parent'],
+  ['estimate', 'Estimate', null, 'Not estimated', 'estimate'],
+  ['start_date', 'Start date', null, 'No start date', 'start_date'],
+  ['due_date', 'Due date', null, 'No due date', 'due_date'],
 ];
 // Unavailable label, then name queries. Every query is scoped to the viewer's workspace.
 const nativeTables = {
@@ -233,22 +240,18 @@ const nativeTables = {
   labels: ['Unavailable label', 'SELECT id,name FROM labels WHERE workspace_id=? AND id IN'],
 };
 const fieldActions = new Set(['updated', 'deleted', 'restored']);
-const kinds = { issue: 'Task', epic: 'Epic' };
+// IDs per name query; the 200-event activity window bounds the total.
+const LOOKUP_BATCH = 500;
 const stored = (data, key) => (Object.hasOwn(data, key) && object(data[key]) ? data[key] : null);
 async function nativeNames(tx, workspace, events) {
   const groups = new Map();
-  let count = 0;
   const add = (table, value) => {
-    if (typeof value !== 'string' || !value || count >= 2000) return;
+    if (typeof value !== 'string' || !value) return;
     if (!groups.has(table)) groups.set(table, new Set());
-    const group = groups.get(table);
-    if (!group.has(value)) {
-      group.add(value);
-      count++;
-    }
+    groups.get(table).add(value);
   };
   for (const data of events) {
-    for (const [key, , , table] of nativeFields)
+    for (const [key, , table] of nativeFields)
       if (table) {
         add(table, stored(data, key)?.from);
         add(table, stored(data, key)?.to);
@@ -260,13 +263,16 @@ async function nativeNames(tx, workspace, events) {
   for (const [table, ids] of groups) {
     const values = [...ids],
       [missing, ...queries] = nativeTables[table];
-    for (const sql of queries)
-      for (const row of await tx.all(`${sql} (${values.map(() => '?').join(',')})`, [
-        workspace,
-        ...values,
-      ]))
-        if (!found.has(table + ':' + row.id))
-          found.set(table + ':' + row.id, text(row.name) || missing);
+    for (let start = 0; start < values.length; start += LOOKUP_BATCH) {
+      const batch = values.slice(start, start + LOOKUP_BATCH);
+      for (const sql of queries)
+        for (const row of await tx.all(`${sql} (${batch.map(() => '?').join(',')})`, [
+          workspace,
+          ...batch,
+        ]))
+          if (!found.has(table + ':' + row.id))
+            found.set(table + ':' + row.id, text(row.name) || missing);
+    }
   }
   return (table, value) => found.get(table + ':' + value) ?? nativeTables[table][0];
 }
@@ -274,16 +280,13 @@ export function describeNativeChange(action, data, name) {
   const changes = [],
     details = [];
   if (fieldActions.has(action)) {
-    for (const [key, field, label, table, empty] of nativeFields) {
+    for (const [key, label, table, empty, field] of nativeFields) {
       const change = stored(data, key);
       if (!change || (change.from ?? null) === (change.to ?? null)) continue;
       const render = (value) => {
         if (value === null || value === undefined || value === '') return empty;
         if (table) return typeof value === 'string' ? name(table, value) : nativeTables[table][0];
-        if (key === 'priority') return priority(value);
-        if (key === 'kind') return Object.hasOwn(kinds, value) ? kinds[value] : 'Unknown type';
-        if (key === 'start_date' || key === 'due_date') return day(value);
-        return text(value) || 'Unavailable value';
+        return scalar(field, value);
       };
       changes.push({
         kind: 'value',
@@ -312,11 +315,16 @@ export function describeNativeChange(action, data, name) {
         changes.push({ kind: 'text', field: 'description', label: 'Description', from, to });
     }
     if (stored(data, 'position')) details.push('reordered the task');
-    if (action === 'updated' && data.archived === true) details.push('archived the task');
-    else if (action === 'updated' && data.archived === false)
-      details.push('restored the task from the archive');
   }
-  const summary = Object.hasOwn(nativeActions, action) ? nativeActions[action] : 'updated the task';
+  // Archiving is its own entry, like imported history, so it never merges into a group of edits.
+  const summary =
+    action === 'updated' && typeof data.archived === 'boolean'
+      ? data.archived
+        ? 'archived the task'
+        : 'restored the task from the archive'
+      : Object.hasOwn(nativeActions, action)
+        ? nativeActions[action]
+        : 'updated the task';
   return { summary, changes, details };
 }
 export async function presentActivity(tx, workspace, issueId, rows, links = []) {
