@@ -19,7 +19,7 @@ export function PreCanonicalCodePage() {
   const unknown = !code || (query.error instanceof ApiError && query.error.status === 404);
   return (
     <>
-      <header className="page-toolbar">
+      <header className="page-toolbar" data-page-header>
         <Button
           className="mobile-only"
           size="icon"

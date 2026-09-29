@@ -283,7 +283,9 @@ export function PressPreview({
             style={position}
             onKeyDown={(e) => {
               if (
-                !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key) ||
+                !['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(
+                  e.key,
+                ) ||
                 (e.target as Element).closest('input,textarea,[contenteditable="true"]')
               )
                 return;
@@ -292,12 +294,15 @@ export function PressPreview({
                 popup.current!.querySelectorAll<HTMLButtonElement>('[data-peek-action]'),
               );
               const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
+              const back = e.key === 'ArrowUp' || e.key === 'ArrowLeft';
+              // Focus outside the actions (the close button) enters at the first or last action.
+              const from = current < 0 && back ? buttons.length : current;
               const next =
                 e.key === 'Home'
                   ? 0
                   : e.key === 'End'
                     ? buttons.length - 1
-                    : (current + (e.key === 'ArrowUp' ? -1 : 1) + buttons.length) % buttons.length;
+                    : (from + (back ? -1 : 1) + buttons.length) % buttons.length;
               buttons[next]?.focus();
               setHighlighted(next);
             }}
@@ -314,13 +319,19 @@ export function PressPreview({
                 {error}
               </p>
             )}
-            <div className="peek-actions">
+            <div
+              className="peek-actions"
+              role="toolbar"
+              aria-label={`${dialogLabel} actions`}
+              aria-orientation="horizontal"
+            >
               {actions.map((action, index) => (
                 <button
                   key={action.label}
                   type="button"
                   data-peek-action={index}
-                  disabled={pending}
+                  // Native disabled would drop keyboard focus to <body>; `activate` ignores repeats.
+                  aria-disabled={pending}
                   className={highlighted === index ? 'is-highlighted' : ''}
                   onPointerEnter={() => setHighlighted(index)}
                   onClick={() => {

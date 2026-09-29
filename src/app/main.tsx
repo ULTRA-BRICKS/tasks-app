@@ -3,7 +3,7 @@ import { KnowledgeListPage, KnowledgePage } from '@/pages/knowledge';
 import { PlanningDocumentPage } from '@/pages/planning-document';
 import { WorkspaceKeyboard } from '@/features/keyboard';
 import { NewIssuePage } from '@/pages/issue-new';
-import React, { useEffect, useState, type ReactNode } from 'react';
+import React, { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -63,6 +63,7 @@ function Workspace() {
     navigate = useNavigate(),
     [createOpen, setCreateOpen] = useState(false),
     [searchOpen, setSearchOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
   useEffect(() => {
     document.documentElement.dataset.theme = prefs.theme;
     document.documentElement.dataset.density = prefs.density ?? 'auto';
@@ -86,8 +87,12 @@ function Workspace() {
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>
-        <Navigation onCreate={() => setCreateOpen(true)} onSearch={() => setSearchOpen(true)} />
-        <main id="main-content" className="workspace-main">
+        <Navigation
+          mainRef={mainRef}
+          onCreate={() => setCreateOpen(true)}
+          onSearch={() => setSearchOpen(true)}
+        />
+        <main ref={mainRef} id="main-content" className="workspace-main">
           <Routes>
             <Route path="/" element={<Navigate to="/tasks" replace />} />
             <Route path="/login" element={<Navigate to="/tasks" replace />} />

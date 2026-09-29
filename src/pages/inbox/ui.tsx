@@ -19,7 +19,7 @@ export function InboxPage() {
   });
   return (
     <>
-      <header className="page-toolbar">
+      <header className="page-toolbar" data-page-header>
         <Button
           className="mobile-only"
           size="icon"
