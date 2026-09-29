@@ -10,14 +10,16 @@ const source = (id: string, name: string, email: string | null, provider: string
   source_id: id,
 });
 /** Synthetic identities around the demo members: an email-matched Linear alias and a bound Slack
- * profile for Jamie, two Linear profiles sharing Sam's email, and a Linear OAuth app. */
-async function identityFixture(page: Page) {
+ * profile for Jamie, two Linear profiles sharing Sam's email, and a Linear OAuth app.
+ * `samName` renames Sam's member record in the catalog only. */
+async function identityFixture(page: Page, { samName }: { samName?: string } = {}) {
   await page.route('**/api/v1/catalog', async (route) => {
     const response = await route.fetch();
     if (!response.ok()) return route.fulfill({ response });
     const data = await response.json();
     const jamie = data.people.find((p: Person) => p.name === 'Jamie Chen');
     const sam = data.people.find((p: Person) => p.name === 'Sam Rivera');
+    if (samName) sam.name = samName;
     data.source_people = [
       ...(data.source_people ?? []),
       source('aaaaaaaa-0000-4000-8000-000000000001', 'jchen', jamie.email.toUpperCase(), 'linear'),
@@ -75,6 +77,28 @@ test('People settings mark a same-provider email conflict for review without wri
   await expect(review.getByRole('combobox')).toHaveCount(0);
   await expect(review.getByRole('link')).toHaveCount(0);
   expect(writes).toEqual([]);
+});
+test('a Needs review marker that wraps on a narrow phone lines up with the member name', async ({
+  page,
+}) => {
+  // A long name leaves no room for the marker beside it at the narrowest supported width.
+  const longName = 'Samantha Rivera Castellanos';
+  await page.setViewportSize({ width: 320, height: 700 });
+  await identityFixture(page, { samName: longName });
+  await login(page);
+  await page.goto('/settings?tab=members');
+  const sam = page.locator('.member-row').filter({ hasText: longName });
+  const badge = sam.getByText('Needs review', { exact: true });
+  await expect(badge).toBeVisible();
+  // `strong` starts where the name's first line starts; the email line shares that left edge.
+  const nameLine = await sam.locator('strong').boundingBox();
+  const email = await sam.getByText('sam.rivera@example.test', { exact: true }).boundingBox();
+  const marker = await badge.boundingBox();
+  if (!nameLine || !email || !marker) throw new Error('member row is not laid out');
+  expect(marker.y).toBeGreaterThanOrEqual(nameLine.y + marker.height);
+  expect(Math.abs(marker.x - nameLine.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(marker.x - email.x)).toBeLessThanOrEqual(1);
+  expect(marker.x + marker.width).toBeLessThanOrEqual(nameLine.x + nameLine.width + 1);
 });
 test('assignee picker lists each person once, labels conflicts and bots, and assigns the member', async ({
   page,

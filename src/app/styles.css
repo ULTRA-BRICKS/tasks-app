@@ -1892,6 +1892,10 @@ kbd {
   min-width: 0;
 }
 .member-row strong {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-8);
   font-size: var(--font-size-12);
   font-weight: 500;
 }
@@ -1917,7 +1921,6 @@ kbd {
 }
 /* Repeats color and size on purpose: `.member-row span` would otherwise make the badge muted 11px. */
 .member-row .review-badge {
-  margin-left: var(--space-8);
   color: var(--color-warning);
   font-size: 10px;
 }
