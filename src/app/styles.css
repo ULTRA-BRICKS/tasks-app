@@ -1478,17 +1478,6 @@ kbd {
   flex-direction: column;
   gap: var(--space-6);
 }
-.label-choice {
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-  font-size: var(--font-size-11);
-  color: var(--color-muted);
-}
-.label-choice input {
-  width: 12px;
-  height: 12px;
-}
 .detail-properties > .button {
   justify-content: flex-start;
   width: 100%;
@@ -2994,17 +2983,19 @@ kbd {
   gap: var(--space-10);
   color: var(--color-text);
 }
-.property-popup .label-choice {
-  min-height: 30px;
-  font-size: var(--font-size-13);
+/* The labels combobox trigger grows with its pills instead of the fixed picker height. */
+.picker.property-label-trigger {
+  height: auto;
+  min-height: 32px;
+  white-space: normal;
+  text-align: left;
 }
-.property-label-trigger {
+.property-label-values {
   display: flex;
   align-items: center;
   gap: var(--space-6);
   flex-wrap: wrap;
-  min-height: 32px;
-  text-align: left;
+  min-width: 0;
 }
 .property-label-trigger .label-pill {
   background: transparent;

@@ -43,9 +43,9 @@ The Create option appears only when the trimmed query is non-empty, no existing 
 Milestones have no required field beyond a name once the task's project is known, so they follow the inline rule rather than page-first creation (there is also no milestone page).
 
 1. Before sending, the latest list is refetched. A case-insensitive match created meanwhile is selected instead of creating a duplicate (concurrent match), with the status `Selected existing label “…”`.
-2. `POST /v1/labels {name, color:'#a694ff'}` (the Settings default colour) or `POST /v1/milestones {project_id, name}` carries `Idempotency-Key`. The key is stable per exact payload while the picker is mounted and is dropped after success or a definitive 4xx, so retrying after a lost response or 5xx replays the first result instead of creating a second object. The server reuses the existing `idempotency_keys` table through `createIdempotently`.
+2. `POST /v1/labels {name, color:'#a694ff'}` (the Settings default colour) or `POST /v1/milestones {project_id, name}` carries `Idempotency-Key`. The key is stable per exact payload while the picker is mounted and is dropped after success or a definitive 4xx. A retry after a lost response usually finds the committed object in step 1; when that refetch fails too (the cached list is used), the same key replays the first result instead of creating a second object. The server reuses the existing `idempotency_keys` table through `createIdempotently`.
 3. Success adds the object to the cache and selects it (labels are added to the task's labels; the milestone becomes the task's milestone).
-4. `409 ALREADY_EXISTS` (a concurrent label with the same name won the unique constraint): refetch and select the existing object. Milestone names are not unique on the server, so step 1 is their concurrent-match check.
+4. `409 ALREADY_EXISTS` (a concurrent label with the same name won the unique constraint): refetch and select the existing object. If that refetch fails too, the alert says `A label named “…” already exists. Try again to select it.` (the retry's step 1 finds it). Milestone names are not unique on the server, so step 1 is their concurrent-match check.
 5. `403`: `You don't have permission to create …`; nothing is selected.
 6. Offline (`navigator.onLine === false`): the Create option is disabled and says `Offline — reconnect to create`. A network failure while sending shows `Couldn't reach the server …` and choosing Create again retries with the same key.
 
@@ -74,9 +74,9 @@ Viewers keep read-only (disabled) pickers and never see Create. The server remai
 
 ## Acceptance mapping
 
-| Criterion | Evidence                                                                                                                                                                |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1         | `src/shared/ui/combobox.stories.tsx` play tests with axe (search, keyboard, Escape, IME, avatars); `tests/e2e/searchable-combobox.spec.ts` search/Escape on a real task |
-| 2         | Stories and e2e: typing, blur and Escape send no create request; only the Create option does                                                                            |
-| 3         | e2e: project and cycle page-first prefill and return                                                                                                                    |
-| 4         | `tests/unit/inline-create-idempotency.test.mjs` (retry, key conflict, 409, viewer 403); e2e viewer, 409 concurrent match, lost-response retry and offline               |
+| Criterion | Evidence                                                                                                                                                                                                                               |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1         | `src/shared/ui/combobox.stories.tsx` play tests with axe (search, keyboard, Escape, IME, avatars); `tests/e2e/searchable-combobox.spec.ts` search/Escape on a real task                                                                |
+| 2         | Stories and e2e: typing, blur and Escape send no create request; only the Create option does                                                                                                                                           |
+| 3         | e2e: project and cycle page-first prefill and return                                                                                                                                                                                   |
+| 4         | `tests/unit/inline-create-idempotency.test.mjs` (retry, key conflict, 409, viewer 403); e2e viewer, 409 concurrent match, lost-response retry with a failed refetch (same key, one label) and offline (pointer and Enter send nothing) |
