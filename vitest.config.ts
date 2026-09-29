@@ -11,6 +11,8 @@ export default mergeConfig(
   defineConfig({
     optimizeDeps: {
       include: [
+        // Pre-bundled so a cold cache never re-optimises it mid-run and reloads every story.
+        '@base-ui/react/combobox',
         '@storybook/react-vite',
         '@tanstack/react-query',
         'react/jsx-dev-runtime',

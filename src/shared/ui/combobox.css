@@ -1,0 +1,62 @@
+/* Searchable picker popup: a fixed search field above a scrolling listbox. */
+.combobox-popup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: max(var(--anchor-width), 240px);
+  overflow: hidden;
+}
+.combobox-search.input {
+  flex-shrink: 0;
+  min-height: 30px;
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--font-size-12);
+}
+.combobox-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: var(--space-4);
+}
+.combobox-list:empty {
+  display: none;
+}
+.combobox-empty:not(:empty) {
+  padding: var(--space-6) var(--space-8);
+  color: var(--color-muted);
+  font-size: var(--font-size-12);
+}
+.combobox-swatch {
+  flex-shrink: 0;
+  font-size: var(--font-size-11);
+  line-height: 1;
+}
+.combobox-create {
+  justify-content: flex-start;
+  color: var(--color-text);
+}
+.combobox-create-note {
+  display: block;
+  color: var(--color-muted);
+  font-size: var(--font-size-11);
+}
+.combobox-feedback:not(:empty) {
+  display: block;
+  margin: 0;
+  padding: var(--space-6) var(--space-8);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: var(--font-size-12);
+  overflow-wrap: anywhere;
+}
+.combobox-feedback-error:not(:empty) {
+  color: var(--color-danger);
+}
+@media (pointer: coarse) {
+  /* 16px text keeps iOS Safari from zooming the page when the search field focuses. */
+  .combobox-search.input {
+    min-height: var(--mobile-tap);
+    font-size: var(--font-size-16);
+  }
+}
