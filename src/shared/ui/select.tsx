@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode, RefObject } from 'react';
 import { Avatar } from './avatar';
 import { Select } from '@base-ui/react/select';
 import { Check, ChevronDown } from 'lucide-react';
@@ -19,6 +19,11 @@ export function Picker({
   disabled,
   className,
   triggerContent,
+  open,
+  onOpenChange,
+  container,
+  modal,
+  triggerProps,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -27,6 +32,13 @@ export function Picker({
   disabled?: boolean;
   className?: string;
   triggerContent?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Renders the list inside a caller's layer, e.g. the preview, instead of the body. */
+  container?: RefObject<HTMLElement | null>;
+  modal?: boolean;
+  triggerProps?: ButtonHTMLAttributes<HTMLButtonElement> &
+    Record<`data-${string}`, string | number>;
 }) {
   return (
     <Select.Root
@@ -36,14 +48,17 @@ export function Picker({
       }}
       items={options}
       disabled={disabled}
+      open={open}
+      onOpenChange={onOpenChange && ((next) => onOpenChange(next))}
+      modal={modal}
     >
-      <Select.Trigger aria-label={label} className={cn('picker', className)}>
+      <Select.Trigger aria-label={label} className={cn('picker', className)} {...triggerProps}>
         {triggerContent ?? <Select.Value />}
         <Select.Icon className="picker-chevron">
           <ChevronDown size={12} />
         </Select.Icon>
       </Select.Trigger>
-      <Select.Portal>
+      <Select.Portal container={container}>
         <Select.Positioner
           sideOffset={6}
           alignItemWithTrigger={false}
