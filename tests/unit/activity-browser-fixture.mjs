@@ -1,10 +1,7 @@
-import { sourceFixture } from './linear-import-fixture.mjs';
+import { teamSourceFixture } from './linear-import-fixture.mjs';
 export function browserHistoryFixture(teamKey) {
-  const source = sourceFixture(),
+  const source = teamSourceFixture(teamKey),
     done = crypto.randomUUID();
-  source.data.teams[0].key = teamKey;
-  for (const issue of source.data.issues)
-    issue.identifier = source.data.teams[0].key + '-' + issue.number;
   source.data.workflowStates.push({
     ...source.data.workflowStates[0],
     id: done,
