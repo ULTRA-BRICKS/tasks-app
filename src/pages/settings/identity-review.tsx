@@ -1,5 +1,5 @@
 import type { Catalog } from '@tickets/contracts';
-import { Avatar } from '@/shared/ui';
+import { PersonChip } from '@/entities/workspace';
 import { identityConflicts, providerLabel } from '@/shared/lib/people';
 import type { IdentityConflict } from '@/shared/lib/canonical-people.mjs';
 function reason(conflict: IdentityConflict) {
@@ -41,10 +41,7 @@ export function IdentityReview({ catalog }: { catalog: Catalog | undefined }) {
             <ul className="identity-profiles">
               {conflict.profiles.map((profile) => (
                 <li key={profile.id}>
-                  <span aria-hidden="true">
-                    <Avatar name={profile.name} src={profile.avatar_url} />
-                  </span>
-                  <strong>{profile.name}</strong>
+                  <PersonChip id={profile.id} display="name" label={profile.name} />
                   <span className="identity-provider">{providerLabel(profile.provider)}</span>
                   {profile.email && <span className="identity-email">{profile.email}</span>}
                 </li>

@@ -3,6 +3,7 @@ export { Input, Textarea } from './input';
 export { Picker, type Option } from './select';
 export { Modal } from './dialog';
 export { Avatar } from './avatar';
+export { PersonPopover } from './person-popover';
 export { Markdown } from './markdown';
 export { EmptyState, ErrorState, Loading, SkeletonRows } from './feedback';
 

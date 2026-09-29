@@ -1,0 +1,130 @@
+/* Person trigger and card (docs/PERSON-POPOVER.md). Layout-neutral: the trigger takes the
+   avatar's own size so existing rows, rails and headers keep their geometry. */
+.person-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border-radius: var(--radius-round);
+  font: inherit;
+  text-align: left;
+}
+.person-trigger-name {
+  border-radius: var(--radius-sm);
+}
+.person-trigger-text {
+  min-width: 0;
+  font-weight: var(--font-weight-medium);
+  overflow-wrap: anywhere;
+}
+.person-trigger:hover .person-trigger-text,
+.person-trigger[data-popup-open] .person-trigger-text {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* An unknown ID (no card to open) keeps the same inline layout as a trigger. */
+.person-static {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-width: 0;
+}
+.person-trigger:hover > .avatar,
+.person-trigger[data-popup-open] > .avatar {
+  box-shadow: 0 0 0 2px var(--color-border-strong);
+}
+/* 44 px touch target around a 22 px avatar without moving anything around it. */
+@media (pointer: coarse) {
+  .person-trigger::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+.person-card {
+  width: 280px;
+  max-width: calc(100vw - 16px);
+  padding: var(--space-12);
+  display: grid;
+  gap: var(--space-10);
+  background: var(--color-elevated);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px #0005;
+  color: var(--color-text);
+  font-size: var(--font-size-12);
+  outline: 0;
+}
+.person-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  min-width: 0;
+}
+.person-card-identity {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.person-card-name {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+.person-card-email {
+  margin: 0;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.person-card-facts {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+}
+.person-card-facts > div {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: var(--space-8);
+}
+.person-card-facts dt {
+  color: var(--color-muted);
+}
+.person-card-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.person-card-review {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6);
+  margin: 0;
+  color: var(--color-muted);
+}
+.person-card-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  min-height: 32px;
+  padding: 0 var(--space-8);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+}
+.person-card-action:hover {
+  background: var(--color-hover);
+}
+@media (pointer: coarse) {
+  .person-card-action {
+    min-height: 44px;
+  }
+}
