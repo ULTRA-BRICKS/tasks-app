@@ -15,12 +15,7 @@
   "reducedMotion": "reduce",
   "alignment": "Native viewport coordinates; no scaling, translation, warping or pixel exclusions.",
   "overlayOpacity": 0.5,
-  "documentRegion": [
-    244,
-    80,
-    990,
-    240
-  ],
+  "documentRegion": [244, 80, 990, 240],
   "limitations": [
     "System font differs from Linear Inter Variable.",
     "Different navigation modules, identifiers, avatars, activity and property values.",

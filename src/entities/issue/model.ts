@@ -1,6 +1,12 @@
 import { feedRefreshInterval } from '@/shared/lib/feed-refresh';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import type { Issue, IssueDetail, IssueFilters, Page } from '@tickets/contracts';
+import type {
+  Issue,
+  IssueDetail,
+  IssueFilters,
+  Page,
+  PreCanonicalCodeHistory,
+} from '@tickets/contracts';
 import { api } from '@/shared/api/client';
 export function useIssues(
   filters: IssueFilters,
@@ -30,6 +36,16 @@ export const useIssue = (id: string | undefined) =>
     queryKey: ['issue', id],
     queryFn: ({ signal }) => api<IssueDetail>('/v1/issues/' + encodeURIComponent(id!), { signal }),
     enabled: Boolean(id),
+  });
+/** Explicit historical lookup; bare codes keep resolving through useIssue to their current holder. */
+export const usePreCanonicalCode = (code: string | null) =>
+  useQuery({
+    queryKey: ['pre-canonical-code', code],
+    queryFn: ({ signal }) =>
+      api<PreCanonicalCodeHistory>('/v1/issues/pre-canonical/' + encodeURIComponent(code!), {
+        signal,
+      }),
+    enabled: Boolean(code),
   });
 export const priorities = [
   { value: '0', label: 'No priority' },

@@ -5,9 +5,7 @@
   "installCommand": "bun install --frozen-lockfile",
   "buildCommand": "bun run build",
   "outputDirectory": "dist",
-  "regions": [
-    "fra1"
-  ],
+  "regions": ["fra1"],
   "functions": {
     "api/index.mjs": {
       "maxDuration": 60,

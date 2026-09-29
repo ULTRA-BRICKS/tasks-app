@@ -2,10 +2,7 @@
   "capturedAt": "2026-09-12T21:57:03.844Z",
   "referenceUrl": "https://linear.app/demo/issue/ENG-128/fix-css-in-payment-history",
   "referenceCapturedAt": "2026-09-12T09:21:40.684Z",
-  "viewport": [
-    1440,
-    1000
-  ],
+  "viewport": [1440, 1000],
   "deviceScaleFactor": 1,
   "referenceSha256": "4422a422027458f743420c048dd2cd9deb08c07f7867298bcdbdfd1ebd2f58e4",
   "actualSha256": "4f40733e64152b6e5de3814b37516192e76c273e685acb172635b18b1586b5b6",
@@ -55,21 +52,11 @@
   },
   "rawPixelError": {
     "full": {
-      "region": [
-        0,
-        0,
-        1440,
-        1000
-      ],
+      "region": [0, 0, 1440, 1000],
       "meanAbsoluteRgbError": 6.012988657407408
     },
     "titleAndDescription": {
-      "region": [
-        244,
-        80,
-        746,
-        160
-      ],
+      "region": [244, 80, 746, 160],
       "meanAbsoluteRgbError": 10.301424262734585
     }
   },
