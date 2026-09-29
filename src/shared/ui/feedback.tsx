@@ -27,12 +27,14 @@ export function ErrorState({ message, retry }: { message: string; retry?: () => 
   return (
     <div className="error-state" role="alert">
       <AlertCircle size={16} />
-      <span>{message}</span>
-      {retry && (
-        <Button variant="ghost" onClick={retry}>
-          Retry
-        </Button>
-      )}
+      <div className="error-state-body">
+        <span>{message}</span>
+        {retry && (
+          <Button size="sm" onClick={retry}>
+            Retry
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
