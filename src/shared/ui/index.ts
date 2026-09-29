@@ -13,3 +13,5 @@ export { PressPreview } from './press-preview';
 export { ActionMenu } from './action-menu';
 
 export { ImportedFilesProvider, ImportedSourceLink } from './imported-files';
+
+export { Keycaps } from './keycap';
