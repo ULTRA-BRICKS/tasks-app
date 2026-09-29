@@ -214,7 +214,6 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
             title={model.draft.title}
             description={model.draft.body}
             titleMaxLength={kind === 'documents' ? 300 : 200}
-            descriptionMaxLength={kind === 'documents' ? 500000 : 100000}
             titlePlaceholder={'Untitled ' + noun(kind)}
             readOnly={disabled}
             onChange={(field, value) =>
