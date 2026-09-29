@@ -168,7 +168,7 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
     );
   return (
     <>
-      <header className="page-toolbar">
+      <header className="page-toolbar" data-page-header>
         <Button
           className="mobile-only"
           variant="ghost"
@@ -376,7 +376,7 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
         </div>
       )}
       {bulk.error && <ErrorState message={errorMessage(bulk.error)} />}
-      <div className="issues-content">
+      <div className="issues-content" data-view={prefs.view} data-content-scroller>
         {prefs.view !== 'board' &&
           (feed.added > 0 || feed.changed.length > 0 || feed.departed.length > 0) && (
             <div className="feed-update-anchor">

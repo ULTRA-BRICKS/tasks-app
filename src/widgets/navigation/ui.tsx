@@ -1,7 +1,7 @@
 import { TeamNavigationRow } from '@/features/team-management';
-import { useMobileChrome } from '@/shared/lib/mobile-chrome';
 import { copyActions } from '@/shared/lib/copy-formats';
-import { useEffect, useState } from 'react';
+import { useMobileChrome } from '@/shared/lib/mobile-chrome';
+import { useEffect, useState, type RefObject } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Inbox,
@@ -25,13 +25,22 @@ import { useCatalog, useMe, useViews, useNotifications, moduleEnabled } from '@/
 import { usePreferences } from '@/features/preferences';
 import { Avatar, Button, Modal, ActionMenu } from '@/shared/ui';
 import { api } from '@/shared/api/client';
-export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSearch: () => void }) {
+export function Navigation({
+  onCreate,
+  onSearch,
+  mainRef,
+}: {
+  onCreate: () => void;
+  onSearch: () => void;
+  /** Workspace content whose page header the mobile chrome measures. */
+  mainRef: RefObject<HTMLElement | null>;
+}) {
+  const chrome = useMobileChrome(mainRef);
   const { data: catalog } = useCatalog(),
     { data: me } = useMe(),
     views = useViews(moduleEnabled(catalog, 'views')),
     notifications = useNotifications(moduleEnabled(catalog, 'notifications')),
     client = useQueryClient();
-  const chrome = useMobileChrome();
   const prefs = usePreferences(),
     navigate = useNavigate();
   const location = useLocation();
