@@ -141,7 +141,7 @@ test('unresolved and unsupported historical values stay readable without leaking
     row = (await f.request('GET', '/api/v1/issues/' + issue)).data.activity.find(
       (a) => a.id === record.id,
     );
-    expect(row.summary).toBe('updated the issue in Linear');
+    expect(row.summary).toBe('updated the task in Linear');
     expect(row.details).toEqual([]);
     expect(
       (await f.request('GET', '/api/v1/issues/' + issue, undefined, { anonymous: true })).status,
@@ -155,13 +155,13 @@ test('historical booleans and empty selections are distinguished from source met
   const { describeImportedChange } =
     await import('../../packages/server/modules/tickets/activity.mjs');
   expect(describeImportedChange({ archivedAt: '2024-01-01T00:00:00Z' }).summary).toBe(
-    'updated the issue in Linear',
+    'updated the task in Linear',
   );
-  expect(describeImportedChange({ archived: true }).summary).toBe('archived the issue');
+  expect(describeImportedChange({ archived: true }).summary).toBe('archived the task');
   expect(describeImportedChange({ archived: false }).summary).toBe(
-    'restored the issue from the archive',
+    'restored the task from the archive',
   );
-  expect(describeImportedChange({ trashed: false }).summary).toBe('restored the issue from trash');
+  expect(describeImportedChange({ trashed: false }).summary).toBe('restored the task from trash');
   expect(describeImportedChange({ fromEstimate: 3, toEstimate: 0 }).summary).toBe(
     'changed estimate: 3 → 0',
   );
@@ -172,7 +172,7 @@ test('historical booleans and empty selections are distinguished from source met
     describeImportedChange({ changes: { descriptionUpdatedByIds: ['source-author'] } }).summary,
   ).toBe('updated the description');
   expect(describeImportedChange('{broken')).toEqual({
-    summary: 'updated the issue in Linear',
+    summary: 'updated the task in Linear',
     details: [],
   });
   expect(describeImportedChange({ fromPriority: 0, toPriority: 'map' }).summary).toBe(
@@ -196,9 +196,9 @@ test('unknown native event codes never become UI labels or inherited object prop
   }));
   const rendered = await presentActivity(tx, 'workspace', 'issue', rows);
   expect(rendered.map((row) => row.summary)).toEqual([
-    'updated the issue',
-    'updated the issue',
-    'updated the issue',
+    'updated the task',
+    'updated the task',
+    'updated the task',
   ]);
 });
 
@@ -238,10 +238,53 @@ test('native comment-edit and unlink verbs are preserved', async () => {
     { action: 'edited comment', data: {} },
     { action: 'unlinked', data: {} },
   ]);
-  expect(result.map((event) => event.summary)).toEqual([
-    'edited a comment',
-    'removed an issue link',
+  expect(result.map((event) => event.summary)).toEqual(['edited a comment', 'removed a task link']);
+});
+
+test('every history summary and fallback name uses task wording', async () => {
+  const { presentActivity, describeImportedChange } =
+    await import('../../packages/server/modules/tickets/activity.mjs');
+  const native = [
+    'created',
+    'updated',
+    'deleted',
+    'restored',
+    'commented',
+    'linked',
+    'unlinked',
+    'edited comment',
+    'attached',
+    'archived',
+  ].map((action) => ({ action, data: {} }));
+  const nativeSummaries = (await presentActivity({}, 'workspace', 'task', native)).map(
+    (event) => event.summary,
+  );
+  expect(nativeSummaries.slice(0, 7)).toEqual([
+    'created the task',
+    'updated the task',
+    'moved the task to trash',
+    'restored the task',
+    'added a comment',
+    'linked a task',
+    'removed a task link',
   ]);
+  const imported = describeImportedChange({
+    sourceCreated: true,
+    fromParentId: crypto.randomUUID(),
+    toParentId: null,
+    relationChanges: [{ identifier: 'ENG-2', type: 'r' }],
+    archived: true,
+    trashed: true,
+  });
+  expect(imported.summary).toBe('created the task in Linear');
+  expect(imported.details).toEqual([
+    'changed parent task: Unavailable task → No parent',
+    'updated task links: ENG-2',
+    'archived the task',
+    'moved the task to trash',
+  ]);
+  for (const line of [...nativeSummaries, imported.summary, ...imported.details])
+    expect(line).not.toMatch(/\bissues?\b/i);
 });
 
 test('history lookups retain indexed collection coordinates and avoid reverse source-map scans', async () => {

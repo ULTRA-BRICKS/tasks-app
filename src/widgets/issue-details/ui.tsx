@@ -187,7 +187,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
               body: draft.description,
               key: issue.key,
               path: '/tasks/' + issue.id,
-              kind: 'issue',
+              kind: issue.kind === 'epic' ? 'epic' : 'task',
             })}
           />
           <Button

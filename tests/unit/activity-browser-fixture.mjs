@@ -35,6 +35,14 @@ export function browserHistoryFixture(teamKey) {
       toPriority: 1,
       addedLabelIds: [source.ids.label],
     },
+    {
+      id: crypto.randomUUID(),
+      createdAt: '2024-03-04T00:00:00Z',
+      actorId: source.ids.user,
+      fromParentId: crypto.randomUUID(),
+      toParentId: null,
+      archived: true,
+    },
   ];
   source.manifest.counts = Object.fromEntries(
     Object.entries(source.data).map(([key, rows]) => [key, rows.length]),

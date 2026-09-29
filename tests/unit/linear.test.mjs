@@ -151,6 +151,30 @@ caseWithDb('GraphQL handles operationName, aliases, fragments and directives', a
   expect(r.data.errors).toBeUndefined();
   expect(r.data.data.me).toEqual({ id: f.init.user_id, name: 'Owner' });
 });
+caseWithDb(
+  'a missing task reads as Task in REST and keeps the Issue type name in GraphQL',
+  async (f) => {
+    const rest = await f.request('GET', '/api/v1/issues/TKT-999');
+    expect(rest.status).toBe(404);
+    expect(rest.data.error).toMatchObject({ code: 'NOT_FOUND', message: 'Task not found' });
+    const lookups = [
+      ['query($id:String!){issue(id:$id){id}}', { id: 'TKT-999' }],
+      [
+        'mutation($id:String!,$input:IssueUpdateInput!){issueUpdate(id:$id,input:$input){success}}',
+        { id: 'TKT-999', input: { title: 'Nope' } },
+      ],
+      [
+        'mutation($input:CommentCreateInput!){commentCreate(input:$input){success}}',
+        { input: { issueId: 'TKT-999', body: 'Nope' } },
+      ],
+    ];
+    for (const [query, variables] of lookups) {
+      const r = await gql(f, query, variables);
+      expect(r.data.errors[0].message).toBe('Issue not found');
+      expect(r.data.errors[0].extensions).toMatchObject({ code: 'NOT_FOUND', type: 'user error' });
+    }
+  },
+);
 caseWithDb('GraphQL budgets fragment-hidden fanout before executing SQL', async (f) => {
   const q =
     '{issues(first:100){...I}} fragment I on IssueConnection{nodes{children(first:100){nodes{children(first:100){nodes{id title}}}}}}';

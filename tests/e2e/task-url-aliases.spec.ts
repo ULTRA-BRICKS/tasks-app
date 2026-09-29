@@ -39,6 +39,21 @@ test('new and list routes use Tasks naming while the issue API stays compatible'
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('');
   expect((await page.request.get('/api/v1/issues')).status()).toBe(200);
 });
+test('a missing task code and native task history use task wording', async ({ page }) => {
+  await login(page);
+  const task = (await (await page.request.get('/api/v1/issues')).json()).data[0];
+  await page.goto('/tasks/' + task.id);
+  const activity = page.locator('.activity-section');
+  await expect(activity).toContainText('created the task');
+  await expect(activity).not.toContainText(/\bissues?\b/i);
+  const missing = task.key.replace(/\d+$/, '99999');
+  const response = await page.request.get('/api/v1/issues/' + missing);
+  expect(response.status()).toBe(404);
+  expect((await response.json()).error.code).toBe('NOT_FOUND');
+  await page.goto('/tasks/' + missing);
+  await expect(page.getByText('Task not found', { exact: true })).toBeVisible();
+  await expect(page.getByText(/issue not found/i)).toHaveCount(0);
+});
 
 test('task details keep the document-specific mobile chrome', async ({ browser }) => {
   const context = await browser.newContext({

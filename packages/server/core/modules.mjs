@@ -9,10 +9,10 @@ export const MODULES = Object.freeze([
   },
   {
     id: 'tickets',
-    name: 'Tickets',
+    name: 'Tasks',
     required: true,
     depends: ['identity'],
-    description: 'Issues, epics, workflows, labels, relations, comments and activity.',
+    description: 'Tasks, epics, workflows, labels, relations, comments and activity.',
   },
   {
     id: 'planning',
@@ -48,7 +48,8 @@ export const MODULES = Object.freeze([
     id: 'github',
     name: 'GitHub',
     depends: ['tickets'],
-    description: 'Issue import/export, linked pull requests, review and merge automation.',
+    description:
+      'Sync tasks with GitHub issues, linked pull requests, review and merge automation.',
   },
   {
     id: 'slack',

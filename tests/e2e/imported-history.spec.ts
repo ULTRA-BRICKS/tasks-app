@@ -51,6 +51,9 @@ test('imported history uses source names and readable events on desktop and mobi
     await expect(activity).toContainText('Linear updated the description');
     await expect(activity).toContainText('No priority → Urgent');
     await expect(activity).toContainText('added labels: Imported fixture');
+    await expect(activity).toContainText('changed parent task: Unavailable task → No parent');
+    await expect(activity).toContainText('archived the task');
+    await expect(activity).not.toContainText(/\bissues?\b/i);
     await expect(activity).not.toContainText('linear_imported_change');
     await expect(activity).not.toContainText(done);
     await activity.scrollIntoViewIfNeeded();
