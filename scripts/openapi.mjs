@@ -445,7 +445,7 @@ export function generateOpenAPI() {
         cursor: { type: 'string' },
       }))
         operation.parameters.push({ name, in: 'query', schema });
-    if (path === '/v1/issues' && method === 'post')
+    if (['/v1/issues', '/v1/labels', '/v1/milestones'].includes(path) && method === 'post')
       operation.parameters.push({
         name: 'Idempotency-Key',
         in: 'header',
