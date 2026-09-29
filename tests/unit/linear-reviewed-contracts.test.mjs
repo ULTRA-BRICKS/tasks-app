@@ -2,9 +2,7 @@ import assert from 'node:assert/strict';
 import { test, expect } from 'bun:test';
 import { configured } from './linear-live-queue.test.mjs';
 import { normalizedSource } from '../../packages/server/modules/linear-live/model.mjs';
-import {
-  applyNativePatch,
-} from '../../packages/server/modules/linear-live/domain.mjs';
+import { applyNativePatch } from '../../packages/server/modules/linear-live/domain.mjs';
 import { configureSync, enqueueSyncJob } from '../../packages/server/modules/linear-live/store.mjs';
 import { reconcileEntityJob } from '../../packages/server/modules/linear-live/engine.mjs';
 import { targetId } from '../../packages/imports/linear-source.mjs';
@@ -51,9 +49,12 @@ test('project team changes persist through the shared domain and are version gua
       ]),
     );
     expect(teams.map((r) => r.team_id)).toEqual([next.id]);
-    await assert.rejects(f.db.transaction((tx) =>
-      applyNativePatch(tx, configWithActor(config, actor), 'projects', row, { name: 'Stale' }),
-    ), error=>error.code==='VERSION_CONFLICT');
+    await assert.rejects(
+      f.db.transaction((tx) =>
+        applyNativePatch(tx, configWithActor(config, actor), 'projects', row, { name: 'Stale' }),
+      ),
+      (error) => error.code === 'VERSION_CONFLICT',
+    );
   } finally {
     await f.close();
   }
