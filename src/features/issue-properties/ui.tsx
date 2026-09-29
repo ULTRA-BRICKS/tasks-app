@@ -13,9 +13,10 @@ import {
   useCycles,
   useMilestones,
   moduleEnabled,
+  PersonChip,
 } from '@/entities/workspace';
 import { StatusIcon, PriorityIcon, priorities } from '@/entities/issue';
-import { Combobox, Avatar, type ComboboxCreate } from '@/shared/ui';
+import { Combobox, type ComboboxCreate } from '@/shared/ui';
 export interface IssuePropertyValue {
   team_id: string;
   status_id: string;
@@ -80,9 +81,9 @@ export function IssueProperties({
           },
         }
       : undefined;
-  const row = (icon: ReactNode, child: ReactNode) => (
+  const row = (icon: ReactNode, child: ReactNode, interactiveIcon = false) => (
     <div className="compact-property">
-      <span className="property-icon" aria-hidden="true">
+      <span className="property-icon" aria-hidden={interactiveIcon ? undefined : true}>
         {icon}
       </span>
       {child}
@@ -127,7 +128,7 @@ export function IssueProperties({
         />,
       )}
       {row(
-        person ? <Avatar name={person.name} src={person.avatar_url} /> : <UserRound size={15} />,
+        person ? <PersonChip id={person.id} /> : <UserRound size={15} />,
         <Combobox
           aria-label="Assignee"
           value={canonicalPersonValue(c, v.assignee_id)}
@@ -135,6 +136,7 @@ export function IssueProperties({
           onChange={(id) => onChange({ assignee_id: id === 'none' ? null : id })}
           disabled={disabled}
         />,
+        Boolean(person),
       )}
       {row(
         <Triangle size={15} />,

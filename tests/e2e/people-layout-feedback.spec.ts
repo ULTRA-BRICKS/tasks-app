@@ -182,9 +182,10 @@ test('viewer can inspect assignee suggestions without an enabled assignment or m
     .getByRole('combobox', { name: /Assignee/ })
     .click();
   await expect(page.getByRole('listbox')).toBeVisible();
-  const options = page.getByRole('option');
-  expect(await options.count()).toBeGreaterThan(0);
-  for (const option of await options.all())
+  // Every assignment is disabled; View profile (UB-77) only shows the assignee's card.
+  const assignments = page.getByRole('option').filter({ hasNotText: 'View profile' });
+  expect(await assignments.count()).toBeGreaterThan(0);
+  for (const option of await assignments.all())
     await expect(option).toHaveAttribute('aria-disabled', 'true');
   await page.keyboard.press('Enter');
   expect(writes).toBe(0);

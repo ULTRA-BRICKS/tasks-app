@@ -21,9 +21,16 @@ import {
   Ellipsis,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCatalog, useMe, useViews, useNotifications, moduleEnabled } from '@/entities/workspace';
+import {
+  useCatalog,
+  useMe,
+  useViews,
+  useNotifications,
+  moduleEnabled,
+  PersonChip,
+} from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
-import { Avatar, Button, Modal, ActionMenu } from '@/shared/ui';
+import { Button, Modal, ActionMenu } from '@/shared/ui';
 import { api } from '@/shared/api/client';
 export function Navigation({
   onCreate,
@@ -336,8 +343,7 @@ export function Navigation({
           <span>Settings</span>
         </NavLink>
         <div className="profile-row">
-          <Avatar name={me?.name} />
-          <span>{me?.name}</span>
+          <PersonChip id={me?.id} name={me?.name} display="name" onViewTasks={close} />
           <Button variant="ghost" size="icon" aria-label="Sign out" onClick={() => void logout()}>
             <LogOut size={14} />
           </Button>

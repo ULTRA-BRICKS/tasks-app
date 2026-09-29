@@ -1,26 +1,8 @@
-import { SourceEditor } from './source';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import { Markdown } from '@tiptap/markdown';
 import Placeholder from '@tiptap/extension-placeholder';
-import TaskList from '@tiptap/extension-task-list';
-import TaskItem from '@tiptap/extension-task-item';
-import { TableKit } from '@tiptap/extension-table';
-import Image from '@tiptap/extension-image';
-const SafeImage = Image.extend({
-  renderHTML({ HTMLAttributes }) {
-    const src = String(HTMLAttributes.src ?? '');
-    const label = String(HTMLAttributes.alt || 'Attached image');
-    return /^https?:\/\//i.test(src)
-      ? [
-          'a',
-          { href: src, target: '_blank', rel: 'noopener noreferrer', class: 'external-image-link' },
-          label,
-        ]
-      : ['span', { class: 'external-image-link' }, label];
-  },
-});
+import { descriptionExtensions } from './description-schema';
+import { loadDescription, saveDescription, type LoadedDescription } from './description-markdown';
 export interface DescriptionProps {
   value: string;
   onChange: (value: string) => void;
@@ -29,27 +11,9 @@ export interface DescriptionProps {
   onEditEnd?: () => void;
   readOnly?: boolean;
   placeholder?: string;
-  maxLength?: number;
 }
-export default function RichDescription(props: DescriptionProps) {
-  // Preserve unsupported markup literally rather than silently losing it on a rich-text edit.
-  return /<!--|<\/?[a-z][^>]*>|\[\^[^\]]+\]|^\s{0,3}\[[^\]]+\]:/im.test(props.value) ? (
-    <SourceDescription {...props} />
-  ) : (
-    <SupportedDescription {...props} />
-  );
-}
-function SourceDescription(props: DescriptionProps) {
-  return (
-    <div className="source-preserved">
-      <p className="section-hint">
-        This description contains extended Markdown. Source editing preserves every element.
-      </p>
-      <SourceEditor {...props} />
-    </div>
-  );
-}
-function SupportedDescription({
+/** The one rich surface for every description; unsupported Markdown stays inside it read-only. */
+export default function RichDescription({
   value,
   onChange,
   onCommit,
@@ -58,25 +22,15 @@ function SupportedDescription({
   readOnly = false,
   placeholder = 'Add description…',
 }: DescriptionProps) {
+  const [initial] = useState(() => loadDescription(value));
+  const loaded = useRef<LoadedDescription>(initial);
   const emitted = useRef(value),
     original = useRef(value),
-    canceled = useRef(false);
+    canceled = useRef(false),
+    surface = useRef<HTMLDivElement>(null);
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({ link: { openOnClick: false, autolink: false }, underline: false }),
-      TaskList,
-      TaskItem.configure({
-        nested: true,
-        HTMLAttributes: { 'data-type': 'taskItem' },
-        a11y: { checkboxLabel: (node) => node.firstChild?.textContent || 'Task' },
-      }),
-      TableKit,
-      SafeImage,
-      Markdown.configure({ markedOptions: { gfm: true } }),
-      Placeholder.configure({ placeholder }),
-    ],
-    content: value,
-    contentType: 'markdown',
+    extensions: [...descriptionExtensions(), Placeholder.configure({ placeholder })],
+    content: initial.doc,
     editable: !readOnly,
     editorProps: {
       attributes: {
@@ -90,11 +44,10 @@ function SupportedDescription({
         event.preventDefault();
         event.stopPropagation();
         canceled.current = true;
+        loaded.current = loadDescription(original.current);
+        emitted.current = original.current;
         onChange(original.current);
-        editor?.commands.setContent(original.current, {
-          contentType: 'markdown',
-          emitUpdate: false,
-        });
+        editor?.commands.setContent(loaded.current.doc, { emitUpdate: false });
         editor?.commands.blur();
         return true;
       },
@@ -105,7 +58,7 @@ function SupportedDescription({
       canceled.current = false;
     },
     onUpdate: ({ editor: e }) => {
-      emitted.current = e.getMarkdown();
+      emitted.current = saveDescription(loaded.current.baseline, e.state.doc);
       onChange(emitted.current);
     },
     onBlur: () => {
@@ -119,13 +72,27 @@ function SupportedDescription({
   }, [editor, readOnly]);
   useEffect(() => {
     if (editor && value !== emitted.current && !editor.isFocused) {
-      editor.commands.setContent(value, { contentType: 'markdown', emitUpdate: false });
+      loaded.current = loadDescription(value);
+      editor.commands.setContent(loaded.current.doc, { emitUpdate: false });
       emitted.current = value;
     }
   }, [editor, value]);
+  // A checkbox toggle is a complete edit: Tiptap applies it on `change`, then it saves at once.
+  useEffect(() => {
+    const element = surface.current;
+    if (!element || !onCommit) return;
+    const toggled = (event: Event) => {
+      if (!(event.target instanceof HTMLInputElement) || event.target.type !== 'checkbox') return;
+      if (!editor?.isEditable) return;
+      original.current = emitted.current;
+      onCommit();
+    };
+    element.addEventListener('change', toggled);
+    return () => element.removeEventListener('change', toggled);
+  }, [editor, onCommit]);
 
   return (
-    <div className="document-editor">
+    <div className="document-editor" ref={surface}>
       <EditorContent editor={editor} />
     </div>
   );
