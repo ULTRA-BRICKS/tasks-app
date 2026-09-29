@@ -1,19 +1,20 @@
 import { uuid, targetId } from '../../../imports/linear-source.mjs';
 
+// Linear history suffix, display label, source collection, empty value, presented field.
 const fields = [
-  ['StateId', 'status', 'workflowStates', 'Not set'],
-  ['AssigneeId', 'assignee', 'users', 'Unassigned'],
-  ['Priority', 'priority', null, 'No priority'],
-  ['Title', 'title', null, 'Untitled'],
-  ['TeamId', 'team', 'teams', 'No team'],
-  ['ProjectId', 'project', 'projects', 'No project'],
-  ['ProjectMilestoneId', 'milestone', 'projectMilestones', 'No milestone'],
-  ['CycleId', 'cycle', 'cycles', 'No cycle'],
-  ['ParentId', 'parent task', 'issues', 'No parent'],
-  ['Estimate', 'estimate', null, 'Not estimated'],
-  ['DueDate', 'due date', null, 'No due date'],
+  ['StateId', 'Status', 'workflowStates', 'Not set', 'status'],
+  ['AssigneeId', 'Assignee', 'users', 'Unassigned', 'assignee'],
+  ['Priority', 'Priority', null, 'No priority', 'priority'],
+  ['Title', 'Title', null, 'Untitled', 'title'],
+  ['TeamId', 'Team', 'teams', 'No team', 'team'],
+  ['ProjectId', 'Project', 'projects', 'No project', 'project'],
+  ['ProjectMilestoneId', 'Milestone', 'projectMilestones', 'No milestone', 'milestone'],
+  ['CycleId', 'Cycle', 'cycles', 'No cycle', 'cycle'],
+  ['ParentId', 'Parent task', 'issues', 'No parent', 'parent'],
+  ['Estimate', 'Estimate', null, 'Not estimated', 'estimate'],
+  ['DueDate', 'Due date', null, 'No due date', 'due_date'],
 ];
-const priorityNames = ['No priority', 'Urgent', 'High', 'Normal', 'Low'];
+const priorityNames = ['No priority', 'Urgent', 'High', 'Medium', 'Low'];
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const text = (value, limit = 200) => {
   if (typeof value !== 'string' && typeof value !== 'number') return '';
@@ -21,6 +22,22 @@ const text = (value, limit = 200) => {
   return cleaned.length > limit ? cleaned.slice(0, limit) + '…' : cleaned;
 };
 const list = (value) => (Array.isArray(value) ? value : []);
+const dayFormat = new Intl.DateTimeFormat('en', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+// Date-only values are calendar days: format them in UTC so no timezone shifts the day.
+const day = (value) => {
+  const noon =
+    typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? Date.parse(value + 'T12:00:00Z')
+      : NaN;
+  return Number.isNaN(noon) ? text(value) || 'Unavailable value' : dayFormat.format(noon);
+};
+const priority = (value) =>
+  Number.isInteger(value) && value >= 0 && value <= 4 ? priorityNames[value] : 'Unknown priority';
 function payload(value) {
   try {
     const parsed = typeof value === 'string' ? JSON.parse(value) : value;
@@ -40,9 +57,7 @@ function valueAt(event, key) {
 function names(values, resolve, collection) {
   const all = [...new Set(list(values).filter((value) => typeof value === 'string'))];
   const shown = all.slice(0, 8).map((value) => resolve(collection, value));
-  return (
-    shown.join(', ') + (all.length > shown.length ? ` and ${all.length - shown.length} more` : '')
-  );
+  return all.length > shown.length ? [...shown, `${all.length - shown.length} more`] : shown;
 }
 const unavailable = {
   workflowStates: 'Unavailable status',
@@ -56,13 +71,22 @@ const unavailable = {
   attachments: 'Unavailable attachment',
 };
 
+const verbs = new Set([
+  'created the task in Linear',
+  'commented in Linear',
+  'archived the task',
+  'restored the task from the archive',
+  'moved the task to trash',
+  'restored the task from trash',
+]);
 // A presentation only: preserve the immutable action code, source payload and timestamps.
 export function describeImportedChange(raw, resolve = (collection) => unavailable[collection]) {
   const event = payload(raw),
-    lines = [];
-  if (event.sourceCreated === true) lines.push('created the task in Linear');
-  if (event.sourceCommented === true) lines.push('commented in Linear');
-  for (const [suffix, label, collection, empty] of fields) {
+    notes = [],
+    changes = [];
+  if (event.sourceCreated === true) notes.push('created the task in Linear');
+  if (event.sourceCommented === true) notes.push('commented in Linear');
+  for (const [suffix, label, collection, empty, field] of fields) {
     const before = valueAt(event, 'from' + suffix),
       after = valueAt(event, 'to' + suffix);
     if (before === after || (before === null && after === null)) continue;
@@ -73,25 +97,27 @@ export function describeImportedChange(raw, resolve = (collection) => unavailabl
           (object(value) ? text(value.name) : '') ||
           resolve(collection, object(value) ? value.id : value)
         );
-      if (suffix === 'Priority')
-        return Number.isInteger(value) && value >= 0 && value <= 4
-          ? priorityNames[value]
-          : 'Unknown priority';
+      if (suffix === 'Priority') return priority(value);
+      if (suffix === 'DueDate') return day(value);
       return text(value) || 'Unavailable value';
     };
-    lines.push(`changed ${label}: ${render(before)} → ${render(after)}`);
+    changes.push({ kind: 'value', field, label, from: render(before), to: render(after) });
   }
+  // Linear history records that the description changed, never its text.
   if (event.updatedDescription === true || list(event.changes?.descriptionUpdatedByIds).length)
-    lines.push('updated the description');
-  for (const [key, verb] of [
-    ['addedLabelIds', 'added labels'],
-    ['removedLabelIds', 'removed labels'],
-  ]) {
-    const labels = names(event[key], resolve, 'issueLabels');
-    if (labels) lines.push(verb + ': ' + labels);
-  }
+    changes.push({
+      kind: 'text',
+      field: 'description',
+      label: 'Description',
+      from: null,
+      to: null,
+    });
+  const added = names(event.addedLabelIds, resolve, 'issueLabels'),
+    removed = names(event.removedLabelIds, resolve, 'issueLabels');
+  if (added.length || removed.length)
+    changes.push({ kind: 'labels', field: 'labels', label: 'Labels', added, removed });
   if (event.attachmentId)
-    lines.push('updated attachment: ' + resolve('attachments', event.attachmentId));
+    notes.push('updated attachment: ' + resolve('attachments', event.attachmentId));
   const related = [
     ...new Set(
       list(event.relationChanges)
@@ -104,7 +130,7 @@ export function describeImportedChange(raw, resolve = (collection) => unavailabl
   ];
   // Linear's abbreviated relation operation codes are not an API contract: do not invent their meaning.
   if (list(event.relationChanges).length) {
-    lines.push(
+    notes.push(
       'updated task links' +
         (related.length
           ? ': ' +
@@ -113,12 +139,15 @@ export function describeImportedChange(raw, resolve = (collection) => unavailabl
           : ''),
     );
   }
-  if (event.archived === true) lines.push('archived the task');
-  else if (event.archived === false) lines.push('restored the task from the archive');
-  if (event.trashed === true) lines.push('moved the task to trash');
-  else if (event.trashed === false) lines.push('restored the task from trash');
-  const unique = [...new Set(lines)];
-  return { summary: unique[0] ?? 'updated the task in Linear', details: unique.slice(1) };
+  if (event.archived === true) notes.push('archived the task');
+  else if (event.archived === false) notes.push('restored the task from the archive');
+  if (event.trashed === true) notes.push('moved the task to trash');
+  else if (event.trashed === false) notes.push('restored the task from trash');
+  const unique = [...new Set(notes)];
+  const summary =
+    unique.find((note) => verbs.has(note)) ??
+    (changes.length ? 'updated the task' : (unique[0] ?? 'updated the task in Linear'));
+  return { summary, changes, details: unique.filter((note) => note !== summary) };
 }
 
 function references(events) {
@@ -167,10 +196,138 @@ const nativeActions = {
   attached: 'attached a file',
   archived: 'archived the task',
 };
+// Native rows store `{ field: { from, to } }` for every edited field (tickets service updateIssue).
+// Stored field, presented field, display label, name table, empty value.
+const nativeFields = [
+  ['title', 'title', 'Title', null, 'Untitled'],
+  ['status_id', 'status', 'Status', 'statuses', 'Not set'],
+  ['assignee_id', 'assignee', 'Assignee', 'people', 'Unassigned'],
+  ['priority', 'priority', 'Priority', null, 'No priority'],
+  ['kind', 'type', 'Type', null, 'No type'],
+  ['team_id', 'team', 'Team', 'teams', 'No team'],
+  ['key', 'id', 'ID', null, 'No ID'],
+  ['project_id', 'project', 'Project', 'projects', 'No project'],
+  ['milestone_id', 'milestone', 'Milestone', 'milestones', 'No milestone'],
+  ['cycle_id', 'cycle', 'Cycle', 'cycles', 'No cycle'],
+  ['parent_id', 'parent', 'Parent task', 'issues', 'No parent'],
+  ['estimate', 'estimate', 'Estimate', null, 'Not estimated'],
+  ['start_date', 'start_date', 'Start date', null, 'No start date'],
+  ['due_date', 'due_date', 'Due date', null, 'No due date'],
+];
+// Unavailable label, then name queries. Every query is scoped to the viewer's workspace.
+const nativeTables = {
+  statuses: ['Unavailable status', 'SELECT id,name FROM statuses WHERE workspace_id=? AND id IN'],
+  people: [
+    'Unavailable person',
+    'SELECT u.id,u.name FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.workspace_id=? AND u.id IN',
+    'SELECT id,name FROM source_people WHERE workspace_id=? AND id IN',
+  ],
+  teams: ['Unavailable team', 'SELECT id,name FROM teams WHERE workspace_id=? AND id IN'],
+  projects: ['Unavailable project', 'SELECT id,name FROM projects WHERE workspace_id=? AND id IN'],
+  milestones: [
+    'Unavailable milestone',
+    'SELECT id,name FROM milestones WHERE workspace_id=? AND id IN',
+  ],
+  cycles: ['Unavailable cycle', 'SELECT id,name FROM cycles WHERE workspace_id=? AND id IN'],
+  issues: ['Unavailable task', 'SELECT id,key AS name FROM issues WHERE workspace_id=? AND id IN'],
+  labels: ['Unavailable label', 'SELECT id,name FROM labels WHERE workspace_id=? AND id IN'],
+};
+const fieldActions = new Set(['updated', 'deleted', 'restored']);
+const kinds = { issue: 'Task', epic: 'Epic' };
+const stored = (data, key) => (Object.hasOwn(data, key) && object(data[key]) ? data[key] : null);
+async function nativeNames(tx, workspace, events) {
+  const groups = new Map();
+  let count = 0;
+  const add = (table, value) => {
+    if (typeof value !== 'string' || !value || count >= 2000) return;
+    if (!groups.has(table)) groups.set(table, new Set());
+    const group = groups.get(table);
+    if (!group.has(value)) {
+      group.add(value);
+      count++;
+    }
+  };
+  for (const data of events) {
+    for (const [key, , , table] of nativeFields)
+      if (table) {
+        add(table, stored(data, key)?.from);
+        add(table, stored(data, key)?.to);
+      }
+    const labels = stored(data, 'label_ids');
+    for (const value of [...list(labels?.from), ...list(labels?.to)]) add('labels', value);
+  }
+  const found = new Map();
+  for (const [table, ids] of groups) {
+    const values = [...ids],
+      [missing, ...queries] = nativeTables[table];
+    for (const sql of queries)
+      for (const row of await tx.all(`${sql} (${values.map(() => '?').join(',')})`, [
+        workspace,
+        ...values,
+      ]))
+        if (!found.has(table + ':' + row.id))
+          found.set(table + ':' + row.id, text(row.name) || missing);
+  }
+  return (table, value) => found.get(table + ':' + value) ?? nativeTables[table][0];
+}
+export function describeNativeChange(action, data, name) {
+  const changes = [],
+    details = [];
+  if (fieldActions.has(action)) {
+    for (const [key, field, label, table, empty] of nativeFields) {
+      const change = stored(data, key);
+      if (!change || (change.from ?? null) === (change.to ?? null)) continue;
+      const render = (value) => {
+        if (value === null || value === undefined || value === '') return empty;
+        if (table) return typeof value === 'string' ? name(table, value) : nativeTables[table][0];
+        if (key === 'priority') return priority(value);
+        if (key === 'kind') return Object.hasOwn(kinds, value) ? kinds[value] : 'Unknown type';
+        if (key === 'start_date' || key === 'due_date') return day(value);
+        return text(value) || 'Unavailable value';
+      };
+      changes.push({
+        kind: 'value',
+        field,
+        label,
+        from: render(change.from),
+        to: render(change.to),
+      });
+    }
+    const labels = stored(data, 'label_ids');
+    if (labels) {
+      const before = new Set(list(labels.from)),
+        after = new Set(list(labels.to));
+      const shown = (values) =>
+        values.map((value) => name('labels', value)).sort((a, b) => a.localeCompare(b));
+      const added = shown([...after].filter((value) => !before.has(value))),
+        removed = shown([...before].filter((value) => !after.has(value)));
+      if (added.length || removed.length)
+        changes.push({ kind: 'labels', field: 'labels', label: 'Labels', added, removed });
+    }
+    const description = stored(data, 'description');
+    if (description) {
+      const from = typeof description.from === 'string' ? description.from : '',
+        to = typeof description.to === 'string' ? description.to : '';
+      if (from !== to)
+        changes.push({ kind: 'text', field: 'description', label: 'Description', from, to });
+    }
+    if (stored(data, 'position')) details.push('reordered the task');
+    if (action === 'updated' && data.archived === true) details.push('archived the task');
+    else if (action === 'updated' && data.archived === false)
+      details.push('restored the task from the archive');
+  }
+  const summary = Object.hasOwn(nativeActions, action) ? nativeActions[action] : 'updated the task';
+  return { summary, changes, details };
+}
 export async function presentActivity(tx, workspace, issueId, rows, links = []) {
   const parsed = rows.map((row) => ({ ...row, data: payload(row.data) }));
   const imported = parsed.filter((row) => row.action === 'linear_imported_change');
   const refs = references(imported.map((row) => row.data));
+  const name = await nativeNames(
+    tx,
+    workspace,
+    parsed.filter((row) => fieldActions.has(row.action)).map((row) => row.data),
+  );
   const lookup = new Map();
   // The native detail response already loads this stable source pointer. Avoid a reverse-map scan.
   const sourceId = links.find(
@@ -210,12 +367,6 @@ export async function presentActivity(tx, workspace, issueId, rows, links = []) 
           ...describeImportedChange(row.data, resolve),
           actor_name: row.actor_source_id ? row.actor_name : 'Linear',
         }
-      : {
-          ...row,
-          summary: Object.hasOwn(nativeActions, row.action)
-            ? nativeActions[row.action]
-            : 'updated the task',
-          details: [],
-        },
+      : { ...row, ...describeNativeChange(row.action, row.data, name) },
   );
 }
