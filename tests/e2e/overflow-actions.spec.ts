@@ -55,6 +55,33 @@ test('issue copy submenu uses the current text and closes one level at a time wi
   await expect(page.getByRole('menu')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Task actions', exact: true })).toBeFocused();
 });
+test('copy prompt names the task, or the epic on an epic', async ({ page }) => {
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          document.documentElement.dataset.copied = text;
+        },
+      },
+    }),
+  );
+  await login(page);
+  for (const [path, noun] of [
+    ['/tasks', 'task'],
+    ['/epics', 'epic'],
+  ]) {
+    await page.goto(path);
+    await page.locator('.issue-open').first().click();
+    await page.getByRole('button', { name: 'Task actions', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Copy', exact: true }).hover();
+    await page.getByRole('menuitem', { name: 'Copy prompt', exact: true }).click();
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    const copied = await page.evaluate(() => document.documentElement.dataset.copied);
+    expect(copied).toMatch(new RegExp(`^Help me work on this ${noun}\\. `));
+    expect(copied).not.toMatch(/this issue/i);
+  }
+});
 test('document actions preserve text and expose archive; cancellation writes nothing', async ({
   page,
   browserName,

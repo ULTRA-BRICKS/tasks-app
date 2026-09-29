@@ -234,6 +234,32 @@ t('parent with children cannot be silently deleted', async (f) => {
     409,
   );
 });
+t('task validation errors keep their codes and speak of tasks', async (f) => {
+  const a = (await f.create()).data;
+  await f.create({ parent_id: a.id });
+  const failures = [
+    [
+      await f.request('PATCH', `/api/v1/issues/${a.id}`, { version: 1, parent_id: a.id }),
+      'SELF_PARENT',
+    ],
+    [
+      await f.request('POST', `/api/v1/issues/${a.id}/relations`, {
+        target_id: a.id,
+        type: 'related',
+      }),
+      'SELF_RELATION',
+    ],
+    [
+      await f.request('PATCH', `/api/v1/issues/${a.id}`, { version: 1, deleted: true }),
+      'HAS_CHILDREN',
+    ],
+  ];
+  for (const [response, code] of failures) {
+    assert.equal(response.data.error.code, code);
+    assert.match(response.data.error.message, /\b(sub-)?tasks?\b/i);
+    assert.doesNotMatch(response.data.error.message, /issue/i);
+  }
+});
 t('pagination cursor is signed and filter-bound', async (f) => {
   for (let n = 0; n < 5; n++) await f.create({ title: `Page ${n}` });
   const first = (await f.request('GET', '/api/v1/issues?limit=2')).data;
@@ -318,6 +344,15 @@ t('disabled modules reject API calls and core cannot be disabled', async (f) => 
     200,
   );
   assert.equal((await f.request('GET', '/api/v1/cycles')).status, 409);
+});
+t('settings module catalog names the core module Tasks without issue wording', async (f) => {
+  const { modules } = (await f.request('GET', '/api/v1/catalog')).data;
+  const core = modules.find((m) => m.id === 'tickets');
+  assert.equal(core.name, 'Tasks');
+  assert.match(core.description, /^Tasks, epics/);
+  // Only a qualified third-party noun ("GitHub issues") may remain.
+  for (const m of modules)
+    assert.doesNotMatch(`${m.name} ${m.description}`.replace(/GitHub issues/g, ''), /\bissues?\b/i);
 });
 t('saved view filters round trip and reject arbitrary SQL', async (f) => {
   assert.equal(

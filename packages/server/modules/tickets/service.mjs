@@ -12,7 +12,7 @@ export async function getIssue(tx, actor, key, { includeDeleted = false } = {}) 
     `SELECT i.*,s.name AS status_name,s.category AS status_category,s.color AS status_color,COALESCE(u.name,sp.name) AS assignee_name,p.name AS project_name,t.key AS team_key FROM issues i JOIN statuses s ON s.id=i.status_id LEFT JOIN users u ON u.id=i.assignee_id LEFT JOIN source_people sp ON sp.id=i.assignee_source_id AND sp.workspace_id=i.workspace_id LEFT JOIN projects p ON p.id=i.project_id JOIN teams t ON t.id=i.team_id WHERE i.workspace_id=? AND (i.id=? OR i.key=?) ${includeDeleted ? '' : 'AND i.deleted_at IS NULL'}`,
     [actor.workspace_id, key, key],
   );
-  if (!issue) throw missing('Issue');
+  if (!issue) throw missing('Task', 'Issue');
   issue.labels = await tx.all(
     'SELECT l.* FROM labels l JOIN issue_labels il ON il.label_id=l.id WHERE il.workspace_id=? AND il.issue_id=? ORDER BY l.name',
     [actor.workspace_id, issue.id],
@@ -36,7 +36,7 @@ export async function validateReferences(tx, actor, issue, labelIds) {
     'SELECT * FROM statuses WHERE workspace_id=? AND team_id=? AND id=?',
     [actor.workspace_id, issue.team_id, issue.status_id],
   );
-  assert(status, 422, 'INVALID_STATUS', 'Status does not belong to the issue team');
+  assert(status, 422, 'INVALID_STATUS', 'Status does not belong to the task team');
   const assignee = await resolvePerson(tx, actor, issue.assignee_id ?? issue.assignee_source_id);
   issue.assignee_id = assignee.member;
   issue.assignee_source_id = assignee.source;
@@ -78,7 +78,7 @@ export async function validateReferences(tx, actor, issue, labelIds) {
       'Milestone must belong to the selected project',
     );
   if (issue.parent_id) {
-    assert(issue.parent_id !== issue.id, 422, 'SELF_PARENT', 'An issue cannot be its own parent');
+    assert(issue.parent_id !== issue.id, 422, 'SELF_PARENT', 'A task cannot be its own parent');
     let parent = await tx.one(
       'SELECT id,parent_id,deleted_at FROM issues WHERE workspace_id=? AND id=?',
       [actor.workspace_id, issue.parent_id],
@@ -331,7 +331,7 @@ export async function updateIssue(tx, actor, key, input) {
     !current.deleted_at || input.deleted === false,
     409,
     'ISSUE_DELETED',
-    'Restore the issue before editing',
+    'Restore the task before editing',
   );
   const updated = { ...current };
   const changes = {};
@@ -358,7 +358,7 @@ export async function updateIssue(tx, actor, key, input) {
       !child,
       409,
       'HAS_CHILDREN',
-      'Move or delete active sub-issues before deleting their parent',
+      'Move or delete active sub-tasks before deleting their parent',
     );
   }
   if (Object.hasOwn(input, 'assignee_id')) updated.assignee_source_id = null;
@@ -388,7 +388,7 @@ export async function bulkUpdate(tx, actor, updates) {
     new Set(updates.map((u) => u.id)).size === updates.length,
     422,
     'DUPLICATE_ISSUES',
-    'An issue may appear only once in a bulk update',
+    'A task may appear only once in a bulk update',
   );
   const result = [];
   for (const { id, patch } of updates) result.push(await updateIssue(tx, actor, id, patch));
@@ -527,7 +527,7 @@ export async function addRelation(tx, actor, key, input) {
   requirePermission(actor, 'write');
   const source = await getIssue(tx, actor, key),
     target = await getIssue(tx, actor, input.target_id);
-  assert(source.id !== target.id, 422, 'SELF_RELATION', 'Cannot link an issue to itself');
+  assert(source.id !== target.id, 422, 'SELF_RELATION', 'Cannot link a task to itself');
   let from = source.id,
     to = target.id;
   if (input.type === 'related' && from > to) [from, to] = [to, from];
