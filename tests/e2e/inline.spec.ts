@@ -421,8 +421,10 @@ test('issue text conflict can be resolved explicitly without endless stale retri
   });
   expect(remote.ok()).toBeTruthy();
   await page.getByRole('textbox', { name: 'Title', exact: true }).press('Enter');
-  await expect(page.getByRole('region', { name: 'Resolve task conflict' })).toBeVisible();
-  await expect(page.getByText('Remote writer', { exact: true })).toBeVisible();
+  const conflict = page.getByRole('region', { name: 'Resolve task conflict' });
+  await expect(conflict).toBeVisible();
+  // Activity also lists the remote rename (Title → Remote writer); the conflict panel must show it.
+  await expect(conflict.getByText('Remote writer', { exact: true })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(
     'Local draft retained',
   );

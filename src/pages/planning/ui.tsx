@@ -41,7 +41,7 @@ export function PlanningPage({ kind }: { kind: 'projects' | 'cycles' }) {
     Icon = kind === 'projects' ? FolderKanban : CalendarRange;
   return (
     <>
-      <header className="page-toolbar">
+      <header className="page-toolbar" data-page-header>
         <Button
           variant="ghost"
           size="icon"

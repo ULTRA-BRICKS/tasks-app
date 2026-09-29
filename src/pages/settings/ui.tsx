@@ -137,7 +137,7 @@ export function SettingsPage() {
   ];
   return (
     <>
-      <header className="page-toolbar">
+      <header className="page-toolbar" data-page-header>
         <Button
           className="mobile-only"
           variant="ghost"

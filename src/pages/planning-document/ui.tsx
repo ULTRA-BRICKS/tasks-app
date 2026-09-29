@@ -395,7 +395,7 @@ function PlanEditor({
   }, [storageKey]);
   return (
     <section className="issue-detail-panel" aria-label={(existing ? '' : 'New ') + noun}>
-      <header className="issue-detail-toolbar">
+      <header className="issue-detail-toolbar" data-page-header>
         <div className="breadcrumb">
           <Button
             variant="ghost"

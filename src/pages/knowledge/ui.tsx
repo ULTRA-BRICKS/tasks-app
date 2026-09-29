@@ -141,7 +141,7 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
   };
   return (
     <section className="issue-detail-panel" aria-label={(row ? '' : 'New ') + noun(kind)}>
-      <header className="issue-detail-toolbar">
+      <header className="issue-detail-toolbar" data-page-header>
         <Link className="button button-ghost" to={'/' + kind}>
           Back to {kind}
         </Link>
