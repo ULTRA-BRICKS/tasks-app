@@ -28,11 +28,13 @@ const description = [
 ].join('\n');
 const PICKERS = ['Status', 'Priority', 'Assignee', 'Labels', 'Project', 'Cycle', 'Estimate'];
 const CALENDARS = ['Start date', 'Due date'];
-// Real phone viewports for the in-place Estimate check: iPhone SE, mini, 14 and Pro Max.
+// Real phone viewports for the in-place Estimate check: iPhone SE, mini, 14 (the ticket's own
+// viewport), 15 and Pro Max.
 const PHONES = [
   [320, 568],
   [375, 667],
   [390, 844],
+  [393, 852],
   [430, 932],
 ] as const;
 
@@ -442,9 +444,9 @@ for (const [width, height] of PHONES) {
         // The dock and header settle after a scroll (collapse, compaction).
         await page.waitForTimeout(400);
         const before = await trigger.evaluate((el) => ({
-          top: Math.round(el.getBoundingClientRect().top),
+          top: el.getBoundingClientRect().top,
           scrollX,
-          scrollY: Math.round(scrollY),
+          scrollY,
         }));
         // A finger tap where the trigger is. Locator.tap() would first scroll the trigger out of
         // the dock's scroll-padding band, which a real touch never does.
@@ -453,11 +455,19 @@ for (const [width, height] of PHONES) {
         const popup = pickerPopup(page, 'Estimate');
         await expectInside(popup, `Estimate ${step}`);
         const after = await trigger.evaluate((el) => ({
-          top: Math.round(el.getBoundingClientRect().top),
+          top: el.getBoundingClientRect().top,
           scrollX,
-          scrollY: Math.round(scrollY),
+          scrollY,
         }));
-        expect(after, `Estimate ${step}: the trigger and the page stay put`).toEqual(before);
+        // No sideways pan at all. Vertically, sub-pixel settling of fractional scroll offsets is
+        // not a shift (the ticket's was 256 px): comparing rounded values flaked once as scrollY
+        // 327 → 326 with the trigger unmoved.
+        const stayPut = `Estimate ${step}: the trigger and the page stay put ${JSON.stringify({ before, after })}`;
+        expect(after.scrollX, stayPut).toBe(0);
+        expect(
+          Math.max(Math.abs(after.top - before.top), Math.abs(after.scrollY - before.scrollY)),
+          stayPut,
+        ).toBeLessThanOrEqual(1);
         // The last option is reachable inside the popup, not hidden under the dock.
         const last = popup.getByRole('option').last();
         await last.scrollIntoViewIfNeeded();
