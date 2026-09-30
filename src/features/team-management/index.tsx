@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { Team } from '@tickets/contracts';
 import { useMe } from '@/entities/workspace';
-import { ActionMenu, Modal, Input, Button, ErrorState } from '@/shared/ui';
+import { ContextRow, Modal, Input, Button, ErrorState } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { copyActions } from '@/shared/lib/copy-formats';
 type TeamDetails = Team & {
@@ -53,33 +53,33 @@ export function TeamNavigationRow({ team, close }: { team: Team; close: () => vo
   };
   return (
     <>
-      <div className="team-context-row nav-action-row">
+      <ContextRow
+        className="team-context-row nav-action-row"
+        label={'Actions for ' + team.name}
+        items={[
+          { label: 'Open team tasks', onSelect: open },
+          {
+            label: 'Create task in team',
+            disabled: me?.role === 'viewer',
+            onSelect: () => {
+              close();
+              void navigate('/tasks/new', { state: { defaults: { team_id: team.id } } });
+            },
+          },
+          ...copyActions({ id: team.id, title: team.name, path, kind: 'team' }),
+          ...(admin
+            ? [
+                { label: 'Rename team', separatorBefore: true, onSelect: () => show('rename') },
+                { label: 'Delete team', danger: true, onSelect: () => show('delete') },
+              ]
+            : []),
+        ]}
+      >
         <button type="button" className="nav-item" onClick={open}>
           <span className="team-icon">{team.key.slice(0, 1)}</span>
           <span>{team.name}</span>
         </button>
-        <ActionMenu
-          label={'Actions for ' + team.name}
-          items={[
-            { label: 'Open team tasks', onSelect: open },
-            {
-              label: 'Create task in team',
-              disabled: me?.role === 'viewer',
-              onSelect: () => {
-                close();
-                void navigate('/tasks/new', { state: { defaults: { team_id: team.id } } });
-              },
-            },
-            ...copyActions({ id: team.id, title: team.name, path, kind: 'team' }),
-            ...(admin
-              ? [
-                  { label: 'Rename team', separatorBefore: true, onSelect: () => show('rename') },
-                  { label: 'Delete team', danger: true, onSelect: () => show('delete') },
-                ]
-              : []),
-          ]}
-        />
-      </div>
+      </ContextRow>
       <Modal
         open={mode !== null}
         onOpenChange={(open) => {

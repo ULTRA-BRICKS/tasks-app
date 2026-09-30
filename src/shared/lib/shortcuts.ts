@@ -12,7 +12,10 @@ export function shortcutGuard(event: KeyboardEvent): boolean {
     event.isComposing ||
     isTextEntry(event.target) ||
     Boolean(
-      document.querySelector('dialog[open],[role="dialog"],[role="menu"],[role="listbox"]'),
+      // An inert dialog is only finishing its exit animation.
+      document.querySelector(
+        'dialog[open]:not([inert]),[role="dialog"]:not([inert]),[role="menu"],[role="listbox"]',
+      ),
     ) ||
     Boolean(window.getSelection()?.toString())
   );
