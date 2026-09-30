@@ -1,6 +1,6 @@
 # Deployment
 
-The active source is now [Forgejo](https://git.hyperide.ai/ultrabricks/tickets-app), not GitHub.
+The active source is now [Forgejo](https://git.hyperide.ai/ultrabricks/tasks-app), not GitHub.
 
 Read the current [operations runbook](OPERATIONS.md) for local setup, the existing Vercel project, Neon initialization, private Blob/S3 configuration and candidate promotion. The previous GitHub-token/Actions publication instructions are retired; do not create a second publisher.
 

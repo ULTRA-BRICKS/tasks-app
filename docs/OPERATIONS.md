@@ -15,20 +15,77 @@ Vercel Standard Protection leaves the production domain accessible and protects 
 
 ## Deployment procedure
 
-Use the existing project link and native CLI authorization. Never place credentials in the repository, its logs, PRs, or screenshots.
+Use the existing project link and native CLI authorization. Never place credentials in the repository, its logs, PRs, or screenshots. Production migrations are explicit; builds and requests never initialize or reset a database. Sensitive Vercel variables cannot be safely reconstructed from placeholder values returned by environment exports, so never pull or re-create them for a deploy.
+
+This sequence was run for both releases of 29 September 2026. Every step matters: skipping the Linear sync rebind (step 3) leaves the site up but silently stops synchronization.
+
+### 1. Clean candidate tree and gates
+
+Deploy the exact merged commit from a clean archive, never from a working checkout. Run from the main checkout after `git fetch origin`:
 
 ```sh
-bun install --frozen-lockfile
-bun run check
-bun run typecheck:tsc
-bun run check:secrets
-bun run test:e2e
-vercel deploy --prod --skip-domain --yes --scope inventorems-projects
-vercel curl /api/ready --deployment CANDIDATE_HOST --scope inventorems-projects
-vercel promote CANDIDATE_HOST --yes --scope inventorems-projects
+R=$(pwd); SHA=$(git rev-parse origin/main)
+git ls-tree --name-only $SHA packages/db/migrations/ | wc -l   # must equal the schema production already runs; a new migration means stop
+D=/tmp/tasks-release-$SHA; mkdir -p $D && git archive $SHA | tar -x -C $D
+mkdir -p $D/.vercel && cp .vercel/project.json $D/.vercel/    # project link only; no `vercel env pull`
+cd $D && bun install --frozen-lockfile && bun run check && bun run typecheck:tsc
 ```
 
-Production migrations are explicit; builds and requests never initialize or reset a database. Recheck `/api/ready` and the canonical origin after promotion. Sensitive Vercel variables cannot be safely reconstructed from placeholder values returned by environment exports.
+The archive has no `.git`, and `check:secrets` fails closed when `git ls-files` cannot list tracked paths. Scan the archive against a temporary index built from the release tree, so the tracked-path rules see exactly `$SHA` and the checkout's real index is untouched:
+
+```sh
+cd $D
+export GIT_DIR=$R/.git GIT_WORK_TREE=$D GIT_INDEX_FILE=/tmp/tasks-release-index-$SHA
+git read-tree $SHA && git ls-files --cached | wc -l            # the release's tracked file count
+bun run check:secrets
+rm -f $GIT_INDEX_FILE; unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+```
+
+Browser acceptance (`bun run test:e2e`) runs in a detached worktree at `$SHA`. Receipts from a merge run count only when their tested tree equals `$SHA^{tree}`.
+
+### 2. Deploy and check the candidate
+
+```sh
+vercel deploy --prod --skip-domain --yes --scope inventorems-projects      # prints CANDIDATE_HOST
+vercel inspect CANDIDATE_HOST --scope inventorems-projects                 # Ready; record NEW_DPL (dpl_…)
+vercel curl /api/health --deployment CANDIDATE_HOST --scope inventorems-projects   # 200 ok
+vercel curl /api/ready --deployment CANDIDATE_HOST --scope inventorems-projects    # {"status":"ready"}, otherwise stop
+vercel curl /api/v1/me --deployment CANDIDATE_HOST --scope inventorems-projects -- -s -o /dev/null -w '%{http_code}\n'   # 401
+vercel curl / --deployment CANDIDATE_HOST --scope inventorems-projects | grep -o 'assets/index-[^"]*\.js'   # record the asset
+vercel inspect tasks-ultrabricks.vercel.app --scope inventorems-projects | grep -E '^\s+id'   # OLD_DPL: the rollback target
+```
+
+**`--skip-domain` holds back only the canonical domain.** The deploy still moves the project's default production alias `tasks-app-inventorems-projects.vercel.app` onto the candidate immediately (the deploy log prints `Aliased https://tasks-app-inventorems-projects.vercel.app`). Before promotion that alias therefore serves the unpromoted candidate. Do not use it to judge whether promotion happened, as a rollback host, or as the origin for sync calls. Only `tasks-ultrabricks.vercel.app` shows what production serves. The Linear webhook targets the canonical domain, so the moved alias does not change sync.
+
+### 3. Promote, then rebind Linear sync
+
+Linear sync stores exactly one deployment id as its writer (`configureSync` in `packages/server/modules/linear-live/store.mjs` records `VERCEL_DEPLOYMENT_ID`). Every other deployment gets `409 SYNC_DEPLOYMENT_CHANGED` from `readSyncConfig`, and the webhook receiver, outbox dispatch and queue consumer, daily cron, reconcile and retry all stop. **Rebind right after every promote and every rollback**, in this order:
+
+1. Before promoting, save `GET /api/v1/sync/linear/status` as the pre-deploy receipt. The writer is still OLD_DPL. Record `configuration.organizationId`, `configuration.teamIds` and `counts`.
+2. `vercel promote CANDIDATE_HOST --yes --scope inventorems-projects`
+3. `vercel inspect tasks-ultrabricks.vercel.app --scope inventorems-projects`: the `id` must be NEW_DPL.
+4. `POST /api/v1/sync/linear/configure` with `{"organizationId": <saved>, "enabled": true, "teamIds": <saved>}`. This is a production write. It binds whichever deployment answers the request. Pass the saved `teamIds`: if you omit them, sync scopes to every known team.
+5. `GET /api/v1/sync/linear/status`: `configuration.deploymentId` must be NEW_DPL.
+6. `POST /api/v1/sync/linear/reconcile` with `{}`. This is a production write that queues catch-up jobs for the gap.
+
+Send these calls only to `https://tasks-ultrabricks.vercel.app`. Use an operator bearer token with admin permission, kept in the operator's protected configuration and never printed. Configure only after step 3 confirms the new deployment. A configure that reaches the candidate, or the moved secondary alias, while the old deployment still serves the canonical domain binds the wrong writer and stops sync. Between promote and configure, webhooks receive 409. Keep this gap short: in both 29 September runs, promote through reconcile took under 10 seconds. Reconcile and the daily `/api/internal/linear-sync` cron are the durable catch-up. For the release rules for sync itself, see [Linear live release](LINEAR-LIVE-RELEASE.md).
+
+**Rollback** uses the same rebind. Run `vercel promote OLD_DPL --yes --scope inventorems-projects` (or `vercel rollback OLD_DPL --scope inventorems-projects`), then repeat steps 3–6 with OLD_DPL as the expected writer. If you roll back without rebinding, the restored deployment keeps receiving 409 and sync stays stopped.
+
+### 4. Post-deploy verification
+
+Run against `https://tasks-ultrabricks.vercel.app` and keep the receipts outside the repository:
+
+1. `/api/health` returns 200 `{"status":"ok",…}`. `/api/ready` returns 200 `{"status":"ready"}`.
+2. Anonymous `/api/v1/me` and `/api/v1/sync/linear/status` return 401.
+3. Canonical `index.html` references the candidate asset recorded in step 2, and that asset returns 200. `index.html` is edge-cached (`x-vercel-cache: HIT`) and promotion purges it, so a stale asset means stop and investigate. The secondary alias serves the same asset.
+4. Sync status names NEW_DPL as the writer. Compared with the pre-deploy receipt, `done` grows, and any new problems belong to error classes that already existed. A new class needs investigation before the release counts as accepted.
+5. Logs (`vercel logs -p tasks-app --scope inventorems-projects --environment production --since 15m --json`):
+   - `--query /api/webhooks/linear` returns 200 on NEW_DPL.
+   - `--query linear-consumer` returns 200 on NEW_DPL.
+   - `--status-code 409`, `--status-code 500` and `--level error` return no rows.
+6. `/` and `/login` render with no page errors at 390×844, 320 wide and 1440×900 (Chromium). Read the screenshots back.
+7. The authenticated round-trip below, plus one disposable Linear task/comment in each direction, need the owner's explicit approval. `/api/ready` does not substitute for them.
 
 ## Verification boundary
 
