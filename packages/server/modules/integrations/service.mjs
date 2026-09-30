@@ -390,7 +390,7 @@ async function sendOutgoing(job, env, fetcher) {
       body: JSON.stringify({
         channel: env.SLACK_CHANNEL_ID,
         client_msg_id: job.id,
-        text: `${data.key}: ${data.title}\n${env.APP_URL}/issues/${data.issue_id}`,
+        text: `${data.key}: ${data.title}\n${env.APP_URL}/tasks/${data.issue_id}`,
         unfurl_links: false,
         unfurl_media: false,
       }),
@@ -418,7 +418,7 @@ async function sendOutgoing(job, env, fetcher) {
       signal: AbortSignal.timeout(10000),
       body: JSON.stringify({
         title: `[${data.key}] ${data.title}`,
-        body: `${data.description ?? ''}\n\n<!-- tickets-outbox:${job.id} -->\n${env.APP_URL}/issues/${data.issue_id}`,
+        body: `${data.description ?? ''}\n\n<!-- tickets-outbox:${job.id} -->\n${env.APP_URL}/tasks/${data.issue_id}`,
       }),
     });
     assert(response.ok, 502, 'GITHUB_DELIVERY_FAILED', 'GitHub refused the issue export');

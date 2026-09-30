@@ -126,10 +126,47 @@ test('signed Slack slash command maps a member, creates once and sends via injec
     assert.equal(result.failed, 0);
     assert.equal(calls.length, 1);
     assert.equal(calls[0].url, 'https://slack.com/api/chat.postMessage');
+    const created = (await f.request('GET', '/api/v1/issues')).data.data[0];
+    assert.equal(created.title, 'Created from Slack');
+    // The message links to the canonical task route, not the legacy /issues alias.
     assert.equal(
-      (await f.request('GET', '/api/v1/issues')).data.data[0].title,
-      'Created from Slack',
+      JSON.parse(calls[0].options.body).text,
+      `${created.key}: Created from Slack\n${f.env.APP_URL}/tasks/${created.id}`,
     );
+  } finally {
+    await f.close();
+  }
+});
+test('GitHub issue export links the canonical task route', async () => {
+  const f = await fixture({
+    GITHUB_TOKEN: 'unit-github-token',
+    GITHUB_REPOSITORY: 'example/tickets',
+  });
+  f.env.INTEGRATIONS_WORKSPACE_ID = f.init.workspace_id;
+  try {
+    const issue = (await f.create({ title: 'Exported', description: 'Body text' })).data;
+    const queued = await f.request('POST', `/api/v1/issues/${issue.id}/export/github`, {});
+    assert.equal(queued.status, 202);
+    const calls = [];
+    const result = await runWorker(f.db, f.env, {
+      fetcher: async (url, options) => {
+        calls.push({ url, options });
+        return new Response(
+          JSON.stringify({
+            number: 42,
+            title: '[TKT-1] Exported',
+            html_url: 'https://github.com/example/tickets/issues/42',
+          }),
+          { status: 201 },
+        );
+      },
+    });
+    assert.equal(result.failed, 0);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, 'https://api.github.com/repos/example/tickets/issues');
+    const body = JSON.parse(calls[0].options.body).body;
+    assert(body.startsWith('Body text\n\n<!-- tickets-outbox:'), body);
+    assert(body.endsWith(`\n${f.env.APP_URL}/tasks/${issue.id}`), body);
   } finally {
     await f.close();
   }
