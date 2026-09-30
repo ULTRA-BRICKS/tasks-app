@@ -61,7 +61,7 @@ export async function processLinearMessage(db, env, message, options = {}) {
       ),
     { readOnly: true },
   );
-  if (!row || ['done', 'failed', 'blocked'].includes(row.status))
+  if (!row || ['done', 'failed', 'blocked', 'superseded'].includes(row.status))
     return { status: row?.status ?? 'missing' };
   const result = await (row.event === 'scan' ? reconcileScanJob : reconcileEntityJob)(
     db,

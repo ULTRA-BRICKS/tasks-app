@@ -1,4 +1,5 @@
 import { test, expect, type Page, type BrowserContext } from '@playwright/test';
+import { stubClipboard } from './session-fixture';
 let cookies: Awaited<ReturnType<BrowserContext['cookies']>> | undefined;
 async function login(page: Page) {
   if (cookies) {
@@ -16,16 +17,7 @@ async function login(page: Page) {
 }
 test('team actions are visible and copying an identifier retains the page', async ({ page }) => {
   await login(page);
-  await page.evaluate(() =>
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText: async (text: string) => {
-          document.documentElement.dataset.copied = text;
-        },
-      },
-    }),
-  );
+  await stubClipboard(page);
   const row = page.locator('.team-context-row').first();
   const trigger = row.getByRole('button', { name: /^Actions for / });
   await trigger.click();

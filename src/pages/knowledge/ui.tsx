@@ -6,6 +6,7 @@ import { FileText, Flag } from 'lucide-react';
 import { api, errorMessage } from '@/shared/api/client';
 import {
   ActionMenu,
+  ContextRow,
   Button,
   Combobox,
   ErrorState,
@@ -58,43 +59,44 @@ export function KnowledgeListPage({ kind }: { kind: Kind }) {
             const path = '/' + kind + '/' + row.id,
               title = row.title ?? row.name ?? noun(kind);
             return (
-              <div className="knowledge-context-row" key={row.id}>
+              <ContextRow
+                className="knowledge-context-row"
+                key={row.id}
+                label={'Actions for ' + title}
+                items={[
+                  {
+                    label: 'Open ' + noun(kind),
+                    onSelect: () => {
+                      void navigate(path);
+                    },
+                  },
+                  ...copyActions({
+                    title,
+                    body: row.body ?? row.description,
+                    path,
+                    kind: noun(kind),
+                  }),
+                  {
+                    label: (row.archived_at ? 'Restore ' : 'Archive ') + noun(kind),
+                    disabled: me?.role === 'viewer',
+                    separatorBefore: true,
+                    onSelect: async () => {
+                      if (
+                        !window.confirm((row.archived_at ? 'Restore ' : 'Archive ') + title + '?')
+                      )
+                        return;
+                      await setKnowledgeArchive(kind, row.id, row.version, !row.archived_at);
+                      await client.invalidateQueries({ queryKey: [kind] });
+                    },
+                  },
+                ]}
+              >
                 <Link to={path} className="knowledge-row">
                   {kind === 'documents' ? <FileText size={18} /> : <Flag size={18} />}
                   <span>{title}</span>
                   <small>{row.status?.replace('_', ' ') ?? 'Document'}</small>
                 </Link>
-                <ActionMenu
-                  label={'Actions for ' + title}
-                  items={[
-                    {
-                      label: 'Open ' + noun(kind),
-                      onSelect: () => {
-                        void navigate(path);
-                      },
-                    },
-                    ...copyActions({
-                      title,
-                      body: row.body ?? row.description,
-                      path,
-                      kind: noun(kind),
-                    }),
-                    {
-                      label: (row.archived_at ? 'Restore ' : 'Archive ') + noun(kind),
-                      disabled: me?.role === 'viewer',
-                      separatorBefore: true,
-                      onSelect: async () => {
-                        if (
-                          !window.confirm((row.archived_at ? 'Restore ' : 'Archive ') + title + '?')
-                        )
-                          return;
-                        await setKnowledgeArchive(kind, row.id, row.version, !row.archived_at);
-                        await client.invalidateQueries({ queryKey: [kind] });
-                      },
-                    },
-                  ]}
-                />
-              </div>
+              </ContextRow>
             );
           })}
         </div>
