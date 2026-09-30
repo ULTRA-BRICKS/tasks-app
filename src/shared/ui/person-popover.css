@@ -25,12 +25,14 @@
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-/* An unknown ID (no card to open) keeps the same inline layout as a trigger. */
+/* An unknown ID (no card to open) keeps the same inline layout as a trigger, and its stored name
+   wraps like the trigger's instead of widening a phone page (docs/PHONE-OVERFLOW.md). */
 .person-static {
   display: inline-flex;
   align-items: center;
   gap: var(--space-6);
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 .person-trigger:hover > .avatar,
 .person-trigger[data-popup-open] > .avatar {
@@ -51,7 +53,11 @@
 }
 .person-card {
   width: 280px;
-  max-width: calc(100vw - 16px);
+  max-width: var(--available-width, calc(100vw - 16px));
+  /* Between the top edge and the phone dock the card may not fit: it scrolls rather than
+     leaving the screen. */
+  max-height: var(--available-height, none);
+  overflow-y: auto;
   padding: var(--space-12);
   display: grid;
   gap: var(--space-10);

@@ -35,15 +35,18 @@ import {
   ErrorState,
   Loading,
   Modal,
+  useDescriptionEditorReady,
 } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
 import { ActivityFeed } from './activity-feed';
 export function IssueDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const query = useIssue(id);
+  // The properties and activity sit below the description: reveal the task with its editor.
+  const editorReady = useDescriptionEditorReady();
   return (
     <section className="issue-detail-panel" aria-label="Task details">
-      {query.isPending ? (
+      {query.isPending || (query.data && !editorReady) ? (
         <Loading label="Loading task" />
       ) : query.error ? (
         <>

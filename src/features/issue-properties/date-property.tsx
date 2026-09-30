@@ -3,6 +3,7 @@ import { Popover } from '@base-ui/react/popover';
 import { CalendarDays } from 'lucide-react';
 import { Input } from '@/shared/ui';
 import { parseCalendarDate, todayCalendarDate } from '@/shared/lib/calendar-date';
+import { usePopupCollisionPadding } from '@/shared/lib/safe-area';
 import { CalendarGrid } from './calendar-grid';
 import './date-property.css';
 export function DateProperty({
@@ -23,6 +24,7 @@ export function DateProperty({
     input = useRef<HTMLInputElement>(null),
     popup = useRef<HTMLDivElement>(null),
     keepInputFocus = useRef(false);
+  const collisionPadding = usePopupCollisionPadding();
   const popupId = useId(),
     hintId = useId(),
     errorId = useId();
@@ -136,7 +138,7 @@ export function DateProperty({
           anchor={anchor}
           sideOffset={6}
           align="start"
-          collisionPadding={8}
+          collisionPadding={collisionPadding}
           className="calendar-positioner"
         >
           <Popover.Popup

@@ -6,7 +6,7 @@ Tracked feedback: UB-27/UB-28/UB-29/UB-30. Full17-request register is UB-27 thro
 
 A real browser fixture with a long assignee exposed a1736px document on a393px phone. The mobile property grid used auto-minimum1fr tracks, allowing the long control to determine track width. Tracks now use minmax(0,1fr); property children shrink and labels truncate within the control, remaining readable in the popup. A separate8px WebKit drift at320px came from html/body/root min-width320px plus the8px scrollbar; the root minimum is now0. Pinch zoom is not disabled and content is not masked with another overflow:hidden rule.
 
-Chromium/WebKit cases cover320/393/430px with long names and unbroken URLs, deliberate horizontal scroll attempts and a start-date popup/input bounded by320px. This does not replace the date UX with the requested compact calendar; UB-38 remains separate.
+Chromium/WebKit cases cover320/393/430px with long names and unbroken URLs, deliberate horizontal scroll attempts and a start-date popup/input bounded by320px. This does not replace the date UX with the requested compact calendar; UB-38 remains separate. The later iPhone drift work (UB-32) removed the touch `body` clip and extends these cases to tables, code, focus, every popup and safe areas: see [PHONE-OVERFLOW.md](PHONE-OVERFLOW.md).
 
 ## People presentation and assignment
 

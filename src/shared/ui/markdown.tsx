@@ -65,6 +65,13 @@ export function Markdown({ children }: { children: string }) {
               [Image: {alt || 'Open image'}]
             </a>
           ),
+          // Same scroll region as the description editor's tables: a wide table scrolls on its
+          // own instead of widening the page or breaking every word (docs/PHONE-OVERFLOW.md).
+          table: ({ children }) => (
+            <div className="tableWrapper">
+              <table>{children}</table>
+            </div>
+          ),
         }}
       >
         {children}
