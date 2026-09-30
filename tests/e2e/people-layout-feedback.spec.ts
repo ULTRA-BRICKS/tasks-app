@@ -135,7 +135,11 @@ test('row assignment changes only the chosen task and rolls back a rejected chan
       response.request().method() === 'PATCH' && /\/api\/v1\/issues\//.test(response.url()),
   );
   await row.getByRole('combobox', { name: /Assignee/ }).click();
-  await page.getByRole('option', { name: target.name, exact: true }).click();
+  // The option also shows the person's email (docs/ROW-ASSIGNEE.md): match the name's own text.
+  await page
+    .getByRole('option')
+    .filter({ has: page.getByText(target.name, { exact: true }) })
+    .click();
   const response = await saved;
   expect(response.status()).toBe(200);
   const changed = await response.json();
