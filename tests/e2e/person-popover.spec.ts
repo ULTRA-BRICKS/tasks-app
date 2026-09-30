@@ -411,7 +411,10 @@ test('a list row avatar keeps assigning, and its View profile opens the card at 
   await page
     .getByRole('combobox', { name: 'Assignee for ' + task.key + ': Unassigned', exact: true })
     .click();
-  await expect(page.getByRole('option', { name: 'Jamie Chen', exact: true })).toBeVisible();
+  // The option also shows the person's email (docs/ROW-ASSIGNEE.md): match the name's own text.
+  await expect(
+    page.getByRole('option').filter({ has: page.getByText('Jamie Chen', { exact: true }) }),
+  ).toBeVisible();
   await expect(page.getByRole('option', { name: 'View profile' })).toHaveCount(0);
 });
 for (const [view, surface] of [
