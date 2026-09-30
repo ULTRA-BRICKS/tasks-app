@@ -3,6 +3,7 @@ import { Avatar } from './avatar';
 import { Select } from '@base-ui/react/select';
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/cn';
+import { usePopupCollisionPadding } from '../lib/safe-area';
 export interface Option {
   value: string;
   label: string;
@@ -42,6 +43,7 @@ export function Picker({
   triggerProps?: ButtonHTMLAttributes<HTMLButtonElement> &
     Record<`data-${string}`, string | number>;
 }) {
+  const collisionPadding = usePopupCollisionPadding();
   return (
     <Select.Root
       value={value}
@@ -63,6 +65,7 @@ export function Picker({
       <Select.Portal container={container}>
         <Select.Positioner
           sideOffset={6}
+          collisionPadding={collisionPadding}
           alignItemWithTrigger={false}
           className="popover-positioner"
         >
