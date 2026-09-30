@@ -3143,8 +3143,16 @@ button,
 .peek-layer .popover-positioner {
   z-index: 190;
 }
+/* One spring for the preview surface and the hold feedback. */
+:root {
+  --spring-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --spring-ease: linear(0, 0.32, 0.65, 0.86, 0.98, 1.025, 1.018, 1.005, 1);
+  }
+}
 .peek-surface {
-  --peek-spring: cubic-bezier(0.16, 1, 0.3, 1);
   position: fixed;
   z-index: 180;
   display: flex;
@@ -3164,12 +3172,7 @@ button,
   /* Transitions, not keyframes: an interrupted exit reverses from the current frame. */
   transition:
     opacity 160ms ease-out,
-    transform 300ms var(--peek-spring);
-}
-@supports (transition-timing-function: linear(0, 1)) {
-  .peek-surface {
-    --peek-spring: linear(0, 0.32, 0.65, 0.86, 0.98, 1.025, 1.018, 1.005, 1);
-  }
+    transform 300ms var(--spring-ease);
 }
 @starting-style {
   .peek-surface {
@@ -4231,13 +4234,8 @@ button,
 .peek-anchor > .issue-card {
   transform-origin: center;
   transition:
-    transform 320ms var(--press-spring, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform 320ms var(--spring-ease),
     background-color 160ms ease-out;
-}
-@supports (transition-timing-function: linear(0, 1)) {
-  :root {
-    --press-spring: linear(0, 0.32, 0.65, 0.86, 0.98, 1.025, 1.018, 1.005, 1);
-  }
 }
 .nav-action-row[data-pressing='true'],
 .knowledge-context-row[data-pressing='true'],
