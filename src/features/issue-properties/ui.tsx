@@ -1,19 +1,22 @@
 import { DateProperty } from './date-property';
 import { CycleHelp } from './cycle-help';
+import { useInlineCreate } from './inline-create';
 import { selectedPerson, personOptions, canonicalPersonValue } from '@/shared/lib/people';
-import { useState, type ReactNode } from 'react';
-import { Popover } from '@base-ui/react/popover';
-import { CircleDashed, Folder, Layers, Plus, Triangle, UserRound } from 'lucide-react';
-import type { IssuePatch } from '@tickets/contracts';
+import type { ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { CircleDashed, Folder, Layers, Triangle, UserRound } from 'lucide-react';
+import type { Catalog, IssuePatch, Milestone } from '@tickets/contracts';
 import {
   useCatalog,
+  useMe,
   useProjects,
   useCycles,
   useMilestones,
   moduleEnabled,
+  PersonChip,
 } from '@/entities/workspace';
 import { StatusIcon, PriorityIcon, priorities } from '@/entities/issue';
-import { Picker, Input, Avatar } from '@/shared/ui';
+import { Combobox, type ComboboxCreate } from '@/shared/ui';
 export interface IssuePropertyValue {
   team_id: string;
   status_id: string;
@@ -40,14 +43,47 @@ export function IssueProperties({
   onTeamChange?: (id: string) => void;
 }) {
   const { data: c } = useCatalog(),
+    { data: me } = useMe(),
+    navigate = useNavigate(),
+    location = useLocation(),
     projects = useProjects(moduleEnabled(c, 'planning')),
     cycles = useCycles(moduleEnabled(c, 'cycles')),
     milestones = useMilestones(moduleEnabled(c, 'planning'));
   const status = c?.statuses.find((s) => s.id === v.status_id),
     person = selectedPerson(c, v.assignee_id);
-  const row = (icon: ReactNode, child: ReactNode) => (
+  // Viewers never see Create; the server still rejects their writes.
+  const canCreate = !!me && me.role !== 'viewer';
+  const milestoneCreate = useInlineCreate<Milestone, Milestone[]>(
+    {
+      noun: 'milestone',
+      queryKey: ['milestones'],
+      listPath: '/v1/milestones',
+      rows: (data) => data?.filter((m) => m.project_id === v.project_id) ?? [],
+      add: (data, row) => (data ? [...data, row] : data),
+      path: '/v1/milestones',
+      body: (name) => ({ project_id: v.project_id, name }),
+    },
+    canCreate && Boolean(v.project_id),
+  );
+  // Projects and cycles need more than a name: open their normal draft page instead.
+  const pageFirst = (noun: 'project' | 'cycle'): ComboboxCreate | undefined =>
+    canCreate
+      ? {
+          label: (query) => `Create ${noun} “${query}”…`,
+          onCreate: (name) => {
+            void navigate(`/${noun}s/new`, {
+              state: {
+                defaults: { name, team_id: v.team_id },
+                from: `${location.pathname}${location.search}`,
+                fromState: location.state,
+              },
+            });
+          },
+        }
+      : undefined;
+  const row = (icon: ReactNode, child: ReactNode, interactiveIcon = false) => (
     <div className="compact-property">
-      <span className="property-icon" aria-hidden="true">
+      <span className="property-icon" aria-hidden={interactiveIcon ? undefined : true}>
         {icon}
       </span>
       {child}
@@ -59,7 +95,7 @@ export function IssueProperties({
       {onTeamChange &&
         row(
           <Layers size={15} />,
-          <Picker
+          <Combobox
             aria-label="Team"
             value={v.team_id}
             options={c?.teams.map((t) => ({ value: t.id, label: t.name })) ?? []}
@@ -69,7 +105,7 @@ export function IssueProperties({
         )}
       {row(
         <StatusIcon category={status?.category ?? 'unstarted'} color={status?.color} />,
-        <Picker
+        <Combobox
           aria-label="Status"
           value={v.status_id}
           options={
@@ -83,7 +119,7 @@ export function IssueProperties({
       )}
       {row(
         <PriorityIcon value={v.priority} />,
-        <Picker
+        <Combobox
           aria-label="Priority"
           value={String(v.priority)}
           options={priorities}
@@ -92,18 +128,19 @@ export function IssueProperties({
         />,
       )}
       {row(
-        person ? <Avatar name={person.name} src={person.avatar_url} /> : <UserRound size={15} />,
-        <Picker
+        person ? <PersonChip id={person.id} /> : <UserRound size={15} />,
+        <Combobox
           aria-label="Assignee"
           value={canonicalPersonValue(c, v.assignee_id)}
           options={[{ value: 'none', label: 'Unassigned' }, ...personOptions(c)]}
           onChange={(id) => onChange({ assignee_id: id === 'none' ? null : id })}
           disabled={disabled}
         />,
+        Boolean(person),
       )}
       {row(
         <Triangle size={15} />,
-        <Picker
+        <Combobox
           aria-label="Estimate"
           value={v.estimate == null ? 'none' : String(v.estimate)}
           options={[
@@ -120,7 +157,7 @@ export function IssueProperties({
         row(
           <CircleDashed size={15} />,
           <>
-            <Picker
+            <Combobox
               aria-label="Cycle"
               value={v.cycle_id ?? 'none'}
               options={[
@@ -131,6 +168,7 @@ export function IssueProperties({
               ]}
               onChange={(id) => onChange({ cycle_id: id === 'none' ? null : id })}
               disabled={disabled}
+              create={pageFirst('cycle')}
             />
             <CycleHelp />
           </>,
@@ -139,6 +177,7 @@ export function IssueProperties({
       <LabelPicker
         selected={v.label_ids}
         disabled={disabled}
+        canCreate={canCreate}
         onChange={(ids) => onChange({ label_ids: ids })}
       />
       {moduleEnabled(c, 'planning') && (
@@ -146,7 +185,7 @@ export function IssueProperties({
           <div className="property-section-title">Project</div>
           {row(
             <Folder size={15} />,
-            <Picker
+            <Combobox
               aria-label="Project"
               value={v.project_id ?? 'none'}
               options={[
@@ -159,12 +198,13 @@ export function IssueProperties({
                 onChange({ project_id: id === 'none' ? null : id, milestone_id: null })
               }
               disabled={disabled}
+              create={pageFirst('project')}
             />,
           )}
           {v.project_id &&
             row(
               <Layers size={15} />,
-              <Picker
+              <Combobox
                 aria-label="Milestone"
                 value={v.milestone_id ?? 'none'}
                 options={[
@@ -175,6 +215,7 @@ export function IssueProperties({
                 ]}
                 onChange={(id) => onChange({ milestone_id: id === 'none' ? null : id })}
                 disabled={disabled}
+                create={milestoneCreate}
               />,
             )}
         </>
@@ -199,70 +240,55 @@ function LabelPicker({
   selected,
   onChange,
   disabled,
+  canCreate,
 }: {
   selected: string[];
   onChange: (ids: string[]) => void;
   disabled: boolean;
+  canCreate: boolean;
 }) {
-  const { data: c } = useCatalog(),
-    [query, setQuery] = useState('');
+  const { data: c } = useCatalog();
+  const create = useInlineCreate<Catalog['labels'][number], Catalog>(
+    {
+      noun: 'label',
+      queryKey: ['catalog'],
+      listPath: '/v1/catalog',
+      rows: (data) => data?.labels ?? [],
+      add: (data, row) => (data ? { ...data, labels: [...data.labels, row] } : data),
+      path: '/v1/labels',
+      // Settings uses the same default colour; a stable body keeps retries identical.
+      body: (name) => ({ name, color: '#a694ff' }),
+    },
+    canCreate,
+  );
+  const chosen = c?.labels.filter((l) => selected.includes(l.id)) ?? [];
   return (
-    <Popover.Root>
-      <Popover.Trigger
-        disabled={disabled}
-        aria-label="Edit labels"
-        className="property-label-trigger"
-      >
-        {selected.length ? (
-          c?.labels
-            .filter((l) => selected.includes(l.id))
-            .map((l) => (
+    <Combobox
+      multiple
+      aria-label="Labels"
+      className="property-label-trigger"
+      value={selected}
+      onChange={onChange}
+      disabled={disabled}
+      options={c?.labels.map((l) => ({ value: l.id, label: l.name, color: l.color })) ?? []}
+      create={create}
+      triggerContent={
+        <span className="property-label-values">
+          {chosen.length ? (
+            chosen.map((l) => (
               <span key={l.id} className="label-pill">
-                <span style={{ color: l.color }}>●</span>
+                <span style={{ color: l.color }} aria-hidden="true">
+                  ●
+                </span>
                 {l.name}
               </span>
             ))
-        ) : (
-          <span className="muted">Add labels</span>
-        )}
-        <Plus size={14} />
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner sideOffset={6} align="start" className="popover-positioner">
-          <Popover.Popup className="property-popup">
-            <Popover.Title>Labels</Popover.Title>
-            <Input
-              aria-label="Filter labels"
-              placeholder="Search labels…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {c?.labels
-              .filter((l) => l.name.toLowerCase().includes(query.toLowerCase()))
-              .map((l) => (
-                <label className="label-choice" key={l.id}>
-                  <input
-                    type="checkbox"
-                    aria-label={l.name}
-                    checked={selected.includes(l.id)}
-                    disabled={disabled}
-                    onChange={(e) =>
-                      onChange(
-                        e.target.checked
-                          ? [...selected, l.id]
-                          : selected.filter((id) => id !== l.id),
-                      )
-                    }
-                  />
-                  <span style={{ color: l.color }}>●</span>
-                  {l.name}
-                </label>
-              ))}
-            <Popover.Close className="button button-ghost button-sm">Done</Popover.Close>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+          ) : (
+            <span className="muted">Add labels</span>
+          )}
+        </span>
+      }
+    />
   );
 }
 export { DateProperty } from './date-property';

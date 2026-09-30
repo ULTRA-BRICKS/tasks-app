@@ -4,18 +4,22 @@ export function Avatar({
   name,
   src,
   size = 'sm',
+  decorative = false,
 }: {
   name?: string | null;
   src?: string | null;
   size?: 'sm' | 'md';
+  /** Inside a control that is already named: no label and no native tooltip over a person card. */
+  decorative?: boolean;
 }) {
   const [failed, setFailed] = useState<string | null>(null);
   const image = src && /^(?:https:\/\/|\/(?!\/))/.test(src) && src !== failed ? src : null;
   return (
     <span
       className={cn('avatar', size === 'md' && 'avatar-md', !name && 'avatar-empty')}
-      aria-label={name ?? 'Unassigned'}
-      title={name ?? 'Unassigned'}
+      {...(decorative
+        ? { 'aria-hidden': true }
+        : { 'aria-label': name ?? 'Unassigned', title: name ?? 'Unassigned' })}
     >
       {image ? (
         <img

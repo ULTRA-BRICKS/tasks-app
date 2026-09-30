@@ -19,14 +19,18 @@ function settle(element: Locator) {
   );
 }
 
-/** The first option whose label differs from `current`; a substring filter would skip "Not Done" for "Done". */
+/**
+ * The first value option whose label differs from `current`; a substring filter would skip
+ * "Not Done" for "Done". Combobox commands (View profile) are options too, but never values.
+ */
 async function otherOption(list: Locator, current: string) {
-  await expect(list.getByRole('option').first()).toBeVisible();
-  const texts = await list.getByRole('option').allInnerTexts();
+  const values = list.getByRole('option').and(list.locator(':not(.combobox-command)'));
+  await expect(values.first()).toBeVisible();
+  const texts = await values.allInnerTexts();
   // The label is the first line; a description (an email) may follow it.
   const index = texts.findIndex((text) => text.split('\n')[0].trim() !== current);
   expect(index, texts.join()).toBeGreaterThanOrEqual(0);
-  return list.getByRole('option').nth(index);
+  return values.nth(index);
 }
 
 /**

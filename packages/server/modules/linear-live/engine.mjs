@@ -415,6 +415,10 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
         conflicts[field] = { ...state.conflicts[field], local: l, source: r };
         continue;
       }
+      // Neither side changed since the last synchronized pair. Their values can still differ
+      // because Linear rewrites the Markdown it stores (see readCreationIntent), and copying
+      // that rewrite over the authored native text would be a change nobody made.
+      if (same(field, l, baseLocal[field]) && same(field, r, baseSource[field])) continue;
       if (same(field, l, baseLocal[field])) toNative[field] = r;
       else if (same(field, r, baseSource[field])) toSource[field] = l;
       else conflicts[field] = { baseline: baseLocal[field], local: l, source: r };

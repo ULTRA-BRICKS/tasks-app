@@ -8,6 +8,8 @@ export interface Option {
   label: string;
   disabled?: boolean;
   avatar_url?: string | null;
+  /** Label colour, shown as a swatch beside searchable options. */
+  color?: string;
   /** Secondary text that tells otherwise identical labels apart. */
   description?: string;
 }

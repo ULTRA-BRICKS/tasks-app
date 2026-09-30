@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import type { IssueDetail, IssuePatch, Issue } from '@tickets/contracts';
 import { useIssue, StatusIcon } from '@/entities/issue';
-import { useCatalog, useMe, moduleEnabled } from '@/entities/workspace';
+import { useCatalog, useMe, moduleEnabled, PersonChip } from '@/entities/workspace';
 import { useIssueUpdate, useIssueWriteBusy, useInlineDocument } from '@/features/issue-edit';
 import { CreateIssue } from '@/features/issue-create';
 import {
@@ -32,13 +32,13 @@ import {
   Picker,
   Markdown,
   DocumentText,
-  Avatar,
   ErrorState,
   Loading,
   Modal,
 } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
+import { ActivityFeed } from './activity-feed';
 export function IssueDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const query = useIssue(id);
   return (
@@ -448,30 +448,15 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                 {issue.subscribed ? 'Unsubscribe' : 'Subscribe'}
               </Button>
             </header>
-            {issue.activity
-              .slice(0, 8)
-              .reverse()
-              .map((a) => (
-                <div className="activity-event" key={a.id}>
-                  <span className="activity-dot" />
-                  <div className="activity-message">
-                    <div>
-                      <strong>{a.actor_name}</strong> {a.summary ?? 'updated the task'}
-                    </div>
-                    {a.details?.map((detail, index) => (
-                      <div className="activity-detail" key={index}>
-                        {detail}
-                      </div>
-                    ))}
-                  </div>
-                  <time dateTime={a.created_at}>{formatDate(a.created_at)}</time>
-                </div>
-              ))}
+            <ActivityFeed activity={issue.activity} />
             {issue.comments.map((c) => (
               <article className="comment" key={c.id}>
                 <header>
-                  <Avatar name={c.author_name} />
-                  <strong>{c.author_name}</strong>
+                  <PersonChip
+                    id={c.author_source_id ?? c.author_id}
+                    name={c.author_name}
+                    display="name"
+                  />
                   <time dateTime={c.created_at}>{formatDate(c.created_at)}</time>
                 </header>
                 <Markdown>{c.body}</Markdown>

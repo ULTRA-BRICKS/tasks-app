@@ -4,7 +4,7 @@ import {
   type IdentityConflict,
   type IdentityResolution,
 } from './canonical-people.mjs';
-import type { Catalog } from '@tickets/contracts';
+import type { Actor, Catalog } from '@tickets/contracts';
 export type PersonDirectory = CanonicalPerson[];
 type PersonOption = {
   value: string;
@@ -20,6 +20,7 @@ type DirectoryIndex = {
   readonly: PersonOption[];
 };
 const catalogResolutions = new WeakMap<Catalog, IdentityResolution>();
+const catalogRoles = new WeakMap<Catalog, Map<string, Actor['role']>>();
 const directoryIndexes = new WeakMap<PersonDirectory, DirectoryIndex>();
 const emptyResolution: IdentityResolution = { people: [], conflicts: [] };
 const providerLabels: Record<string, string> = {
@@ -85,3 +86,54 @@ export const personOptions = (catalog: Catalog | undefined) =>
   index(peopleDirectory(catalog)).options;
 export const canonicalPersonValue = (catalog: Catalog | undefined, id: string | null | undefined) =>
   selectedPerson(catalog, id)?.id ?? id ?? 'none';
+/** Everything a person card shows, selected from the UB-29 projection (docs/PERSON-POPOVER.md). */
+export interface PersonProfile {
+  /** Canonical ID: the Tasks member when the person has an account. */
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  /** Withheld (null) until the signed-in actor is known; the catalog is the permission authority. */
+  email: string | null;
+  membership: string;
+  accounts: string[];
+  bot: boolean;
+  needs_review: boolean;
+  is_viewer: boolean;
+  tasks_href: string;
+}
+const roleLabels: Record<Actor['role'], string> = {
+  owner: 'Owner',
+  admin: 'Admin',
+  member: 'Member',
+  viewer: 'Viewer',
+};
+export function personProfile(
+  catalog: Catalog | undefined,
+  id: string | null | undefined,
+  viewer: Pick<Actor, 'id' | 'role'> | null | undefined,
+): PersonProfile | null {
+  const directory = peopleDirectory(catalog),
+    person = personInDirectory(directory, id);
+  if (!person || !catalog) return null;
+  let roles = catalogRoles.get(catalog);
+  if (!roles) {
+    roles = new Map(catalog.people.map((member) => [member.id, member.role]));
+    catalogRoles.set(catalog, roles);
+  }
+  const role = roles.get(person.id);
+  return {
+    id: person.id,
+    name: person.name,
+    avatar_url: person.avatar_url,
+    email: viewer ? person.email : null,
+    membership: person.bot ? 'Bot' : role ? roleLabels[role] : 'No Tasks account',
+    // providerLabel('tasks') is 'Member' (the picker wording); the card lists products.
+    accounts: person.providers.map((provider) =>
+      provider === 'tasks' ? 'Tasks' : providerLabel(provider),
+    ),
+    bot: Boolean(person.bot),
+    needs_review: person.needs_review,
+    is_viewer: viewer ? personInDirectory(directory, viewer.id)?.id === person.id : false,
+    tasks_href: '/tasks?' + new URLSearchParams({ assignee_id: person.id }).toString(),
+  };
+}

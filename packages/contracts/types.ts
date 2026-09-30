@@ -121,6 +121,8 @@ export interface Issue {
 export interface Comment {
   id: Id;
   author_id: Id;
+  // Imported source person, when the comment came from another tracker (author_id is the importer).
+  author_source_id?: Id | null;
   author_name: string;
   body: string;
   created_at: string;
@@ -144,10 +146,20 @@ export interface Attachment {
   bytes: number;
   created_at: string;
 }
+// Display-ready field changes (docs/TASK-ACTIVITY.md). Text `from`/`to` are null when the
+// source history recorded only that the description changed.
+export type ActivityChange =
+  | { kind: 'value'; field: string; label: string; from: string; to: string }
+  | { kind: 'labels'; field: 'labels'; label: string; added: string[]; removed: string[] }
+  | { kind: 'text'; field: 'description'; label: string; from: string | null; to: string | null };
 export interface Activity {
   summary?: string;
   details?: string[];
+  changes?: ActivityChange[];
   id: Id;
+  actor_id: Id;
+  // Imported source person, when the event came from another tracker's history.
+  actor_source_id?: Id | null;
   actor_name: string;
   action: string;
   data: Record<string, unknown>;

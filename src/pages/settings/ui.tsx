@@ -17,9 +17,18 @@ import {
   Palette,
   Plus,
 } from 'lucide-react';
-import { useCatalog, useMe } from '@/entities/workspace';
+import { useCatalog, useMe, PersonChip } from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
-import { Button, Input, Textarea, Picker, Avatar, ErrorState, Loading } from '@/shared/ui';
+import {
+  Button,
+  Input,
+  Textarea,
+  Picker,
+  Combobox,
+  Avatar,
+  ErrorState,
+  Loading,
+} from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
 type IntegrationState = {
@@ -207,14 +216,14 @@ export function SettingsPage() {
                     <Avatar name={p.name} size="md" />
                     <div>
                       <strong>
-                        {p.name}
+                        <PersonChip id={p.id} label={p.name} display="text" />
                         {selectedPerson(catalog, p.id)?.needs_review && (
                           <span className="review-badge">Needs review</span>
                         )}
                       </strong>
                       <span>{p.email}</span>
                     </div>
-                    <Picker
+                    <Combobox
                       aria-label={`Role of ${p.name}`}
                       value={p.role}
                       options={['owner', 'admin', 'member', 'viewer'].map((v) => ({
