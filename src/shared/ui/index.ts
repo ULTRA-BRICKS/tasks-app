@@ -8,7 +8,7 @@ export { EmptyState, ErrorState, Loading, SkeletonRows } from './feedback';
 
 export { DocumentText, InlineTitle } from './document';
 
-export { PressPreview } from './press-preview';
+export { PressPreview, usePreviewLayer } from './press-preview';
 
 export { ActionMenu, ContextRow, type MenuAction, type MenuChoice } from './action-menu';
 

@@ -20,6 +20,8 @@ export async function login(page: Page) {
   await expect(page.getByTestId('issue-row').first()).toBeVisible();
   session = await page.context().cookies();
 }
+/** Longer than the 340 ms hold threshold (HOLD_DELAY in src/shared/lib/press-hold.ts). */
+export const PAST_HOLD_MS = 450;
 /** Replaces the page's clipboard; each write lands in `document.documentElement.dataset.copied`. */
 export function stubClipboard(page: Page) {
   return page.evaluate(() =>

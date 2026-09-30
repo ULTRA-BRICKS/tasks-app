@@ -1,7 +1,16 @@
 import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, FolderKanban, CalendarRange, PanelLeft, ArrowUpRight, Flag } from 'lucide-react';
+import {
+  Plus,
+  FolderKanban,
+  CalendarRange,
+  PanelLeft,
+  ArrowUpRight,
+  Flag,
+  Copy,
+  ListTodo,
+} from 'lucide-react';
 import type { Project } from '@tickets/contracts';
 import { useCatalog, useProjects, useCycles, useMe, moduleEnabled } from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
@@ -18,6 +27,7 @@ import {
 } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
+import { copyActions } from '@/shared/lib/copy-formats';
 export function PlanningPage({ kind }: { kind: 'projects' | 'cycles' }) {
   const { data: catalog } = useCatalog(),
     { data: me } = useMe();
@@ -180,10 +190,18 @@ function ProjectCard({ project }: { project: Project }) {
     },
   });
   const percent = project.total ? Math.round((project.completed / project.total) * 100) : 0;
+  const [copy] = copyActions({
+    id: project.id,
+    title: project.name,
+    body: project.description,
+    path: '/projects/' + project.id,
+    kind: 'project',
+  });
   return (
     <PressPreview
       label={`Preview ${project.name}`}
       dialogLabel="Project preview"
+      menuLabel={`Actions for ${project.name}`}
       content={
         <>
           <h2 data-selectable>{project.name}</h2>
@@ -194,13 +212,19 @@ function ProjectCard({ project }: { project: Project }) {
         </>
       }
       actions={[
-        { label: 'Open project', run: () => navigate('/projects/' + project.id) },
-        { label: 'View project tasks', run: () => navigate('/tasks?project_id=' + project.id) },
         {
-          label: 'Copy link',
-          run: () =>
-            navigator.clipboard.writeText(new URL('/projects/' + project.id, location.origin).href),
+          id: 'open',
+          label: 'Open project',
+          onSelect: () => navigate('/projects/' + project.id),
+          toolbar: { label: 'Open', icon: <ArrowUpRight size={17} /> },
         },
+        {
+          id: 'tasks',
+          label: 'View project tasks',
+          onSelect: () => navigate('/tasks?project_id=' + project.id),
+          toolbar: { label: 'Tasks', icon: <ListTodo size={17} /> },
+        },
+        { ...copy, id: 'copy', toolbar: { label: 'Copy', icon: <Copy size={16} /> } },
       ]}
     >
       <article className="project-card">

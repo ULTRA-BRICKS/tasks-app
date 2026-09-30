@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { login, stubClipboard } from './session-fixture';
+import { login, PAST_HOLD_MS, stubClipboard } from './session-fixture';
 
 // Acceptance for docs/TASK-PREVIEW.md (UB-38, UB-31).
 
@@ -61,6 +61,19 @@ async function press(page: Page, target: Locator, dx?: number) {
   await page.mouse.move(point.x, point.y);
   await page.mouse.down();
   return point;
+}
+
+/** A primary touch pointer's event fields at the element's centre, for raw pointer events. */
+async function touchAt(target: Locator) {
+  const box = (await target.boundingBox())!;
+  return {
+    pointerId: 9,
+    pointerType: 'touch',
+    isPrimary: true,
+    button: 0,
+    clientX: box.x + box.width / 2,
+    clientY: box.y + box.height / 2,
+  };
 }
 
 test.describe('desktop', () => {
@@ -207,6 +220,23 @@ test.describe('desktop', () => {
     await expect(surface).toHaveCount(1);
   });
 
+  test('a preview closed right after its ellipsis click stays closed', async ({ page }) => {
+    // WebKit repeats pointerover around the click's pointer capture (seen after a row menu);
+    // a hover-open armed then must not reopen the preview after Escape, where it used to
+    // take the next menu's Escape.
+    await page.getByTestId('issue-row').first().click({ button: 'right' });
+    await expect(page.getByRole('menu')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await firstTrigger(page).click();
+    const surface = page.locator('.peek-surface');
+    await expect(surface).toHaveAttribute('data-state', 'open');
+    await page.keyboard.press('Escape');
+    await expect(previewOf(page)).toHaveCount(0);
+    await page.waitForTimeout(600); // Past the 500 ms hover delay, counted from the click.
+    await expect(surface).toHaveCount(0);
+  });
+
   test('reduced motion opens and closes without transforms or an exit delay', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await firstTrigger(page).click();
@@ -244,7 +274,7 @@ test.describe('desktop', () => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
     await expect(anchor).not.toHaveAttribute('data-pressing', 'true');
-    await page.waitForTimeout(450);
+    await page.waitForTimeout(PAST_HOLD_MS);
     await expect(previewOf(page)).toHaveCount(0);
     await page.evaluate(() => Reflect.deleteProperty(document, 'visibilityState'));
     await page.mouse.up();
@@ -361,7 +391,8 @@ test.describe('desktop', () => {
       await expect(previewOf(page)).toHaveCount(0);
       await expect(page).toHaveURL(/\/tasks$/);
     } finally {
-      if (clicked) await restoreIssue(page, patch, before.id, { assignee_id: before.assignee_id });
+      if (clicked)
+        await restoreIssue(page, patch, before.id, { assignee_id: before.assignee_id ?? null });
     }
     await open.click();
     await expect(page).toHaveURL(/\/tasks\/[^/?]+/);
@@ -374,19 +405,18 @@ test.describe('desktop', () => {
     await row.getByRole('combobox', { name: /^Assignee for / }).click();
     const option = page.getByRole('listbox').getByRole('option').first();
     await expect(option).toBeVisible();
-    const box = (await option.boundingBox())!;
-    const point = { clientX: box.x + box.width / 2, clientY: box.y + box.height / 2, button: 0 };
+    const point = await touchAt(option);
     // React bubbles the portalled listbox's events through the row; the row must ignore them.
-    await option.dispatchEvent('pointerdown', {
-      ...point,
-      pointerId: 9,
-      pointerType: 'touch',
-      isPrimary: true,
-    });
-    expect(await row.locator('..').getAttribute('data-pressing')).toBeNull();
-    await page.waitForTimeout(450); // Longer than the 340 ms hold threshold.
+    await option.dispatchEvent('pointerdown', point);
+    const anchor = row.locator('xpath=ancestor::*[contains(@class,"peek-anchor")][1]');
+    expect(await anchor.getAttribute('data-pressing')).toBeNull();
+    await page.waitForTimeout(PAST_HOLD_MS);
     await expect(previewOf(page)).toHaveCount(0);
-    await option.dispatchEvent('contextmenu', { ...point, button: 2 });
+    await option.dispatchEvent('contextmenu', {
+      clientX: point.clientX,
+      clientY: point.clientY,
+      button: 2,
+    });
     await expect(page.getByRole('menu')).toHaveCount(0);
     await expect(previewOf(page)).toHaveCount(0);
     await page.keyboard.press('Escape');
@@ -504,15 +534,7 @@ test.describe('phone', () => {
   test('holding the assignee avatar opens the preview at the Assign action', async ({ page }) => {
     await login(page);
     const avatar = page.getByTestId('issue-row').first().locator('.avatar-picker');
-    const box = (await avatar.boundingBox())!;
-    const point = {
-      pointerId: 9,
-      pointerType: 'touch',
-      isPrimary: true,
-      button: 0,
-      clientX: box.x + box.width / 2,
-      clientY: box.y + box.height / 2,
-    };
+    const point = await touchAt(avatar);
     await avatar.dispatchEvent('pointerdown', point);
     await expect(
       avatar.locator('xpath=ancestor::*[contains(@class,"peek-anchor")]'),

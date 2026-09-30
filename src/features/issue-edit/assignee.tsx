@@ -18,7 +18,8 @@ export function IssueAssignee({
   const canWrite = !disabled && !update.isPending;
   const options = assigneeOptions(people, !canWrite);
   return (
-    <div className="row-assignee">
+    // A touch hold on the avatar opens the task preview at its Assign action.
+    <div className="row-assignee" data-hold-action="assign">
       <Picker
         aria-label={'Assignee for ' + issue.key + ': ' + name}
         value={person?.id ?? issue.assignee_id ?? 'none'}

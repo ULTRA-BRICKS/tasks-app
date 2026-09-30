@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { login, stubClipboard } from './session-fixture';
+import { login, PAST_HOLD_MS, stubClipboard } from './session-fixture';
 
 // Ported from the 18 September RED acceptance cases (tasks-context-menu-20260918, untracked), with
 // current Task wording. Right-click, Shift+F10, hold and the visible ellipsis share one action list.
@@ -118,8 +118,9 @@ test('pointer: the Copy submenu keeps the row menu open and a slow item click co
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
   // A row hold marks the row synchronously on pointerdown; the portalled menu item is not the row.
-  expect(await row.locator('..').getAttribute('data-pressing')).toBeNull();
-  await page.waitForTimeout(450); // Longer than the 340 ms hold threshold.
+  const anchor = row.locator('xpath=ancestor::*[contains(@class,"peek-anchor")][1]');
+  expect(await anchor.getAttribute('data-pressing')).toBeNull();
+  await page.waitForTimeout(PAST_HOLD_MS);
   await expect(page.getByRole('dialog', { name: 'Task preview', exact: true })).toHaveCount(0);
   await page.mouse.up();
   await expect(page.getByRole('menu')).toHaveCount(0);
