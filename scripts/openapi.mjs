@@ -334,7 +334,14 @@ const operations = [
     '/v1/integrations/slack',
     'patch',
     'SlackConfig',
-    'Configure Slack team and explicit user mappings',
+    'Configure Slack team and explicit member and imported-person mappings',
+    'admin',
+  ],
+  [
+    '/v1/integrations/slack/profiles/sync',
+    'post',
+    null,
+    'Sync names and photos of mapped Slack users (users:read; never emails)',
     'admin',
   ],
   [
@@ -433,6 +440,11 @@ export function generateOpenAPI() {
         },
       };
     }
+    if (path === '/v1/integrations/slack/profiles/sync')
+      operation.responses[502] = {
+        description:
+          'Slack refused users.list or could not be reached: SLACK_MISSING_SCOPE, SLACK_AUTH_FAILED, SLACK_REQUEST_FAILED or SLACK_UNREACHABLE (docs/SLACK-PROFILES.md)',
+      };
     if (['public', 'webhook'].includes(scope)) operation.security = [];
     if (scope === 'worker') operation.security = [{ workerSecret: [] }];
     operation.parameters = [];

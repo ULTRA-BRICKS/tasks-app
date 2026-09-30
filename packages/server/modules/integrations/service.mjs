@@ -3,6 +3,7 @@ import { assert, requirePermission } from '../../core/errors.mjs';
 import { assertModule } from '../../core/modules.mjs';
 import { createIssue, updateIssue, getIssue, addComment } from '../tickets/service.mjs';
 import { sessionScopes } from '../identity/service.mjs';
+import { isBotProfile } from '../../../../src/shared/lib/canonical-people.mjs';
 
 export function verifyGitHub(raw, signature, secret) {
   assert(secret, 503, 'GITHUB_NOT_CONFIGURED', 'GitHub signing secret is not configured');
@@ -291,7 +292,9 @@ export async function setIntegrationConfig(tx, actor, provider, input) {
       'INVALID_TEAM',
       'Team not found',
     );
-    for (const user of Object.values(input.user_map ?? {}))
+    const userMap = input.user_map ?? {},
+      sourceMap = input.source_person_map ?? {};
+    for (const user of Object.values(userMap))
       assert(
         await tx.one('SELECT user_id FROM memberships WHERE workspace_id=? AND user_id=?', [
           actor.workspace_id,
@@ -301,6 +304,36 @@ export async function setIntegrationConfig(tx, actor, provider, input) {
         'INVALID_MEMBER',
         'Mapped user must be a member',
       );
+    // An imported person is a Linear (or other non-Slack) author of this workspace; the lookup is
+    // workspace-scoped, so another workspace's person reads as missing. Never matched by name.
+    // Stored bot flags cover Slack profiles only, so a non-Slack target is judged by its own data.
+    const targets = new Set();
+    for (const [slackUserId, personId] of Object.entries(sourceMap)) {
+      assert(
+        !Object.hasOwn(userMap, slackUserId),
+        422,
+        'AMBIGUOUS_MAPPING',
+        'A Slack user maps to a member or to an imported person, not to both',
+      );
+      assert(
+        !targets.has(personId),
+        422,
+        'AMBIGUOUS_MAPPING',
+        'Two Slack users cannot map to the same imported person',
+      );
+      targets.add(personId);
+      const person = await tx.one(
+        'SELECT id,name,provider,source_id,email FROM source_people WHERE workspace_id=? AND id=?',
+        [actor.workspace_id, personId],
+      );
+      assert(
+        person && person.provider !== 'slack',
+        422,
+        'INVALID_SOURCE_PERSON',
+        'Mapped person must be an imported person of this workspace from a source other than Slack',
+      );
+      assert(!isBotProfile(person), 422, 'BOT_MAPPING', 'A bot cannot be mapped to a Slack user');
+    }
   } else
     for (const field of ['review_status_id', 'done_status_id'])
       if (input[field])

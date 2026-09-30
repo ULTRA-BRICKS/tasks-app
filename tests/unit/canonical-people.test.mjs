@@ -113,6 +113,65 @@ test('conflicting and unresolved bindings are refused and reported, never guesse
   ).toEqual(['member', 'member-2', 'slack']);
   expect(people.every((person) => person.needs_review)).toBe(true);
 });
+test('two Slack profiles bound to one member bind to neither; the member is marked for review', () => {
+  // Allowed by user_map (both Slack accounts may run commands), but one person cannot show two
+  // Slack names and photos, so the projection refuses to pick one.
+  const first = { ...slack, email: null };
+  const second = { ...slack, id: 'slack-2', source_id: 'T1:U2', name: 'Other Slack', email: null };
+  const { people, conflicts } = resolveIdentities(
+    [member],
+    [first, second],
+    [bind('member', 'slack'), bind('member', 'slack-2')],
+  );
+  expect(ids(people)).toEqual([['member'], ['slack'], ['slack-2']]);
+  expect(conflicts.map((conflict) => conflict.kind)).toEqual(['conflicting_binding']);
+  expect(
+    conflicts[0].profiles.map((profile) => profile.id).sort((a, b) => a.localeCompare(b)),
+  ).toEqual(['member', 'slack', 'slack-2']);
+  expect(people.find((person) => person.id === 'member')).toMatchObject({
+    name: 'Alex',
+    needs_review: true,
+  });
+  // One of the two mappings alone still binds.
+  const single = resolveIdentities([member], [first, second], [bind('member', 'slack')]);
+  expect(single.conflicts).toEqual([]);
+  expect(ids(single.people)).toEqual([['member', 'slack'], ['slack-2']]);
+});
+test('a Slack profile bound to an imported person gives that person its Slack name and photo', () => {
+  const lone = { ...linear, id: 'linear-only', email: 'lin@example.test', name: 'Lin' };
+  const photo = { ...slack, email: null };
+  const toPerson = {
+    person_id: 'linear-only',
+    source_person_id: 'slack',
+    via: 'slack_source_person_map',
+  };
+  const { people, conflicts } = resolveIdentities([member], [lone, photo], [toPerson]);
+  expect(conflicts).toEqual([]);
+  expect(ids(people)).toEqual([['linear-only', 'slack'], ['member']]);
+  expect(people.find((person) => person.id === 'linear-only')).toMatchObject({
+    name: 'Ultra Slack',
+    avatar_url: slack.avatar_url,
+    names: ['Lin', 'Ultra Slack'],
+    providers: ['linear', 'slack'],
+  });
+  // A person binding never targets a member, the Slack profile's own provider or an unknown ID.
+  const slackTwin = { ...slack, id: 'slack-2', source_id: 'T1:U2', email: null };
+  for (const target of ['member', 'slack-2', 'missing']) {
+    const refused = resolveIdentities(
+      [member],
+      [lone, photo, slackTwin],
+      [{ ...toPerson, person_id: target }],
+    );
+    expect(refused.conflicts.map((conflict) => conflict.kind)).toEqual(['unresolved_binding']);
+    expect(refused.people.find((person) => person.aliases.includes('slack'))?.aliases).toEqual([
+      'slack',
+    ]);
+  }
+  // Bound to a member and to an imported person at once, the Slack profile binds to neither.
+  const both = resolveIdentities([member], [lone, photo], [bind('member', 'slack'), toPerson]);
+  expect(ids(both.people)).toEqual([['linear-only'], ['member'], ['slack']]);
+  expect(both.conflicts.map((conflict) => conflict.kind)).toEqual(['conflicting_binding']);
+});
 test('same-provider duplicate emails stay separate and are marked for review', () => {
   const duplicate = { ...linear, id: 'linear-2', source_id: 'linear-other', name: 'Ultra (old)' };
   const bystander = { id: 'other', name: 'Other', email: 'other@example.test' };

@@ -58,12 +58,11 @@ export interface SourcePerson {
   /** Supplied by a provider profile sync; absent means not known to be a bot. */
   bot?: boolean;
 }
-/** Administrator-verified member ↔ source profile link (docs/PEOPLE-IDENTITY.md). */
-export interface IdentityBinding {
-  member_id: Id;
-  source_person_id: Id;
-  via: 'slack_user_map';
-}
+/** Administrator-verified link of a Slack profile (`source_person_id`) to a Tasks member or to an
+ * imported person of another source (docs/PEOPLE-IDENTITY.md, docs/SLACK-PROFILES.md). */
+export type IdentityBinding =
+  | { member_id: Id; person_id?: never; source_person_id: Id; via: 'slack_user_map' }
+  | { person_id: Id; member_id?: never; source_person_id: Id; via: 'slack_source_person_map' };
 export interface Catalog {
   counts?: Record<
     'issues' | 'epics' | 'mine' | 'projects' | 'cycles' | 'documents' | 'initiatives' | 'archive',

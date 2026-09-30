@@ -372,6 +372,7 @@ export const schemas = {
     notify: { type: 'boolean' },
     team_id: uuid,
     user_map: { type: 'object', maxProperties: 100, additionalProperties: uuid },
+    source_person_map: { type: 'object', maxProperties: 100, additionalProperties: uuid },
   }),
 };
 export { object, text, uuid, nullable };
