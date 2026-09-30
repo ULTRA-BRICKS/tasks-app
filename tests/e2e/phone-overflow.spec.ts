@@ -280,6 +280,18 @@ for (const width of WIDTHS) {
     const { context, page } = await phone(browser, width);
     try {
       await openLongTask(page);
+      // The reach reserved for popups covers the dock as rendered, so a taller dock cannot
+      // silently put popups back under it (--mobile-dock-reach, docs/PHONE-OVERFLOW.md).
+      const reach = await page.evaluate(() => {
+        const probe = document.createElement('div');
+        probe.style.cssText = 'position:fixed;height:var(--fixed-chrome-bottom)';
+        document.body.append(probe);
+        const reserved = probe.getBoundingClientRect().height;
+        probe.remove();
+        const dock = document.querySelector('.mobile-dock')!.getBoundingClientRect();
+        return { reserved, dock: innerHeight - dock.top };
+      });
+      expect(reach.reserved, JSON.stringify(reach)).toBeGreaterThanOrEqual(reach.dock);
       for (const name of PICKERS) {
         const trigger = page.getByRole('combobox', { name, exact: true });
         await trigger.scrollIntoViewIfNeeded();
@@ -458,6 +470,22 @@ for (const [width, height] of PHONES) {
     }
   });
 }
+
+test('a page that cannot load shows its error without waiting for the editor chunk', async ({
+  page,
+}) => {
+  // The editor chunk never arrives: an error has no description to lay out, so it shows at once.
+  await page.route(/\/rich-description/, () => new Promise<void>(() => {}));
+  await page.route(/\/api\/v1\/documents\/[a-f0-9-]+$/, (route) =>
+    route.fulfill({ status: 404, json: { error: { message: 'Document not found.' } } }),
+  );
+  await login(page);
+  const missing = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  await page.goto('/documents/' + missing);
+  await expect(page.getByRole('alert')).toBeVisible();
+  await page.goto('/projects/' + missing);
+  await expect(page.getByRole('alert')).toContainText('This item was not found in your workspace.');
+});
 
 test('popups respect the notch and home-indicator safe areas', async ({ browser, browserName }) => {
   test.skip(browserName !== 'chromium', 'Only Chromium can emulate safe-area insets (CDP).');

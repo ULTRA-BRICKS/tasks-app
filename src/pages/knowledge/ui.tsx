@@ -110,10 +110,12 @@ export function KnowledgePage({ kind }: { kind: Kind }) {
     queryFn: () => api<Knowledge>('/v1/' + kind + '/' + id),
     enabled: id !== 'new',
   });
-  // The properties sit below the body: reveal the document with its editor.
+  // The properties sit below the body: reveal the document with its editor. An error has no
+  // body to lay out, so it shows without waiting for the editor.
   const editorReady = useDescriptionEditorReady();
-  if (!me || !editorReady || (id !== 'new' && query.isPending)) return <Loading />;
+  if (!me || (id !== 'new' && query.isPending)) return <Loading />;
   if (query.error) return <ErrorState message={errorMessage(query.error)} />;
+  if (!editorReady) return <Loading />;
   return (
     <KnowledgeEditor
       key={me.workspace_id + ':' + me.id + ':' + kind + ':' + id}

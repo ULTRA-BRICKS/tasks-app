@@ -31,7 +31,8 @@ function reservedEdges(): Insets {
   return edges;
 }
 
-let padding: Insets | undefined;
+// Until the first popup owner subscribes and the edges are measured, only the 8px edge applies.
+let padding: Insets = { top: EDGE, right: EDGE, bottom: EDGE, left: EDGE };
 const listeners = new Set<() => void>();
 
 /** Replaces the cached padding only when an edge changed, keeping snapshot identity stable. */
@@ -44,7 +45,6 @@ function update() {
     left: EDGE + edge.left,
   };
   if (
-    padding &&
     padding.top === next.top &&
     padding.right === next.right &&
     padding.bottom === next.bottom &&
@@ -61,7 +61,8 @@ function onResize() {
 }
 function subscribe(listener: () => void) {
   if (!listeners.size) {
-    // Edges may have changed while nothing listened; React re-reads the snapshot next.
+    // Edges are measured here, not in render; React re-reads the snapshot after subscribing,
+    // so the popups' owners re-render with them before anything can open.
     update();
     addEventListener('resize', onResize);
   }
@@ -71,10 +72,6 @@ function subscribe(listener: () => void) {
     if (!listeners.size) removeEventListener('resize', onResize);
   };
 }
-function snapshot() {
-  if (!padding) update();
-  return padding!;
-}
 
 /**
  * Base UI `collisionPadding`: 8px plus each side's safe-area inset, and at the bottom 8px above
@@ -82,5 +79,5 @@ function snapshot() {
  * and the navigation it would otherwise run under.
  */
 export function usePopupCollisionPadding(): Insets {
-  return useSyncExternalStore(subscribe, snapshot);
+  return useSyncExternalStore(subscribe, () => padding);
 }

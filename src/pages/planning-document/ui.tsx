@@ -99,15 +99,16 @@ export function PlanningDocumentPage({ kind }: { kind: 'projects' | 'cycles' }) 
   const projects = useProjects(enabled && kind === 'projects'),
     cycles = useCycles(enabled && kind === 'cycles');
   const query = kind === 'projects' ? projects : cycles;
-  // A project's properties sit below its description: reveal the page with its editor.
+  // A project's properties sit below its description: reveal the page with its editor. Errors
+  // have no description to lay out, so they show without waiting for the editor.
   const editorReady = useDescriptionEditorReady();
   if (!enabled) return <ErrorState message="An administrator must enable this module first." />;
-  if ((id !== 'new' && query.isPending) || (kind === 'projects' && !editorReady))
-    return <Loading />;
+  if (id !== 'new' && query.isPending) return <Loading />;
   if (query.error) return <ErrorState message={errorMessage(query.error)} />;
   const existing = query.data?.find((p) => p.id === id) as Plan | undefined;
   if (id !== 'new' && !existing)
     return <ErrorState message="This item was not found in your workspace." />;
+  if (kind === 'projects' && !editorReady) return <Loading />;
   return (
     <PlanEditor
       // Each visit to a new draft is its own editor; its defaults select the draft slot.
