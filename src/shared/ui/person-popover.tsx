@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import type { PersonProfile } from '../lib/people';
 import { cn } from '../lib/cn';
 import { Avatar } from './avatar';
+import { usePreviewLayer } from './press-preview';
 import './person-popover.css';
 
 const openDelay = 500,
@@ -53,6 +54,9 @@ export function PersonPopover({
     trigger = useRef<HTMLButtonElement>(null),
     returnFocus = useRef(false);
   const name = label ?? profile.name;
+  // Inside a task preview the card joins the preview's layer: it stacks above the preview, and
+  // presses in it stay inside the preview (docs/PERSON-POPOVER.md).
+  const layer = usePreviewLayer();
   const clearTimers = () => {
     clearTimeout(openTimer.current);
     clearTimeout(closeTimer.current);
@@ -123,7 +127,7 @@ export function PersonPopover({
         {display !== 'text' && <Avatar name={profile.name} src={profile.avatar_url} decorative />}
         {display !== 'avatar' && <span className="person-trigger-text">{name}</span>}
       </Popover.Trigger>
-      <Popover.Portal>
+      <Popover.Portal container={layer ?? undefined}>
         <Popover.Positioner {...cardPlacement}>
           <Popover.Popup
             ref={(element) => {

@@ -15,6 +15,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Plus } from 'lucide-react';
 import type { Issue, Status } from '@tickets/contracts';
 import { IssueCard, StatusIcon } from '@/entities/issue';
+import { PersonChip } from '@/entities/workspace';
 import { useIssueUpdate, useIssueWriteBusy, useTaskActions } from '@/features/issue-edit';
 import { ErrorState, Button } from '@/shared/ui';
 import { errorMessage } from '@/shared/api/client';
@@ -56,6 +57,9 @@ function Draggable({
         onOpen={onOpen}
         actions={actions}
         assigneeControl={assigneeControl?.(issue)}
+        peekAssignee={
+          <PersonChip id={issue.assignee_id} name={issue.assignee_name} display="name" />
+        }
       />
     </div>
   );
