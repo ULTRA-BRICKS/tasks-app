@@ -518,6 +518,20 @@ test('popups respect the notch and home-indicator safe areas', async ({ browser,
       await page.keyboard.press('Escape');
       await expect(calendar).toHaveCount(0);
     }
+    // The preview's More menu opens upwards from the toolbar; on a short screen it reaches the
+    // notch and must stop below it.
+    await page.getByRole('button', { name: 'Close task', exact: true }).click();
+    await page.setViewportSize({ width: 390, height: 380 });
+    await page
+      .getByRole('button', { name: /^Preview / })
+      .first()
+      .click();
+    const preview = page.getByRole('dialog', { name: 'Task preview' });
+    await preview.getByRole('button', { name: 'More actions', exact: true }).click();
+    await expectInside(page.getByRole('menu', { name: 'More actions', exact: true }), 'More menu', {
+      inset,
+      clearOfDock: false,
+    });
   } finally {
     await context.close();
   }
