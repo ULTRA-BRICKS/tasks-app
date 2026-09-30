@@ -1,5 +1,5 @@
 import { canonicalPersonValue, peopleDirectory, personOptions } from '@/shared/lib/people';
-import { IssueAssignee } from '@/features/issue-edit';
+import { IssueAssignee, useTaskActions } from '@/features/issue-edit';
 import { useLiveFeed } from '@/shared/lib/use-live-feed';
 import { useState, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
@@ -18,7 +18,7 @@ import {
   Layers,
 } from 'lucide-react';
 import type { Issue, IssueFilters, IssueCreate, Status, StatusCategory } from '@tickets/contracts';
-import { useIssues, IssueRow, StatusIcon } from '@/entities/issue';
+import { useIssues, IssueRow, StatusIcon, type IssueRowProps } from '@/entities/issue';
 import { useMe, useCatalog, useProjects, moduleEnabled } from '@/entities/workspace';
 import { CreateIssue } from '@/features/issue-create';
 import { usePreferences } from '@/features/preferences';
@@ -431,6 +431,13 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
             onOpen={(id) => navigate('/tasks/' + id)}
             onCreate={create}
             readOnly={readOnly}
+            assigneeControl={(issue) => (
+              <IssueAssignee
+                issue={sourceRowsById.get(issue.id) ?? issue}
+                people={directory}
+                disabled={!me || readOnly}
+              />
+            )}
           />
         ) : (
           <div className="issue-list">
@@ -472,9 +479,10 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
                     issues
                       .filter((i) => groupOf(i) === s.id)
                       .map((i) => (
-                        <IssueRow
+                        <TaskListRow
                           key={i.id}
                           issue={i}
+                          current={sourceRowsById.get(i.id) ?? i}
                           status={s}
                           updating={feed.active === i.id}
                           assigneeControl={
@@ -544,4 +552,13 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
       </Modal>
     </>
   );
+}
+/** A list row whose preview and context menus act on the current source version of the task. */
+function TaskListRow({ current, ...row }: Omit<IssueRowProps, 'actions'> & { current: Issue }) {
+  const actions = useTaskActions(current, {
+    onOpen: row.onOpen,
+    selected: row.selected,
+    onSelect: row.canSelect ? row.onSelect : undefined,
+  });
+  return <IssueRow {...row} actions={actions} />;
 }

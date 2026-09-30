@@ -11,6 +11,8 @@ export default mergeConfig(
   defineConfig({
     optimizeDeps: {
       include: [
+        // Pre-bundled so a cold cache never re-optimises it mid-run and reloads every story.
+        '@base-ui/react/combobox',
         '@storybook/react-vite',
         '@tanstack/react-query',
         'react/jsx-dev-runtime',
@@ -35,6 +37,10 @@ export default mergeConfig(
                 launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH },
               }),
               instances: [{ browser: 'chromium' }],
+              // Storybook sizes the frame to its 1200x900 default before each story
+              // (DEFAULT_VIEWPORT_DIMENSIONS in @storybook/addon-vitest). Starting at that size keeps
+              // a late `resize` event, which closes an open preview, out of the first story's play.
+              viewport: { width: 1200, height: 900 },
             },
           },
         },

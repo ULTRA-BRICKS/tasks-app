@@ -95,6 +95,10 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
         <dd>Move through visible tasks</dd>
         <dt>Enter</dt>
         <dd>Open the focused task</dd>
+        <dt>Space</dt>
+        <dd>Peek into the focused task</dd>
+        <dt>Shift F10</dt>
+        <dd>Actions for the focused item</dd>
         <dt>X</dt>
         <dd>Select the focused task</dd>
         <dt>C / V</dt>

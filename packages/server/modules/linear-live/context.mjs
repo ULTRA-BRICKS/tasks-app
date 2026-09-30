@@ -97,21 +97,31 @@ export async function referenceResolver(tx, config, collection, remote, original
       'Too many references in one entity',
     );
     const where = [
-      s.length ? 'source_id IN (' + s.map(() => '?').join(',') + ')' : null,
-      t.length ? 'target_id IN (' + t.map(() => '?').join(',') + ')' : null,
+      s.length ? 'm.source_id IN (' + s.map(() => '?').join(',') + ')' : null,
+      t.length ? 'm.target_id IN (' + t.map(() => '?').join(',') + ')' : null,
     ]
       .filter(Boolean)
       .join(' OR ');
+    // A label's stored source record says which team (or the workspace) owns it.
+    const labels = kind === 'issueLabels';
     const rows = await tx.all(
-      'SELECT source_id,target_id FROM linear_source_map WHERE workspace_id=? AND source_workspace_id=? AND collection=? AND (' +
+      'SELECT m.source_id,m.target_id' +
+        (labels ? ',r.payload' : '') +
+        ' FROM linear_source_map m' +
+        (labels
+          ? ' LEFT JOIN linear_import_records r ON r.workspace_id=m.workspace_id AND r.import_id=m.import_id AND r.collection=m.collection AND r.source_id=m.source_id'
+          : '') +
+        ' WHERE m.workspace_id=? AND m.source_workspace_id=? AND m.collection=? AND (' +
         where +
         ')',
       [config.workspaceId, config.organizationId, kind, ...s, ...t],
     );
     for (const row of rows) {
       bySource.set(kind + ':' + row.source_id, row.target_id);
-      if (!byTarget.has(kind + ':' + row.target_id))
-        byTarget.set(kind + ':' + row.target_id, row.source_id);
+      if (!byTarget.has(kind + ':' + row.target_id)) byTarget.set(kind + ':' + row.target_id, []);
+      byTarget
+        .get(kind + ':' + row.target_id)
+        .push({ sourceId: row.source_id, ...(labels ? labelScope(row.payload) : {}) });
     }
   }
   const resolve = (kind, id) => {
@@ -122,16 +132,53 @@ export async function referenceResolver(tx, config, collection, remote, original
     });
     return value;
   };
-  const reverse = (kind, id) => {
+  // Native labels are unique per workspace by name, while Linear scopes a label to one team or to
+  // the workspace, so the import binds same-name labels of several teams to one native label.
+  // Linear rejects an issue that names another team's label, so an issue write passes its source
+  // team and gets the label it may carry instead of whichever alias the database returned first:
+  // that team's label, else a workspace label (team null), else a record that never stated its
+  // scope (team undefined, older imports); another team's label never. Without a team every alias
+  // fits. Within the chosen group an archived alias loses a tie; a remaining tie is refused.
+  const reverse = (kind, id, { teamId } = {}) => {
     if (id === null) return null;
-    const value = byTarget.get(kind + ':' + id);
-    assert(value, 409, 'SYNC_REFERENCE_PENDING', 'A native reference is not exported', {
+    const candidates = byTarget.get(kind + ':' + id) ?? [];
+    assert(candidates.length, 409, 'SYNC_REFERENCE_PENDING', 'A native reference is not exported', {
       collection: kind,
       targetId: id,
     });
-    return value;
+    if (kind !== 'issueLabels') return candidates[0].sourceId;
+    let fit = teamId
+      ? [teamId, null, undefined]
+          .map((team) => candidates.filter((c) => c.team === team))
+          .find((group) => group.length)
+      : candidates;
+    assert(
+      fit,
+      422,
+      'SYNC_LABEL_TEAM_UNAVAILABLE',
+      'No source label with this name belongs to the issue team',
+      { targetId: id, teamId },
+    );
+    if (fit.length > 1 && fit.some((c) => !c.archived)) fit = fit.filter((c) => !c.archived);
+    assert(
+      fit.length === 1,
+      422,
+      'SYNC_SOURCE_ALIAS_AMBIGUOUS',
+      'Several source labels fit this native label',
+      { targetId: id, teamId },
+    );
+    return fit[0].sourceId;
   };
-  return { resolve, reverse, bySource, byTarget };
+  return { resolve, reverse, bySource };
+}
+// The stored source record of a label: team null is a workspace label; team undefined means the
+// record never stated a scope.
+function labelScope(payload) {
+  const record = payload ? JSON.parse(payload) : null;
+  return {
+    team: record && Object.hasOwn(record, 'team') ? (record.team?.id ?? null) : undefined,
+    archived: Boolean(record?.archivedAt),
+  };
 }
 export async function registerSource(tx, config, collection, record, target) {
   const stamp = now(),

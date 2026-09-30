@@ -20,10 +20,17 @@ import {
   Ellipsis,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCatalog, useMe, useViews, useNotifications, moduleEnabled } from '@/entities/workspace';
+import {
+  useCatalog,
+  useMe,
+  useViews,
+  useNotifications,
+  moduleEnabled,
+  PersonChip,
+} from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
 import { SignOutButton } from '@/features/sign-out';
-import { Avatar, Button, Modal, ActionMenu } from '@/shared/ui';
+import { Button, Modal, ContextRow } from '@/shared/ui';
 import { api } from '@/shared/api/client';
 export function Navigation({
   onCreate,
@@ -265,38 +272,39 @@ export function Navigation({
                 void navigate(path);
               };
               return (
-                <div className="saved-view-context-row nav-action-row" key={view.id}>
+                <ContextRow
+                  className="saved-view-context-row nav-action-row"
+                  key={view.id}
+                  label={'Actions for ' + view.name}
+                  items={[
+                    { label: 'Open saved view', onSelect: open },
+                    ...copyActions({ id: view.id, title: view.name, path, kind: 'view' }),
+                    {
+                      label: 'Delete saved view',
+                      danger: true,
+                      separatorBefore: true,
+                      disabled:
+                        view.owner_id !== me?.id && !['owner', 'admin'].includes(me?.role ?? ''),
+                      onSelect: async () => {
+                        if (
+                          !window.confirm(
+                            'Delete the saved view “' +
+                              view.name +
+                              '”? Its tasks will not be deleted.',
+                          )
+                        )
+                          return;
+                        await api('/v1/views/' + view.id, { method: 'DELETE' });
+                        await client.invalidateQueries({ queryKey: ['views'] });
+                      },
+                    },
+                  ]}
+                >
                   <button type="button" className="nav-item" onClick={open}>
                     <SlidersHorizontal size={15} />
                     <span>{view.name}</span>
                   </button>
-                  <ActionMenu
-                    label={'Actions for ' + view.name}
-                    items={[
-                      { label: 'Open saved view', onSelect: open },
-                      ...copyActions({ id: view.id, title: view.name, path, kind: 'view' }),
-                      {
-                        label: 'Delete saved view',
-                        danger: true,
-                        separatorBefore: true,
-                        disabled:
-                          view.owner_id !== me?.id && !['owner', 'admin'].includes(me?.role ?? ''),
-                        onSelect: async () => {
-                          if (
-                            !window.confirm(
-                              'Delete the saved view “' +
-                                view.name +
-                                '”? Its tasks will not be deleted.',
-                            )
-                          )
-                            return;
-                          await api('/v1/views/' + view.id, { method: 'DELETE' });
-                          await client.invalidateQueries({ queryKey: ['views'] });
-                        },
-                      },
-                    ]}
-                  />
-                </div>
+                </ContextRow>
               );
             })}
             {!views.data?.length && (
@@ -328,8 +336,7 @@ export function Navigation({
           <span>Settings</span>
         </NavLink>
         <div className="profile-row">
-          <Avatar name={me?.name} />
-          <span>{me?.name}</span>
+          <PersonChip id={me?.id} name={me?.name} display="name" onViewTasks={close} />
           <SignOutButton />
         </div>
       </div>

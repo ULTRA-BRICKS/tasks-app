@@ -2,13 +2,20 @@ import { personOptions, canonicalPersonValue } from '@/shared/lib/people';
 import { mergeVersioned } from '@/shared/lib/versioned';
 import { useUnloadWarning } from '@/shared/lib/unload-warning';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, Folder, CalendarRange } from 'lucide-react';
-import { useCatalog, useMe, useProjects, useCycles, moduleEnabled } from '@/entities/workspace';
+import {
+  useCatalog,
+  useMe,
+  useProjects,
+  useCycles,
+  moduleEnabled,
+  PersonChip,
+} from '@/entities/workspace';
 import { DateProperty } from '@/features/issue-properties';
 import { useShowingSavedCopy, useVisibleError } from '@/features/saved-copy';
-import { Button, Picker, DocumentText, InlineTitle, Loading, ErrorState } from '@/shared/ui';
+import { Button, Combobox, DocumentText, InlineTitle, Loading, ErrorState } from '@/shared/ui';
 import { api, errorMessage, ApiError } from '@/shared/api/client';
 interface Plan {
   id: string;
@@ -54,8 +61,33 @@ function sameDraft(a: Draft, b: Draft) {
     ['name', 'description', 'team', 'start', 'end', 'status', 'health', 'lead'] as const
   ).every((k) => a[k] === b[k]);
 }
+/** Router state from a picker's page-first Create: a typed name and where to return. */
+interface PlanOrigin {
+  name?: string;
+  team?: string;
+  from?: string;
+  fromState?: unknown;
+}
+function planOrigin(state: unknown): PlanOrigin {
+  const origin: PlanOrigin = {};
+  if (!state || typeof state !== 'object') return origin;
+  // Only same-application paths are followed back; router state is not a trusted URL.
+  if ('from' in state && typeof state.from === 'string' && /^\/(?!\/)/.test(state.from)) {
+    origin.from = state.from;
+    if ('fromState' in state) origin.fromState = state.fromState;
+  }
+  if ('defaults' in state && state.defaults && typeof state.defaults === 'object') {
+    const defaults = state.defaults;
+    if ('name' in defaults && typeof defaults.name === 'string')
+      origin.name = defaults.name.slice(0, 200);
+    if ('team_id' in defaults && typeof defaults.team_id === 'string')
+      origin.team = defaults.team_id;
+  }
+  return origin;
+}
 export function PlanningDocumentPage({ kind }: { kind: 'projects' | 'cycles' }) {
   const { id } = useParams(),
+    location = useLocation(),
     { data: catalog } = useCatalog();
   const enabled = moduleEnabled(catalog, kind === 'projects' ? 'planning' : 'cycles');
   const projects = useProjects(enabled && kind === 'projects'),
@@ -78,7 +110,15 @@ export function PlanningDocumentPage({ kind }: { kind: 'projects' | 'cycles' }) 
         }
       />
     );
-  return <PlanEditor key={kind + id} kind={kind} existing={existing} />;
+  return (
+    <PlanEditor
+      // Each visit to a new draft is its own editor; its defaults select the draft slot.
+      key={kind + id + (existing ? '' : location.key)}
+      kind={kind}
+      existing={existing}
+      origin={planOrigin(location.state)}
+    />
+  );
 }
 function serverPlan(server: Plan, current: Draft): Draft {
   return {
@@ -95,15 +135,52 @@ function serverPlan(server: Plan, current: Draft): Draft {
     attempt: undefined,
   };
 }
-function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?: Plan }) {
+function PlanEditor({
+  kind,
+  existing,
+  origin,
+}: {
+  kind: 'projects' | 'cycles';
+  existing?: Plan;
+  origin: PlanOrigin;
+}) {
   const { data: catalog } = useCatalog(),
     { data: me } = useMe(),
     navigate = useNavigate(),
     client = useQueryClient();
   const noun = kind === 'projects' ? 'project' : 'cycle',
     readonly = me?.role === 'viewer';
-  const storageKey = `plan-draft:${me?.workspace_id}:${me?.id}:${kind}:${existing?.id ?? 'new'}`;
-  const initial = planDraft(existing, catalog?.teams[0]?.id ?? '');
+  const prefill = existing ? undefined : origin.name;
+  const team = catalog?.teams.some((t) => t.id === origin.team)
+    ? origin.team
+    : catalog?.teams[0]?.id;
+  // A picker's typed name gets its own draft slot, never overwriting an unrelated new draft.
+  // The slot follows the router state, not the catalog-resolved team, so it stays stable.
+  const storageKey = [
+    'plan-draft',
+    me?.workspace_id,
+    me?.id,
+    kind,
+    existing?.id ?? 'new',
+    ...(prefill === undefined
+      ? []
+      : [origin.team, prefill].map((part) => encodeURIComponent(part ?? ''))),
+  ].join(':');
+  const initial = {
+    ...planDraft(existing, team ?? ''),
+    ...(prefill === undefined ? {} : { name: prefill }),
+  };
+  const back = origin.from
+    ? {
+        to: origin.from,
+        state: origin.fromState,
+        label: origin.from.startsWith('/tasks/new')
+          ? 'new task'
+          : origin.from.startsWith('/tasks/')
+            ? 'task'
+            : 'previous page',
+      }
+    : { to: '/' + kind, state: undefined, label: kind };
   const [draft, setDraft] = useState<Draft>(() => {
     try {
       const saved = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null') as Draft | null;
@@ -255,7 +332,11 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
           );
           void client.invalidateQueries({ queryKey: [kind], refetchType: 'none' });
           if (!existing) {
-            void navigate('/' + kind + '/' + result.id, { replace: true });
+            void navigate('/' + kind + '/' + result.id, {
+              replace: true,
+              // The durable page keeps the way back to the picker that started this draft.
+              ...(origin.from ? { state: { from: origin.from, fromState: origin.fromState } } : {}),
+            });
             break;
           }
         } catch (failure) {
@@ -328,8 +409,8 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
           <Button
             variant="ghost"
             size="icon"
-            aria-label={'Back to ' + kind}
-            onClick={() => navigate('/' + kind)}
+            aria-label={'Back to ' + back.label}
+            onClick={() => navigate(back.to, { state: back.state })}
           >
             <ChevronLeft size={16} />
           </Button>
@@ -456,7 +537,7 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
           <h3>Properties</h3>
           <div className="compact-property">
             <Folder size={15} />
-            <Picker
+            <Combobox
               aria-label="Team"
               value={draft.team}
               options={catalog?.teams.map((t) => ({ value: t.id, label: t.name })) ?? []}
@@ -467,7 +548,7 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
           {kind === 'projects' && (
             <>
               <div className="compact-property">
-                <Picker
+                <Combobox
                   aria-label="Project status"
                   value={draft.status}
                   options={['planned', 'in_progress', 'paused', 'completed', 'canceled'].map(
@@ -478,7 +559,7 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
                 />
               </div>
               <div className="compact-property">
-                <Picker
+                <Combobox
                   aria-label="Project health"
                   value={draft.health}
                   options={['on_track', 'at_risk', 'off_track'].map((value) => ({
@@ -490,7 +571,13 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
                 />
               </div>
               <div className="compact-property">
-                <Picker
+                {draft.lead && (
+                  // The lead's avatar opens their card; the picker stays the value editor.
+                  <span className="property-icon">
+                    <PersonChip id={draft.lead} />
+                  </span>
+                )}
+                <Combobox
                   aria-label="Project lead"
                   value={canonicalPersonValue(catalog, draft.lead)}
                   options={[{ value: 'none', label: 'No lead' }, ...personOptions(catalog)]}

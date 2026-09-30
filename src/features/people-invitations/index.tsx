@@ -1,7 +1,7 @@
 import './style.css';
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Input, Picker, ErrorState } from '@/shared/ui';
+import { Button, Input, Combobox, ErrorState } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
 type Invitation = {
@@ -92,7 +92,7 @@ export function PeopleInvitations() {
           maxLength={254}
           required
         />
-        <Picker
+        <Combobox
           aria-label="Invite role"
           value={role}
           onChange={setRole}

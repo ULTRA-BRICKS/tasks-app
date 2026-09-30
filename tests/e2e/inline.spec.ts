@@ -243,7 +243,8 @@ test('opening extended Markdown and editing only the title never rewrites the bo
   const issue = await created.json();
   await page.goto('/issues/' + issue.id);
   const body = page.getByRole('textbox', { name: 'Description', exact: true });
-  await expect(body).toHaveValue(description);
+  await expect(body).toHaveAttribute('contenteditable', 'true');
+  await expect(body.getByText('[guide]: https://example.com', { exact: true })).toBeVisible();
   const title = page.getByRole('textbox', { name: 'Title', exact: true });
   await title.fill('Only a title change');
   const saved = page.waitForResponse(
@@ -254,6 +255,80 @@ test('opening extended Markdown and editing only the title never rewrites the bo
   await saved;
   expect((await (await page.request.get('/api/v1/issues/' + issue.id)).json()).description).toBe(
     description,
+  );
+});
+// Same Markdown syntax as the production UB-35 body that opened as source (UB-75).
+const STRUCTURED = [
+  'Source: feedback-20260925-14',
+  '',
+  '## What',
+  '',
+  'Rename user-facing wording to Task/Tasks.',
+  '',
+  '## Acceptance criteria',
+  '',
+  '- [ ] Visible headings use Task/Tasks.',
+  '- [ ] Legacy search words remain aliases where useful.',
+  '',
+  '## Evidence and scope',
+  '',
+  'Related example: [https://tasks.example.test/issues/a76c](<https://tasks.example.test/issues/a76c>) .',
+].join('\n');
+async function openStructured(page: Page, title: string) {
+  await login(page);
+  const catalog = await (await page.request.get('/api/v1/catalog')).json();
+  const created = await page.request.post('/api/v1/issues', {
+    headers: { 'x-tickets-csrf': '1' },
+    data: { title, description: STRUCTURED, team_id: catalog.teams[0].id },
+  });
+  expect(created.status()).toBe(201);
+  const issue = await created.json();
+  await page.goto('/issues/' + issue.id);
+  const body = page.getByRole('textbox', { name: 'Description', exact: true });
+  await expect(body).toHaveAttribute('contenteditable', 'true');
+  return { id: issue.id as string, body };
+}
+test('structured descriptions open in the rich editor and a checkbox toggle persists', async ({
+  page,
+}) => {
+  const { id, body } = await openStructured(page, 'Structured description');
+  await expect(
+    body.getByRole('heading', { name: 'Acceptance criteria', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('textarea[aria-label="Description"]')).toHaveCount(0);
+  await expect(page.getByText('This description contains extended Markdown')).toHaveCount(0);
+  const name = 'Legacy search words remain aliases where useful.';
+  await expect(body.getByRole('checkbox', { name, exact: true })).not.toBeChecked();
+  const saved = page.waitForResponse(
+    (r) => r.request().method() === 'PATCH' && r.url().includes('/api/v1/issues/' + id) && r.ok(),
+  );
+  await body.getByRole('checkbox', { name, exact: true }).click();
+  await saved;
+  expect((await (await page.request.get('/api/v1/issues/' + id)).json()).description).toBe(
+    STRUCTURED.replace('- [ ] Legacy', '- [x] Legacy'),
+  );
+  await page.reload();
+  await expect(
+    page
+      .getByRole('textbox', { name: 'Description', exact: true })
+      .getByRole('checkbox', { name, exact: true }),
+  ).toBeChecked();
+});
+test('editing a heading in a structured description saves only that heading', async ({ page }) => {
+  const { id, body } = await openStructured(page, 'Structured heading edit');
+  const heading = body.getByRole('heading', { name: 'What', exact: true });
+  const box = await heading.boundingBox();
+  if (!box) throw new Error('heading is not rendered');
+  // Clicking the empty end of the heading line places the caret after its text in both engines.
+  await heading.click({ position: { x: box.width - 4, y: box.height / 2 } });
+  await page.keyboard.type(' changed');
+  const saved = page.waitForResponse(
+    (r) => r.request().method() === 'PATCH' && r.url().includes('/api/v1/issues/' + id) && r.ok(),
+  );
+  await page.getByRole('textbox', { name: 'Title', exact: true }).click();
+  await saved;
+  expect((await (await page.request.get('/api/v1/issues/' + id)).json()).description).toBe(
+    STRUCTURED.replace('## What\n', '## What changed\n'),
   );
 });
 test('planning conflict can be resolved explicitly without trapping a persisted draft', async ({
@@ -317,10 +392,14 @@ test('Escape restores extended Markdown without committing the canceled source',
   const issue = await created.json();
   await page.goto('/issues/' + issue.id);
   const body = page.getByRole('textbox', { name: 'Description', exact: true });
-  await expect(body).toHaveValue(description);
-  await body.fill(description + '\n\nCanceled edit');
+  const definition = body.getByText('[guide]: https://example.com', { exact: true });
+  await expect(definition).toBeVisible();
+  await body.fill('Canceled edit');
+  await expect(definition).toHaveCount(0);
   await body.press('Escape');
-  await expect(body).toHaveValue(description);
+  await expect(definition).toBeVisible();
+  await expect(body.getByText('After', { exact: true })).toBeVisible();
+  await expect(body).not.toContainText('Canceled edit');
   await page.getByRole('textbox', { name: 'Title', exact: true }).click();
   expect((await (await page.request.get('/api/v1/issues/' + issue.id)).json()).description).toBe(
     description,
@@ -427,7 +506,7 @@ test('issue text conflict can be resolved explicitly without endless stale retri
     'Local draft retained',
   );
 });
-test('extended Markdown Escape cancels and command menu works from the source editor', async ({
+test('extended Markdown Escape cancels and command menu works from the rich editor', async ({
   page,
 }) => {
   await login(page);
@@ -441,10 +520,12 @@ test('extended Markdown Escape cancels and command menu works from the source ed
   const issue = await created.json();
   await page.goto('/issues/' + issue.id);
   const editor = page.getByRole('textbox', { name: 'Description', exact: true });
-  await expect(editor).toHaveValue(description);
-  await editor.fill(description + ' Unsaved text');
+  const definition = editor.getByText('[reference]: https://example.org/', { exact: true });
+  await expect(definition).toBeVisible();
+  await editor.fill('Unsaved text');
   await editor.press('Escape');
-  await expect(editor).toHaveValue(description);
+  await expect(definition).toBeVisible();
+  await expect(editor).not.toContainText('Unsaved text');
   await editor.focus();
   await editor.press('Control+k');
   await expect(
@@ -452,7 +533,8 @@ test('extended Markdown Escape cancels and command menu works from the source ed
   ).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(editor).toHaveValue(description);
+  await expect(definition).toBeVisible();
+  await expect(editor).not.toContainText('Unsaved text');
   expect((await (await page.request.get('/api/v1/issues/' + issue.id)).json()).description).toBe(
     description,
   );

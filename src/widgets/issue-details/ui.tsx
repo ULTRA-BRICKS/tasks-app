@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import type { IssueDetail, IssuePatch, Issue } from '@tickets/contracts';
 import { useIssue, StatusIcon } from '@/entities/issue';
-import { useCatalog, useMe, moduleEnabled } from '@/entities/workspace';
+import { useCatalog, useMe, moduleEnabled, PersonChip } from '@/entities/workspace';
 import { useIssueUpdate, useIssueWriteBusy, useInlineDocument } from '@/features/issue-edit';
 import { CreateIssue } from '@/features/issue-create';
 import { useVisibleError } from '@/features/saved-copy';
@@ -33,7 +33,6 @@ import {
   Picker,
   Markdown,
   DocumentText,
-  Avatar,
   ErrorState,
   Loading,
   Modal,
@@ -455,8 +454,11 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             {issue.comments.map((c) => (
               <article className="comment" key={c.id}>
                 <header>
-                  <Avatar name={c.author_name} />
-                  <strong>{c.author_name}</strong>
+                  <PersonChip
+                    id={c.author_source_id ?? c.author_id}
+                    name={c.author_name}
+                    display="name"
+                  />
                   <time dateTime={c.created_at}>{formatDate(c.created_at)}</time>
                 </header>
                 <Markdown>{c.body}</Markdown>
