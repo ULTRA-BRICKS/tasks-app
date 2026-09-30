@@ -85,6 +85,15 @@ function Example() {
     </div>
   );
 }
+/**
+ * The preview is still open. A closing preview is aria-hidden, so the dialog query no longer
+ * finds it; checked once, not retried, because retrying could wait out a close. Visibility is
+ * awaited because the 160 ms enter fade may not have painted a frame yet.
+ */
+async function expectOpen(preview: HTMLElement) {
+  await expect(within(preview.ownerDocument.body).getAllByRole('dialog')).toContain(preview);
+  await waitFor(() => expect(preview).toBeVisible());
+}
 export const Toolbar: Story = {
   render: () => <Example />,
   play: async ({ canvasElement }) => {
@@ -139,7 +148,7 @@ export const MoreMatchesContextMenu: Story = {
     // Escape closes the menu first, then the preview.
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('menu')).not.toBeInTheDocument());
-    await expect(preview).toBeVisible();
+    await expectOpen(preview);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('dialog')).not.toBeInTheDocument());
   },
@@ -200,11 +209,11 @@ export const NestedLayer: Story = {
     const card = await page.findByRole('dialog', { name: 'Person card' });
     // A press inside the nested card is not an outside press for the preview.
     await userEvent.click(within(card).getByText('Ada Lovelace'));
-    await expect(preview).toBeVisible();
+    await expectOpen(preview);
     // Escape closes the topmost layer first.
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('dialog', { name: 'Person card' })).toBeNull());
-    await expect(preview).toBeVisible();
+    await expectOpen(preview);
     // Navigating from inside the preview leaves the page it previews.
     await userEvent.click(within(preview).getByRole('button', { name: 'Person' }));
     try {
@@ -250,5 +259,7 @@ export const ContextRowKeyboard: Story = {
     await fireEvent.contextMenu(row, { clientX: 30, clientY: 20 });
     await userEvent.click(await page.findByRole('menuitem', { name: 'Open team tasks' }));
     await waitFor(() => expect(canvas.getByRole('status')).toHaveTextContent('Opened team'));
+    // Finish the close transition: axe then checks the page without the menu's focus guards.
+    await waitFor(() => expect(page.queryByRole('menu')).not.toBeInTheDocument());
   },
 };
