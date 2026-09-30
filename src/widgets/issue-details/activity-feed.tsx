@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { PersonChip } from '@/entities/workspace';
 import type { Activity, ActivityChange } from '@tickets/contracts';
 import { formatDate } from '@/shared/lib/date';
 import { diffText } from '@/shared/lib/text-diff';
@@ -94,12 +95,22 @@ export function ActivityFeed({ activity }: { activity: Activity[] }) {
   return groupActivity(activity).map((entry) => {
     const changes = entry.events.flatMap((event) => event.changes ?? []);
     const details = entry.events.flatMap((event) => event.details ?? []);
+    // Imported history names the source person (none for Linear automation); native events name
+    // the member, as the server resolves names. The group key (actor_id, actor_source_id,
+    // actor_name) never mixes the two, since the server names automation 'Linear automation',
+    // so the first event decides for the whole entry.
+    const [first] = entry.events;
+    const person =
+      first.action === 'linear_imported_change' ? first.actor_source_id : first.actor_id;
     return (
       <div className="activity-event" key={entry.id} data-testid="activity-entry">
         <span className="activity-dot" />
         <div className="activity-message">
           <div>
-            <strong>{entry.actor_name}</strong> {entry.summary}
+            <strong>
+              <PersonChip id={person} name={entry.actor_name} display="text" />
+            </strong>{' '}
+            {entry.summary}
           </div>
           {changes.length > 0 && (
             <dl className="activity-changes">

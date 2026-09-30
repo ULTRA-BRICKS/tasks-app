@@ -9,6 +9,7 @@ export {
 } from './combobox';
 export { Modal } from './dialog';
 export { Avatar } from './avatar';
+export { PersonCard, PersonPopover } from './person-popover';
 export { Markdown } from './markdown';
 export { EmptyState, ErrorState, Loading, SkeletonRows } from './feedback';
 
