@@ -243,7 +243,8 @@ test.describe('desktop', () => {
 
   test('reduced motion opens and closes without transforms or an exit delay', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await firstTrigger(page).click();
+    const trigger = firstTrigger(page);
+    await trigger.click();
     const surface = page.locator('.peek-surface');
     await expect(surface).toHaveAttribute('data-state', 'open');
     const animated = await surface.evaluate((el) =>
@@ -252,15 +253,13 @@ test.describe('desktop', () => {
     expect(animated).not.toContain('transform');
     await page.keyboard.press('Escape');
     await expect(surface).toHaveCount(0);
-    const title = page.getByTestId('issue-row').first().locator('.issue-open');
-    await press(page, title, 24);
-    await expect(page.locator('.peek-anchor').first()).toHaveAttribute('data-pressing', 'true');
-    expect(
-      await page
-        .getByTestId('issue-row')
-        .first()
-        .evaluate((el) => getComputedStyle(el).transform),
-    ).toBe('none');
+    // Specs sharing the server add other teams' rows above the seed, and the trigger click may
+    // have scrolled those under the sticky header: hold the row of the task just previewed.
+    const anchor = trigger.locator('..');
+    const row = anchor.getByTestId('issue-row');
+    await press(page, row.locator('.issue-open'), 24);
+    await expect(anchor).toHaveAttribute('data-pressing', 'true');
+    expect(await row.evaluate((el) => getComputedStyle(el).transform)).toBe('none');
     await page.mouse.up();
   });
 
@@ -361,7 +360,11 @@ test.describe('desktop', () => {
 
   test('a board card holds its open button and assignee control side by side', async ({ page }) => {
     await page.getByRole('button', { name: 'Board view', exact: true }).click();
-    const card = page.locator('.issue-card').first();
+    // Specs sharing the server add other teams' cards before the seeded ones.
+    const card = page
+      .locator('.issue-card')
+      .filter({ has: page.getByRole('button', { name: /^TKT-\d+ / }) })
+      .first();
     const open = card.getByRole('button', { name: /^TKT-\d+ / });
     const assignee = card.getByRole('combobox', { name: /^Assignee for TKT-\d+: / });
     await expect(assignee).toBeVisible();
