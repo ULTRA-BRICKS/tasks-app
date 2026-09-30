@@ -148,7 +148,16 @@ export function IssueRow({
     </PressPreview>
   );
 }
-export function IssueCard({ issue, onOpen }: { issue: Issue; onOpen: () => void }) {
+export function IssueCard({
+  issue,
+  onOpen,
+  assigneeAvatarUrl,
+}: {
+  issue: Issue;
+  onOpen: () => void;
+  /** Photo of the assignee's canonical person (docs/SLACK-PROFILES.md); initials without it. */
+  assigneeAvatarUrl?: string | null;
+}) {
   return (
     <PressPreview
       label={`Preview ${issue.key}`}
@@ -181,7 +190,7 @@ export function IssueCard({ issue, onOpen }: { issue: Issue; onOpen: () => void 
         </span>
         <span className="card-footer">
           <span>{issue.labels[0]?.name ?? (issue.kind === 'epic' ? 'Epic' : 'Task')}</span>
-          <Avatar name={issue.assignee_name} />
+          <Avatar name={issue.assignee_name} src={assigneeAvatarUrl} />
         </span>
       </button>
     </PressPreview>

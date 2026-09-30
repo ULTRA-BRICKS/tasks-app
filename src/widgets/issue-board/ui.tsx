@@ -15,9 +15,22 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Plus } from 'lucide-react';
 import type { Issue, Status } from '@tickets/contracts';
 import { IssueCard, StatusIcon } from '@/entities/issue';
+import { useCatalog } from '@/entities/workspace';
 import { useIssueUpdate, useIssueWriteBusy } from '@/features/issue-edit';
+import { selectedPerson } from '@/shared/lib/people';
 import { ErrorState, Button } from '@/shared/ui';
 import { errorMessage } from '@/shared/api/client';
+/** A board card whose assignee photo comes from the shared person projection. */
+function BoardCard({ issue, onOpen }: { issue: Issue; onOpen: () => void }) {
+  const { data: catalog } = useCatalog();
+  return (
+    <IssueCard
+      issue={issue}
+      onOpen={onOpen}
+      assigneeAvatarUrl={selectedPerson(catalog, issue.assignee_id)?.avatar_url}
+    />
+  );
+}
 function Draggable({
   issue,
   onOpen,
@@ -46,7 +59,7 @@ function Draggable({
       >
         <GripVertical size={13} />
       </button>
-      <IssueCard issue={issue} onOpen={onOpen} />
+      <BoardCard issue={issue} onOpen={onOpen} />
     </div>
   );
 }
@@ -152,7 +165,7 @@ export function IssueBoard({
         <DragOverlay>
           {active && (
             <div className="drag-preview">
-              <IssueCard issue={active} onOpen={() => {}} />
+              <BoardCard issue={active} onOpen={() => {}} />
             </div>
           )}
         </DragOverlay>

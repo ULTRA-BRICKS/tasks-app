@@ -82,3 +82,35 @@ test('every legacy ID resolves to one picker entry while review conflicts and bo
   ]);
   expect(identityConflicts(c)).toBe(identityConflicts(c));
 });
+test('picker search matches every alias name and email of a person, not only the shown name', () => {
+  const c = {
+    people: [{ id: 'ultra', name: 'Ultra', email: 'ultra@example.test', role: 'owner' }],
+    source_people: [
+      {
+        id: 'ultra-linear',
+        name: 'Ultra L',
+        email: 'ULTRA@example.test',
+        provider: 'linear',
+        source_id: 'l',
+      },
+      {
+        id: 'ultra-slack',
+        name: 'Ultra S',
+        email: null,
+        provider: 'slack',
+        source_id: 'T1:U1',
+        avatar_url: null,
+      },
+      { id: 'lin', name: 'Lin', email: 'lin@example.test', provider: 'linear', source_id: 'm' },
+    ],
+    identity_bindings: [
+      { member_id: 'ultra', source_person_id: 'ultra-slack', via: 'slack_user_map' },
+    ],
+  } as Catalog;
+  const option = (value: string) => personOptions(c).find((o) => o.value === value);
+  expect(option('ultra')?.label).toBe('Ultra S');
+  expect(new Set(option('ultra')?.keywords)).toEqual(
+    new Set(['Ultra', 'Ultra L', 'ultra@example.test']),
+  );
+  expect(option('lin')?.keywords).toEqual(['lin@example.test']);
+});

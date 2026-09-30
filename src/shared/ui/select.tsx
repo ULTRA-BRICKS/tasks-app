@@ -12,6 +12,8 @@ export interface Option {
   color?: string;
   /** Secondary text that tells otherwise identical labels apart. */
   description?: string;
+  /** Other text a search also matches but the option never shows, e.g. a person's earlier names. */
+  keywords?: string[];
 }
 export function Picker({
   value,

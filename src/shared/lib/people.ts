@@ -11,6 +11,7 @@ type PersonOption = {
   label: string;
   avatar_url?: string | null;
   description?: string;
+  keywords?: string[];
   disabled?: boolean;
 };
 type DirectoryIndex = {
@@ -43,11 +44,14 @@ function index(directory: PersonDirectory): DirectoryIndex {
   for (const person of directory) for (const alias of person.aliases) aliases.set(alias, person);
   const options = directory.map((person): PersonOption => {
     const description = optionDescription(person);
+    // Earlier names and every alias email stay searchable after a Slack name takes over (UB-34).
+    const keywords = [...person.names.filter((name) => name !== person.name), ...person.emails];
     return {
       value: person.id,
       label: person.name,
       avatar_url: person.avatar_url,
       ...(description ? { description } : {}),
+      ...(keywords.length ? { keywords } : {}),
     };
   });
   const editable = [{ value: 'none', label: 'Unassigned' }, ...options];

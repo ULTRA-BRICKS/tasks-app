@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router-dom';
 import { PeopleInvitations } from '@/features/people-invitations';
 import { selectedPerson } from '@/shared/lib/people';
 import { IdentityReview } from './identity-review';
+import { SlackProfileSync, type SlackProfileSyncRun } from './slack-profile-sync';
 import { WorkspacePolicySettings } from '@/features/workspace-policy';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -41,6 +42,8 @@ type IntegrationState = {
   slack: {
     configured: boolean;
     outbound_configured: boolean;
+    profiles_configured: boolean;
+    profile_sync: SlackProfileSyncRun | null;
     config: Record<string, unknown>;
   };
   jobs: {
@@ -213,7 +216,11 @@ export function SettingsPage() {
               <div className="member-list">
                 {catalog?.people.map((p) => (
                   <div className="member-row" key={p.id}>
-                    <Avatar name={p.name} size="md" />
+                    <Avatar
+                      name={p.name}
+                      src={selectedPerson(catalog, p.id)?.avatar_url}
+                      size="md"
+                    />
                     <div>
                       <strong>
                         <PersonChip id={p.id} label={p.name} display="text" />
@@ -470,6 +477,8 @@ function IntegrationCard({
   state: {
     configured: boolean;
     outbound_configured: boolean;
+    profiles_configured?: boolean;
+    profile_sync?: SlackProfileSyncRun | null;
     config: Record<string, unknown>;
   };
 }) {
@@ -481,7 +490,12 @@ function IntegrationCard({
         ? state.config
         : provider === 'github'
           ? { review_status_id: null, done_status_id: null }
-          : { team_id: catalog?.teams[0]?.id, notify: false, user_map: {} },
+          : {
+              team_id: catalog?.teams[0]?.id,
+              notify: false,
+              user_map: {},
+              source_person_map: {},
+            },
       null,
       2,
     ),
@@ -505,7 +519,7 @@ function IntegrationCard({
       <p>
         {provider === 'github'
           ? 'Import tasks, export explicitly, and link pull requests. A closed unmerged pull request never marks work done.'
-          : 'Create tasks with /tickets or a message shortcut. Map Slack user IDs to workspace member IDs before enabling writes.'}
+          : 'Create tasks with /tickets or a message shortcut. Map Slack user IDs to workspace member IDs (user_map) before enabling writes, or to imported people without an account (source_person_map) for their Slack name and photo.'}
       </p>
       <div className="integration-endpoint">
         <code>/api/webhooks/{provider}</code>
@@ -532,6 +546,12 @@ function IntegrationCard({
           {mutation.error && <ErrorState message={errorMessage(mutation.error)} />}
         </form>
       </details>
+      {provider === 'slack' && (
+        <SlackProfileSync
+          configured={Boolean(state.profiles_configured)}
+          last={state.profile_sync ?? null}
+        />
+      )}
     </section>
   );
 }

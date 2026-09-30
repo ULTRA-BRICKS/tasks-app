@@ -8,7 +8,7 @@
  * @typedef {'same_provider_email'|'ambiguous_email'|'conflicting_binding'|'bot_binding'|'unresolved_binding'} ConflictKind
  * @typedef {{id:string,name:string,provider:string,email:string|null,avatar_url:string|null}} ConflictProfile
  * @typedef {{kind:ConflictKind,email:string|null,providers:string[],profiles:ConflictProfile[]}} IdentityConflict
- * @typedef {{id:string,name:string,email:string|null,avatar_url:string|null,aliases:string[],names:string[],providers:string[],bot:boolean,needs_review:boolean}} CanonicalPerson
+ * @typedef {{id:string,name:string,email:string|null,avatar_url:string|null,aliases:string[],names:string[],emails:string[],providers:string[],bot:boolean,needs_review:boolean}} CanonicalPerson
  * @typedef {{people:CanonicalPerson[],conflicts:IdentityConflict[]}} IdentityResolution
  */
 /** Trim and lower-case only: dots and `+tags` can be different mailboxes.
@@ -230,6 +230,7 @@ export function resolveIdentities(members = [], sources = [], bindings = []) {
           null,
         aliases: group.map((person) => person.id),
         names: [...new Set(group.map((person) => person.name))],
+        emails: [...new Set(group.flatMap((person) => normalizeEmail(person.email) ?? []))],
         providers: [...new Set(group.map((person) => person.provider))],
         bot: identity.bot,
         needs_review: review.get(root) ?? false,
