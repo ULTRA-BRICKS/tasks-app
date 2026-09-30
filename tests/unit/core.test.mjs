@@ -61,6 +61,33 @@ t('anonymous API requests are denied', async (f) =>
     401,
   ),
 );
+// The browser deletes its saved workspace copy on any 401 (docs/PERSISTENT-READ-CACHE.md), so a
+// signed-in member without a permission must get 403 and only a missing or ended session 401.
+t('401 means no valid session; a signed-in member without a permission gets 403', async (f) => {
+  const label = { name: 'x', color: '#ffffff' };
+  await f.db.transaction((tx) =>
+    tx.exec("UPDATE memberships SET role='viewer' WHERE workspace_id=? AND user_id=?", [
+      f.init.workspace_id,
+      f.init.user_id,
+    ]),
+  );
+  assert.equal((await f.request('GET', '/api/v1/me')).status, 200);
+  assert.equal((await f.request('POST', '/api/v1/labels', label)).status, 403);
+  await f.db.transaction((tx) =>
+    tx.exec('UPDATE sessions SET expires_at=? WHERE hash=?', [
+      new Date(Date.now() - 1000).toISOString(),
+      sha256(f.session.split('=').slice(1).join('=')),
+    ]),
+  );
+  for (const [method, path] of [
+    ['GET', '/api/v1/me'],
+    ['GET', '/api/v1/issues'],
+    ['POST', '/api/v1/labels'],
+  ]) {
+    const expired = await f.request(method, path, method === 'POST' ? label : undefined);
+    assert.deepEqual([expired.status, expired.data.error.code], [401, 'UNAUTHENTICATED'], path);
+  }
+});
 t('CSRF header and origin protect cookie writes', async (f) => {
   assert.equal(
     (await f.request('POST', '/api/v1/labels', { name: 'x', color: '#ffffff' }, { noCsrf: true }))

@@ -4,7 +4,12 @@
  * confirms the session. Sign-out, a revoked session or an account switch deletes the private copy
  * in every tab. Contract: docs/PERSISTENT-READ-CACHE.md.
  */
-import type { Query, QueryCacheNotifyEvent, QueryClient } from '@tanstack/react-query';
+import {
+  hashKey,
+  type Query,
+  type QueryCacheNotifyEvent,
+  type QueryClient,
+} from '@tanstack/react-query';
 import { ApiError } from '@/shared/api/client';
 import {
   READ_CACHE_LIMITS,
@@ -89,7 +94,7 @@ const META = 'meta';
 const POINTER = 'pointer';
 const SIGNAL_KEY = 'tasks-read-cache-signal';
 const SEPARATOR = '\u0001';
-const ACCOUNT_HASH = '["me"]';
+const ACCOUNT_HASH = hashKey(['me']);
 const BACKOFF_MS = [15_000, 30_000, 60_000, 120_000];
 
 function settle<T>(request: IDBRequest<T>) {
@@ -150,6 +155,11 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
   const listeners = new Set<() => void>();
   const pending = new Map<string, Entry>();
   const fetchEpochs = new WeakMap<Query, number>();
+  /**
+   * Replies of this epoch that arrived before /me confirmed the session. They are written once /me
+   * confirms the same account; a sign-out, 401 or account switch (a new epoch) drops them.
+   */
+  const held = new Set<Query>();
   const seen: string[] = [];
   const settling = new Set<Promise<unknown>>();
   let state: ReadCacheState = {
@@ -274,14 +284,49 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
     await committed(tx);
     if (epoch === expected && partition === owner) known = await readIndex(db, owner);
   }
+  /**
+   * Applies `change` to the account's stored eviction index inside `tx`. Tabs of one account share
+   * that index, so no tab drops entries another tab saved (those would never be evicted).
+   * Resolves with the committed index; rejects with the real cause (e.g. QuotaExceededError).
+   */
+  async function changeIndex(
+    tx: IDBTransaction,
+    owner: string,
+    change: (order: Map<string, number>) => void,
+  ) {
+    const meta = tx.objectStore(META);
+    const read = meta.get('index:' + owner);
+    const written = Promise.withResolvers<Map<string, number>>();
+    read.onsuccess = () => {
+      try {
+        const order = new Map((read.result as EntryIndex | undefined)?.order ?? []);
+        change(order);
+        meta.put({ id: 'index:' + owner, order: [...order] } satisfies EntryIndex);
+        written.resolve(order);
+      } catch (error) {
+        written.reject(error);
+        tx.abort();
+      }
+    };
+    const [, order] = await Promise.all([committed(tx), written.promise]);
+    return order;
+  }
   async function writeBatch(db: IDBDatabase, owner: string, batch: Entry[]) {
-    const order = new Map(known);
     const tx = db.transaction([ENTRIES, META], 'readwrite');
     const entries = tx.objectStore(ENTRIES);
-    const done = committed(tx);
     try {
+      for (const entry of batch) entries.put(entry);
+      tx.objectStore(META).put({
+        id: POINTER,
+        partition: owner,
+        schema: options.schema,
+      } satisfies Pointer);
+    } catch (error) {
+      tx.abort();
+      throw error;
+    }
+    known = await changeIndex(tx, owner, (order) => {
       for (const entry of batch) {
-        entries.put(entry);
         order.delete(entry.hash);
         order.set(entry.hash, entry.savedAt);
       }
@@ -291,37 +336,21 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
         order.delete(hash);
         entries.delete(owner + SEPARATOR + hash);
       }
-      const meta = tx.objectStore(META);
-      meta.put({ id: POINTER, partition: owner, schema: options.schema } satisfies Pointer);
-      meta.put({ id: 'index:' + owner, order: [...order] } satisfies EntryIndex);
-    } catch (error) {
-      tx.abort();
-      await done.catch(() => undefined);
-      throw error;
-    }
-    await done;
-    known = order;
+    });
   }
   /** Frees the oldest half of this account's entries (never the account itself). */
   async function evict(db: IDBDatabase, owner: string, keep: Set<string>) {
-    const candidates = [...known.keys()].filter((hash) => hash !== ACCOUNT_HASH && !keep.has(hash));
-    const victims = candidates.slice(0, Math.ceil(candidates.length / 2));
-    const order = new Map(known);
     const tx = db.transaction([ENTRIES, META], 'readwrite');
-    const done = committed(tx);
-    try {
-      for (const hash of victims) {
+    const entries = tx.objectStore(ENTRIES);
+    known = await changeIndex(tx, owner, (order) => {
+      const candidates = [...order.keys()].filter(
+        (hash) => hash !== ACCOUNT_HASH && !keep.has(hash),
+      );
+      for (const hash of candidates.slice(0, Math.ceil(candidates.length / 2))) {
         order.delete(hash);
-        tx.objectStore(ENTRIES).delete(owner + SEPARATOR + hash);
+        entries.delete(owner + SEPARATOR + hash);
       }
-      tx.objectStore(META).put({ id: 'index:' + owner, order: [...order] } satisfies EntryIndex);
-    } catch (error) {
-      tx.abort();
-      await done.catch(() => undefined);
-      throw error;
-    }
-    await done;
-    known = order;
+    });
   }
   function flushNow() {
     clearTimeout(flushTimer);
@@ -411,6 +440,7 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
     clearTimeout(flushTimer);
     clearTimeout(retryTimer);
     flushTimer = retryTimer = undefined;
+    held.clear();
     partition = null;
     known = new Map();
     failures = 0;
@@ -436,11 +466,11 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
     if (message.type === 'cleared') {
       forget('signed-out');
       // Wiping here too removes any write this tab committed before the message arrived.
-      track(enqueue(wipe));
-      track(resetClient());
+      void track(enqueue(wipe));
+      void track(resetClient());
     } else if (partition !== null && message.partition !== partition) {
       forget('cold');
-      track(resetClient());
+      void track(resetClient());
     }
   }
   function problemFrom(error: unknown) {
@@ -469,7 +499,7 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
       if (switched) {
         post({ type: 'account', partition: owner });
         // Keep the confirming account reply; everything else belonged to the other account.
-        track(
+        void track(
           (async () => {
             const target = client;
             if (!target) return;
@@ -488,10 +518,17 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
     failures = 0;
     update({ phase: 'live', problem: null, retryAt: null, syncedAt: null });
     const expected = epoch;
-    track(enqueue(() => adopt(owner, expected)));
+    void track(enqueue(() => adopt(owner, expected)));
+    // A sign-in or account switch above started a new epoch and emptied `held`; otherwise the held
+    // replies came from the session /me just confirmed.
+    for (const reply of held)
+      if (client?.getQueryCache().get(reply.queryHash) === reply) queue(reply);
+    held.clear();
     queue(query);
   }
   function observe(event: QueryCacheNotifyEvent) {
+    // A removed query can never be replayed (confirm checks identity), so stop holding it.
+    if (event.type === 'removed') held.delete(event.query);
     if (event.type !== 'updated') return;
     const { query, action } = event;
     if (action.type === 'fetch') {
@@ -503,14 +540,23 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
     if (action.type === 'error') {
       if (!confirmed) return;
       // Any 401 means the session is gone; only /me failures describe revalidation problems.
-      if (action.error instanceof ApiError && action.error.status === 401) track(clearEverywhere());
+      if (action.error instanceof ApiError && action.error.status === 401)
+        void track(clearEverywhere());
       else if (query.queryKey[0] === 'me') problemFrom(action.error);
       return;
     }
+    if (action.type !== 'success') return;
     // Manual setQueryData (optimistic edits, rollbacks, restores) is never a confirmed reply.
-    if (action.type !== 'success' || action.manual || !current || !confirmed) return;
+    if (action.manual) {
+      held.delete(query);
+      return;
+    }
+    if (!current || !confirmed) return;
     if (query.queryKey[0] === 'me' && query.queryKey.length === 1) confirm(query);
-    else if (isPersistedQueryKey(query.queryKey)) queue(query);
+    else if (isPersistedQueryKey(query.queryKey)) {
+      if (state.phase === 'live') queue(query);
+      else held.add(query);
+    }
   }
   function retry() {
     clearTimeout(retryTimer);

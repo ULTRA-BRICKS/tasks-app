@@ -275,7 +275,62 @@ test('optimistic edits and their rollback are never persisted; only server-confi
   next.detach();
 });
 
-test('nothing is written before confirmation, after sign-out, or from a late reply of an older session', async () => {
+test('a reply that lands before /me confirms is saved only once /me confirms the same account', async () => {
+  const w = world();
+  const t = w.open();
+  await signIn(t);
+  await load(t, ['issues', {}], { pages: [page(['t1'])], pageParams: [undefined] });
+  t.detach();
+  const saved = async () => JSON.stringify(await rawRecords(w.idb));
+
+  // A warm start revalidates the first screen while /me is still pending.
+  const same = w.open();
+  await same.cache.restore(same.client);
+  await load(same, ['issues', {}], {
+    pages: [page(['t1', 'early-list'])],
+    pageParams: [undefined],
+  });
+  await load(same, ['issue', 'early'], { id: 'early', title: 'Early reply' });
+  // An optimistic change replaces a held reply, so neither is saved.
+  await load(same, ['issue', 'edited'], { id: 'edited', title: 'Held reply' });
+  same.client.setQueryData(['issue', 'edited'], { id: 'edited', title: 'Local change' });
+  await same.cache.flush();
+  expect(await saved()).not.toContain('early');
+  await signIn(same);
+  expect(await saved()).toContain('early-list');
+  expect(await saved()).toContain('Early reply');
+  expect(await saved()).not.toContain('Held reply');
+  expect(await saved()).not.toContain('Local change');
+  same.detach();
+
+  // /me now names another account: the held reply may belong to either, so it is dropped.
+  const other = w.open();
+  await other.cache.restore(other.client);
+  await load(other, ['issue', 'switch'], { id: 'switch', title: 'Reply before the switch' });
+  await signIn(other, bob);
+  expect(await saved()).not.toContain('Reply before the switch');
+  other.detach();
+
+  // A 401 while the reply is held deletes the copy, and a later sign-in never writes the reply.
+  const revoked = w.open();
+  expect(await revoked.cache.restore(revoked.client)).toBeGreaterThan(0);
+  await load(revoked, ['issue', 'revoked'], { id: 'revoked', title: 'Reply before the 401' });
+  await revoked.client
+    .fetchQuery({
+      queryKey: ['me'],
+      queryFn: async () => {
+        throw new ApiError(401, 'UNAUTHENTICATED', 'Sign in');
+      },
+    })
+    .catch(() => undefined);
+  await revoked.cache.flush();
+  expect(await rawRecords(w.idb)).toHaveLength(0);
+  await signIn(revoked, bob);
+  expect(await saved()).not.toContain('Reply before the 401');
+  revoked.detach();
+});
+
+test('nothing is written after sign-out or from a late reply of an older session', async () => {
   const w = world();
   const t = w.open();
   await signIn(t);
@@ -284,8 +339,6 @@ test('nothing is written before confirmation, after sign-out, or from a late rep
 
   const restored = w.open();
   await restored.cache.restore(restored.client);
-  // A list reply that lands before /me confirms the session stays in memory only.
-  await load(restored, ['issue', 'unconfirmed'], { id: 'unconfirmed' });
   let resolveLate!: (value: unknown) => void;
   const late = restored.client.fetchQuery({
     queryKey: ['issue', 'late'],
@@ -310,7 +363,6 @@ test('nothing is written before confirmation, after sign-out, or from a late rep
   restored.detach();
 
   const text = JSON.stringify(await rawRecords(w.idb));
-  expect(text).not.toContain('unconfirmed');
   expect(text).not.toContain('Arrived after sign-out');
   expect(text).not.toContain('Alice reply after Bob signed in');
   expect(text).not.toContain('user-a');
@@ -473,6 +525,23 @@ test('work stays bounded: long lists keep the first pages and old entries are ev
   next.detach();
 });
 
+test('open tabs of one account share the eviction index, so the entry limit holds across tabs', async () => {
+  const w = world({ limits: { entries: 3, pages: 5, entryChars: 1_000_000 } });
+  const a = w.open(),
+    b = w.open();
+  await signIn(a);
+  await signIn(b);
+  // Interleaved saves: each tab must see the other's entries when it evicts.
+  await load(a, ['issue', 'a1'], { id: 'a1' });
+  await load(b, ['issue', 'b1'], { id: 'b1' });
+  await load(a, ['issue', 'a2'], { id: 'a2' });
+  await load(b, ['issue', 'b2'], { id: 'b2' });
+  a.detach();
+  b.detach();
+  const hashes = (await rawRecords(w.idb)).map((row) => (row as { hash: string }).hash).sort();
+  expect(hashes).toEqual(['["issue","a2"]', '["issue","b2"]', '["me"]']);
+});
+
 test('an oversize entry is skipped instead of filling storage', async () => {
   const w = world({ limits: { entries: 10, pages: 5, entryChars: 200 } });
   const t = w.open();
@@ -487,6 +556,7 @@ test('quota exhaustion evicts older entries once, then turns persistence off exp
   const t = w.open();
   await signIn(t);
   for (const id of ['a', 'b', 'c']) await load(t, ['issue', id], { id });
+  // oxlint-disable-next-line typescript/unbound-method -- called below with the store as `this`.
   const put = IDBObjectStore.prototype.put;
   let failures = 1;
   IDBObjectStore.prototype.put = function (...args: Parameters<typeof put>) {
@@ -574,4 +644,36 @@ test('offline, rate limiting and server errors keep the saved copy read-only wit
   await signIn(next);
   expect(next.cache.getState()).toMatchObject({ phase: 'live', problem: null, retryAt: null });
   next.detach();
+});
+
+test('the browser going offline is shown at once, and coming back online revalidates immediately', async () => {
+  const w = world();
+  const t = w.open();
+  await signIn(t);
+  await load(t, ['issue', 't1'], { id: 't1' });
+  t.detach();
+  const events = new EventTarget();
+  let online = false,
+    revalidations = 0;
+  const next = w.open({ onlineEvents: events, online: () => online });
+  next.client.setQueryDefaults(['me'], {
+    queryFn: async () => {
+      revalidations++;
+      return alice;
+    },
+  });
+  await next.cache.restore(next.client);
+  expect(next.cache.getState()).toMatchObject({ phase: 'restored', problem: 'offline' });
+  online = true;
+  events.dispatchEvent(new Event('online'));
+  await stateChange(next, (state) => state.phase === 'live');
+  expect(revalidations).toBe(1);
+  next.detach();
+  // A restored copy that loses the connection before /me answers says so without waiting.
+  const later = w.open({ onlineEvents: events });
+  await later.cache.restore(later.client);
+  expect(later.cache.getState().problem).toBeNull();
+  events.dispatchEvent(new Event('offline'));
+  expect(later.cache.getState().problem).toBe('offline');
+  later.detach();
 });

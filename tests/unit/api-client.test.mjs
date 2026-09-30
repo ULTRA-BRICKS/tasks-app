@@ -117,7 +117,10 @@ test('rate-limit replies expose Retry-After seconds and dates as a bounded delay
     ['30', 30_000],
     ['99999', 3_600_000],
     [new Date(Date.now() + 90_000).toUTCString(), 90_000],
+    // A date in the past means "now", never a negative delay.
+    [new Date(Date.now() - 90_000).toUTCString(), 0],
     ['soon', undefined],
+    ['Fri, 32 Foo 2026 25:61:00 GMT', undefined],
   ]) {
     await withFetch(
       async () =>
