@@ -108,6 +108,32 @@ test('once the session is confirmed, a failed refresh shows its error instead of
   await expect(page.getByTestId('issue-row')).toHaveCount(0);
 });
 
+test('a saved task whose refresh fails shows the error without waiting for the editor chunk', async ({
+  page,
+}) => {
+  await signIn(page, JAMIE);
+  const [task] = await firstTasks(page, 1);
+  await page.goto('/tasks/' + task.id);
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue(task.title);
+  await expect
+    .poll(async () => (await savedCopy(page)).keys)
+    .toContain(JSON.stringify(['issue', task.id]));
+  // The saved task has data, so only the error ordering decides whether the page waits for a
+  // description it will never lay out.
+  await page.route(/\/rich-description/, () => new Promise<void>(() => {}));
+  await page.route(
+    (url) => url.pathname === '/api/v1/issues/' + task.id,
+    (route) =>
+      route.fulfill({
+        status: 403,
+        json: { error: { code: 'FORBIDDEN', message: 'Synthetic lost access' } },
+      }),
+  );
+  await page.reload();
+  await expect(page.getByRole('alert').filter({ hasText: 'Synthetic lost access' })).toBeVisible();
+  await expect(page.getByRole('status', { name: 'Saved copy' })).toHaveCount(0);
+});
+
 test('a project missing from the saved copy is not reported as deleted while offline', async ({
   page,
 }) => {

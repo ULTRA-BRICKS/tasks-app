@@ -4,6 +4,7 @@ import { Check, ChevronDown, Plus } from 'lucide-react';
 import { Avatar } from './avatar';
 import type { Option } from './select';
 import { cn } from '../lib/cn';
+import { usePopupCollisionPadding } from '../lib/safe-area';
 import './combobox.css';
 
 /** Explicit creation offered for a typed query that matches no option. */
@@ -76,6 +77,7 @@ export function Combobox(props: SingleProps | MultipleProps) {
     [query, setQuery] = useState(''),
     [pending, setPending] = useState(false),
     [feedback, setFeedback] = useState<{ alert: boolean; message: string } | null>(null);
+  const collisionPadding = usePopupCollisionPadding();
   // Async creation completes after renders; commit against the latest selection and handler.
   const latest = useRef(props);
   useLayoutEffect(() => {
@@ -202,7 +204,7 @@ export function Combobox(props: SingleProps | MultipleProps) {
         <BaseCombobox.Positioner
           sideOffset={6}
           align="start"
-          collisionPadding={8}
+          collisionPadding={collisionPadding}
           className="popover-positioner"
         >
           <BaseCombobox.Popup className="picker-popup combobox-popup" aria-label={label}>

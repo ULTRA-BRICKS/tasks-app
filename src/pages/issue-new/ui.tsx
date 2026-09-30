@@ -7,12 +7,14 @@ import type { Issue, IssueCreate } from '@tickets/contracts';
 import { useCatalog, useMe } from '@/entities/workspace';
 import { api, errorMessage, ApiError } from '@/shared/api/client';
 import { useUnloadWarning } from '@/shared/lib/unload-warning';
-import { Button, DocumentText, ErrorState } from '@/shared/ui';
+import { Button, DocumentText, ErrorState, Loading, useDescriptionEditorReady } from '@/shared/ui';
 import { newIssueDraft, createIssueInput, issueDraftKey, type Draft } from './model';
 
 export function NewIssuePage() {
   const location = useLocation();
-  return <IssueDraftPage key={location.key} />;
+  // The properties sit below a restored draft's description: open the draft with its editor.
+  const editorReady = useDescriptionEditorReady();
+  return editorReady ? <IssueDraftPage key={location.key} /> : <Loading />;
 }
 function IssueDraftPage() {
   const { data: catalog } = useCatalog(),

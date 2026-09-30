@@ -36,6 +36,7 @@ import {
   ErrorState,
   Loading,
   Modal,
+  useDescriptionEditorReady,
 } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
@@ -43,6 +44,8 @@ import { ActivityFeed } from './activity-feed';
 export function IssueDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const query = useIssue(id);
   const loadError = useVisibleError(query);
+  // The properties and activity sit below the description: reveal the task with its editor.
+  const editorReady = useDescriptionEditorReady();
   return (
     <section className="issue-detail-panel" aria-label="Task details">
       {query.isPending ? (
@@ -55,6 +58,8 @@ export function IssueDetails({ id, onClose }: { id: string; onClose: () => void 
           </Button>
           <ErrorState message={errorMessage(loadError)} retry={() => void query.refetch()} />
         </>
+      ) : query.data && !editorReady ? (
+        <Loading label="Loading task" />
       ) : query.data ? (
         <Editor key={query.data.id} issue={query.data} onClose={onClose} />
       ) : null}

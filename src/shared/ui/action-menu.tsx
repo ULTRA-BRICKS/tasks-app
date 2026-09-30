@@ -12,6 +12,7 @@ import { Menu } from '@base-ui/react/menu';
 import { Ellipsis, X } from 'lucide-react';
 import { hasSelectedText, nativePressTarget, useHold } from '../lib/press-hold';
 import { MenuItems, type MenuAction } from './menu-items';
+import { usePopupCollisionPadding } from '../lib/safe-area';
 export type { MenuAction, MenuChoice } from './menu-items';
 type PointAnchor = { getBoundingClientRect: () => DOMRect };
 const editable = 'input, textarea, select, [contenteditable="true"]';
@@ -79,6 +80,7 @@ export function ActionMenu({
   hold?: boolean;
 }) {
   const action = useMenuActions();
+  const collisionPadding = usePopupCollisionPadding();
   const [open, setOpen] = useState(false),
     [anchor, setAnchor] = useState<Element | PointAnchor | null>(null);
   const returnFocus = useRef<HTMLElement | null>(null),
@@ -193,6 +195,7 @@ export function ActionMenu({
             className="page-menu-positioner"
             sideOffset={anchor ? 4 : 8}
             align={anchor ? 'start' : 'end'}
+            collisionPadding={collisionPadding}
             anchor={anchor ?? undefined}
           >
             <Menu.Popup
