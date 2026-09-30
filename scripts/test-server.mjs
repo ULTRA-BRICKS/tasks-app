@@ -48,37 +48,30 @@ const server = createServer(
   ),
 );
 await new Promise((resolve) => server.listen(dev.apiPort, dev.apiHost, resolve));
-// TASKS_E2E_WEB=preview serves the built dist (real Service Worker) with the same API proxy.
-const web =
-  process.env.TASKS_E2E_WEB === 'preview'
-    ? [
-        '--bun',
-        'vite',
-        'preview',
-        '--host',
-        '127.0.0.1',
-        '--port',
-        String(dev.webPort),
-        '--strictPort',
-      ]
-    : ['run', 'dev:web'];
-const vite = spawn(process.execPath, web, {
-  stdio: 'inherit',
-  env: {
-    ...process.env,
-    NODE_ENV: 'test',
-    API_PORT: String(dev.apiPort),
-    WEB_PORT: String(dev.webPort),
-    APP_URL: dev.appUrl,
-  },
-});
+// TASKS_E2E_WEB=none serves only the API: read-cache.shell.spec.ts runs `vite preview` itself so it
+// can close the web origin and take the network away.
+const vite =
+  process.env.TASKS_E2E_WEB === 'none'
+    ? null
+    : spawn(process.execPath, ['run', 'dev:web'], {
+        stdio: 'inherit',
+        env: {
+          ...process.env,
+          NODE_ENV: 'test',
+          API_PORT: String(dev.apiPort),
+          WEB_PORT: String(dev.webPort),
+          APP_URL: dev.appUrl,
+        },
+      });
 async function stop() {
-  vite.kill('SIGTERM');
+  vite?.kill('SIGTERM');
   server.close();
   await db.close();
 }
-for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => void stop());
-vite.on('exit', (code) => {
+// Without a web child whose exit ends the process, exit once the API has stopped.
+for (const s of ['SIGINT', 'SIGTERM'])
+  process.on(s, () => void stop().finally(() => vite || process.exit()));
+vite?.on('exit', (code) => {
   void stop();
   process.exitCode = code ?? 0;
 });
