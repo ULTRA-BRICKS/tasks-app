@@ -314,6 +314,11 @@ test.describe('touch phone', () => {
     'Emulated WebKit taps never click an option whose pointerdown was cancelled',
   );
 
+  // One finger drag: eight 15px moves, a frame apart, are well past the touch slop.
+  const SWIPE_STEPS = 8;
+  const SWIPE_STEP_PX = 15;
+  const SWIPE_FRAME_MS = 16;
+
   // The last unselected option: commands such as View profile lead the list and are not values.
   async function tapUnselected(page: Page, listbox: string) {
     const option = page
@@ -387,15 +392,22 @@ test.describe('touch phone', () => {
     expect(await list.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
     const start = await page.getByRole('option').nth(2).boundingBox();
     if (!start) throw new Error('The third estimate has no box');
-    // The finger lands on an option and drags upwards.
+    // The finger lands on an option and drags upwards. Raw touch events, not
+    // `Input.synthesizeScrollGesture`: on headless Linux Chromium (the CI image) that gesture
+    // dispatches pointermoves but never scrolls the list, while the same drag sent as touch
+    // events scrolls it on Linux and macOS alike.
+    const x = Math.round(start.x + start.width / 2);
+    const y = Math.round(start.y + start.height / 2);
     const cdp = await page.context().newCDPSession(page);
-    await cdp.send('Input.synthesizeScrollGesture', {
-      x: Math.round(start.x + start.width / 2),
-      y: Math.round(start.y + start.height / 2),
-      yDistance: -120,
-      speed: 600,
-      gestureSourceType: 'touch',
-    });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    for (let step = 1; step <= SWIPE_STEPS; step++) {
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x, y: y - step * SWIPE_STEP_PX }],
+      });
+      await page.waitForTimeout(SWIPE_FRAME_MS);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await cdp.detach();
     await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
     await expect(page.getByRole('listbox', { name: 'Estimate' })).toBeVisible();
