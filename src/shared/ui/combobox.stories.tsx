@@ -142,6 +142,68 @@ export const PeopleShowAvatars: Story = {
   },
 };
 
+// An option's description sits under its name, whatever decorations lead the option:
+// none, an avatar, a label colour, or both (Combobox renders both when an option has both).
+const described: Option[] = [
+  { value: 'robin', label: 'Robin Park', description: 'Linear · Needs review' },
+  { value: 'ada', label: 'Ada Lovelace', description: 'ada@example.test', avatar_url: null },
+  { value: 'bug', label: 'Bug', description: 'Engineering', color: '#e5484d' },
+  {
+    value: 'grace',
+    label: 'Grace Hopper',
+    description: 'grace.hopper.with.a.long.address@example-company.test',
+    color: '#3e63dd',
+    avatar_url: null,
+  },
+];
+function box(option: HTMLElement, selector: string) {
+  const part = option.querySelector(selector);
+  if (!part) throw new Error(`${option.textContent}: no ${selector}`);
+  return part.getBoundingClientRect();
+}
+export const DescriptionsSitUnderTheName: Story = {
+  render: () => (
+    <Combobox aria-label="Owner" value="grace" onChange={() => {}} options={described} />
+  ),
+  parameters: { a11y: { context: 'body' } },
+  play: async ({ canvasElement }) => {
+    const page = body(canvasElement);
+    await openSearch(canvasElement, 'Owner');
+    const options = await page.findAllByRole('option');
+    await expect(options).toHaveLength(described.length);
+    for (const option of options) {
+      const item = option.getBoundingClientRect();
+      const name = box(option, '.picker-item-text');
+      const note = box(option, '.picker-item-description');
+      const style = getComputedStyle(option);
+      const start = item.left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft);
+      await expect(note.left).toBeCloseTo(name.left, 0);
+      await expect(note.top).toBeGreaterThanOrEqual(name.bottom - 0.5);
+      const parts = [...option.children];
+      const text = parts.findIndex((part) => part.classList.contains('picker-item-text'));
+      // Each decoration keeps its own place before the name, in order; the check follows.
+      let next = start;
+      for (const [index, part] of parts.entries()) {
+        const rect = part.getBoundingClientRect();
+        await expect(rect.right).toBeLessThanOrEqual(item.right + 0.5);
+        if (index < text) {
+          await expect(rect.left).toBeGreaterThanOrEqual(next - 0.5);
+          next = rect.right;
+        } else if (index > text && !part.classList.contains('picker-item-description')) {
+          await expect(rect.left).toBeGreaterThanOrEqual(Math.max(name.right, note.right) - 0.5);
+        }
+      }
+      // Nothing but the option's padding, or the last decoration and one gap, precedes the name.
+      await expect(name.left).toBeCloseTo(text > 0 ? next + parseFloat(style.columnGap) : start, 0);
+    }
+    // The selected option shows its check, so the loop above also placed a trailing part.
+    await expect(
+      page.getByRole('option', { name: /^Grace Hopper/ }).querySelector('svg'),
+    ).toBeVisible();
+    await userEvent.keyboard('{Escape}');
+  },
+};
+
 const initialLabels: Option[] = [
   { value: 'bug', label: 'Bug' },
   { value: 'feature', label: 'Feature' },

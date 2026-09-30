@@ -11,6 +11,7 @@ type PersonOption = {
   label: string;
   avatar_url?: string | null;
   description?: string;
+  keywords?: string[];
   disabled?: boolean;
 };
 type DirectoryIndex = {
@@ -41,16 +42,27 @@ function index(directory: PersonDirectory): DirectoryIndex {
   if (saved) return saved;
   const aliases = new Map<string, CanonicalPerson>();
   for (const person of directory) for (const alias of person.aliases) aliases.set(alias, person);
-  const options = directory.map((person): PersonOption => {
-    const description = optionDescription(person);
-    return {
+  const options: PersonOption[] = [],
+    suggestions: PersonOption[] = [];
+  for (const person of directory) {
+    const kind = optionDescription(person);
+    const option: PersonOption = {
       value: person.id,
       label: person.name,
       avatar_url: person.avatar_url,
-      ...(description ? { description } : {}),
+      ...(kind ? { description: kind } : {}),
     };
-  });
-  const editable = [{ value: 'none', label: 'Unassigned' }, ...options];
+    options.push(option);
+    // Assignee suggestions (UB-43, docs/ROW-ASSIGNEE.md): the email tells people apart unless a
+    // bot or review label must show, and every name and the email are searchable.
+    const description = kind ?? person.email;
+    suggestions.push({
+      ...option,
+      ...(description ? { description } : {}),
+      keywords: person.email ? [...person.names, person.email] : person.names,
+    });
+  }
+  const editable = [{ value: 'none', label: 'Unassigned' }, ...suggestions];
   const result = {
     aliases,
     options,
