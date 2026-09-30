@@ -182,6 +182,7 @@ export async function claimSyncJob(db, env, jobId, generation) {
           "UPDATE outbox SET status='blocked',last_error='SYNC_SOURCE_ALIAS_AMBIGUOUS',next_attempt_at=? WHERE id=? AND workspace_id=? AND provider='linear'",
           [now(), jobId, config.workspaceId],
         );
+        await supersedeProblems(tx, config.workspaceId, data, jobId);
         return null;
       }
     }
@@ -322,6 +323,42 @@ export async function finishSyncJob(tx, job, result) {
     'SYNC_LEASE_LOST',
     'Queue acknowledgement was superseded',
   );
+  // A decided outcome of a job this worker still owns (asserted above). A re-queued dirty edit or
+  // an ignored run (stale read, older event, out of scope) says nothing new about the entity.
+  if (!dirty && !result?.ignored) await supersedeProblems(tx, job.workspace_id, job.data, job.id);
+}
+// Every reconcile pass, webhook delivery and native edit enqueues its own job for an entity, so a
+// persistent rejection used to add another blocked row per pass. Only the most recently finished
+// outcome of an entity stays open: each job reads both sides afresh when it runs, so a job that
+// converges, blocks or fails retires the blocked/failed rows that finished before it (kept as
+// 'superseded' for inspection). An entity is its collection plus source UUID, or plus native UUID
+// for native-side rows (an ambiguous alias has no single source UUID). A removal outcome retires
+// earlier rows too (no later job would); removal rows carry delivery proof and are never retired.
+async function supersedeProblems(tx, workspace, data, keepId) {
+  if (data.kind !== 'entity' || !data.sourceId) return;
+  const keys = [['sourceId', data.sourceId]];
+  if (data.targetId) keys.push(['targetId', data.targetId]);
+  // canonical() writes "key":value without spaces, so LIKE only preselects; the parsed check decides.
+  const rows = await tx.all(
+    "SELECT id,status,payload FROM outbox WHERE workspace_id=? AND provider='linear' AND event='entity' AND status IN ('blocked','failed') AND id<>? AND (" +
+      keys.map(() => 'payload LIKE ?').join(' OR ') +
+      ')',
+    [workspace, keepId, ...keys.map(([k, v]) => '%"' + k + '":' + JSON.stringify(v) + '%')],
+  );
+  for (const row of rows) {
+    const payload = JSON.parse(row.payload);
+    if (
+      payload.kind !== 'entity' ||
+      payload.action === 'remove' ||
+      payload.collection !== data.collection ||
+      !keys.some(([k, v]) => payload[k] === v)
+    )
+      continue;
+    await tx.exec(
+      "UPDATE outbox SET status='superseded',payload=? WHERE id=? AND workspace_id=? AND status=?",
+      [canonical({ ...payload, _retiredByJob: keepId }), row.id, workspace, row.status],
+    );
+  }
 }
 export async function failSyncJob(db, job, error) {
   return db.transaction(async (tx) => {
@@ -362,16 +399,18 @@ export async function failSyncJob(db, job, error) {
       15,
       Math.min(3600, Number(error.retryAfterSeconds) || 2 ** Math.min(job.attempts, 8) * 15),
     );
-    await tx.exec(
+    const status =
+      dirty || capacityPause
+        ? 'pending'
+        : permanent
+          ? 'blocked'
+          : job.attempts - capacityPauses >= 8
+            ? 'failed'
+            : 'pending';
+    const changed = await tx.exec(
       "UPDATE outbox SET status=?,last_error=?,next_attempt_at=?,payload=?,attempts=? WHERE id=? AND workspace_id=? AND status='processing' AND attempts=?",
       [
-        dirty || capacityPause
-          ? 'pending'
-          : permanent
-            ? 'blocked'
-            : job.attempts - capacityPauses >= 8
-              ? 'failed'
-              : 'pending',
+        status,
         code,
         dirty ? now() : new Date(Date.now() + delay * 1000).toISOString(),
         canonical(nextPayload),
@@ -381,6 +420,9 @@ export async function failSyncJob(db, job, error) {
         job.attempts,
       ],
     );
+    // Same rule as finishSyncJob: only a final outcome of a job this worker still owns retires rows.
+    if (status !== 'pending' && Number(changed.changes) === 1)
+      await supersedeProblems(tx, job.workspace_id, job.data, job.id);
     if (job.data._entityKey)
       await tx.exec(
         'UPDATE outbox SET next_attempt_at=? WHERE id=? AND workspace_id=? AND payload=?',
