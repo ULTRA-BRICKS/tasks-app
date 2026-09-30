@@ -12,6 +12,7 @@ import {
 } from './store.mjs';
 import { assignLinearCode } from './domain.mjs';
 import { normalizedSource } from './model.mjs';
+import { sameField } from './merge-fields.mjs';
 async function beginSourceCreate(db, job, collection, target, native, input, fingerprint) {
   return db.transaction(async (tx) => {
     await assertJobFence(tx, job);
@@ -124,12 +125,15 @@ export async function exportNativeIssue(db, env, job, options) {
     );
     record = result.issue;
   }
-  // Content identifies only a record we did not create (see readCreationIntent).
+  // Linear does not reword titles, so the title always has to match (up to whitespace, see
+  // sameField): a rename made in Linear while a create response was lost stays a visible
+  // conflict. The body identifies only a record we did not create (see readCreationIntent in
+  // store.mjs).
   assert(
     record.id === target &&
+      sameField('title', record.title, prepared.original.title) &&
       (prepared.createdHere ||
-        (record.title === prepared.original.title &&
-          markdownEquivalent(record.description ?? '', prepared.original.description))),
+        markdownEquivalent(record.description ?? '', prepared.original.description)),
     409,
     'SOURCE_IDENTITY_CONFLICT',
     'Existing source UUID has different content; explicit reconciliation is required',

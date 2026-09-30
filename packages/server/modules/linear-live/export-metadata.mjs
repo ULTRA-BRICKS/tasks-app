@@ -11,6 +11,7 @@ import {
   finishSyncJob,
 } from './store.mjs';
 import { normalizedSource } from './model.mjs';
+import { MARKDOWN_FIELDS } from './merge-fields.mjs';
 const TYPES = Object.freeze({
   projects: 'Project',
   documents: 'Document',
@@ -249,8 +250,8 @@ export async function exportNativeMetadata(db, env, job, options = {}) {
       // A confirmed create may reserialize authored Markdown. Preserve the distinct
       // baselines, as for issue/comment creation, without freezing subsequent edits.
       // Dates, ownership and other source defaults remain explicit conflicts.
-      if (prepared.createdHere && ['description', 'body'].includes(field)) continue;
-      const equal = ['description', 'body'].includes(field)
+      if (prepared.createdHere && MARKDOWN_FIELDS.includes(field)) continue;
+      const equal = MARKDOWN_FIELDS.includes(field)
         ? markdownEquivalent(originalNative[field], source[field])
         : digest(originalNative[field]) === digest(source[field]);
       if (!equal)

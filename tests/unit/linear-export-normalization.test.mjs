@@ -66,15 +66,42 @@ function linearStub(
   return state;
 }
 
+// What Linear keeps for an issueCreate: every synchronized field echoes the input; only the
+// Markdown body is rewritten. Fixture fields that are not synchronized (creator, url) stay.
+const ref = (id) => (id ? { id } : null);
 const storedIssue = (source) => (input) => ({
   ...source.data.issues[0],
   id: input.id,
   title: input.title,
   description: LINEAR_STORED,
+  team: ref(input.teamId),
+  state: ref(input.stateId),
+  priority: input.priority,
+  labelIds: input.labelIds,
+  assignee: ref(input.assigneeId),
+  project: ref(input.projectId),
+  parent: ref(input.parentId),
+  cycle: ref(input.cycleId),
+  projectMilestone: ref(input.projectMilestoneId),
+  estimate: input.estimate ?? null,
+  dueDate: input.dueDate ?? null,
   identifier: 'SRC-3100',
   number: 3100,
   createdAt: input.createdAt,
   updatedAt: '2026-09-29T16:23:33Z',
+});
+
+// The synchronized fields other than the body, as the native issue API returns them.
+const nonMarkdownFields = (issue) => ({
+  title: issue.title,
+  priority: issue.priority,
+  status_id: issue.status_id,
+  label_ids: issue.label_ids,
+  assignee_id: issue.assignee_id,
+  project_id: issue.project_id,
+  parent_id: issue.parent_id,
+  estimate: issue.estimate,
+  due_date: issue.due_date,
 });
 
 async function nativeJob(f, actor, collection, id, dedupe) {
@@ -88,7 +115,7 @@ async function nativeJob(f, actor, collection, id, dedupe) {
   );
 }
 
-async function pendingIssue(f, source, actor) {
+async function pendingIssue(f, source, actor, title = 'Epic: normalized body') {
   const teamId = targetId(actor.workspace_id, source.ids.org, 'teams', source.ids.team);
   await f.db.transaction((tx) =>
     tx.exec(
@@ -98,7 +125,7 @@ async function pendingIssue(f, source, actor) {
   );
   const made = await f.request('POST', '/api/v1/issues', {
     team_id: teamId,
-    title: 'Epic: normalized body',
+    title,
     description: AUTHORED,
   });
   expect(made.status).toBe(201);
@@ -134,8 +161,8 @@ test('a created issue whose body Linear normalizes gets its Linear code and keep
     expect(current.number).toBe(3100);
     expect(current.description).toBe(AUTHORED);
     expect(linear.creates).toBe(1);
-    // Linear's echo of the create (nothing edited on either side) must not overwrite the
-    // authored body with Linear's rewrite of it.
+    // Linear's echo of the create (nothing edited on either side) must write nothing: not
+    // Linear's rewrite of the body, and no other field either.
     linear.record = { ...linear.record, updatedAt: '2026-09-29T17:00:00Z' };
     const echo = await f.db.transaction((tx) =>
       enqueueSyncJob(
@@ -149,7 +176,45 @@ test('a created issue whose body Linear normalizes gets its Linear code and keep
       fetcher: linear.fetcher,
     });
     expect(echoed.status).toBe('converged');
-    expect((await readIssue(f, issue.id)).description).toBe(AUTHORED);
+    const after = await readIssue(f, issue.id);
+    expect(after.description).toBe(AUTHORED);
+    expect(nonMarkdownFields(after)).toEqual(nonMarkdownFields(current));
+    expect(after.version).toBe(current.version);
+  } finally {
+    await f.close();
+  }
+});
+
+test('a created issue whose title Linear stores with collapsed whitespace is adopted and stays stable', async () => {
+  const { f, source, actor, env, config } = await configured();
+  try {
+    const { issue, job } = await pendingIssue(f, source, actor, 'Epic:  spaced\ttitle');
+    const linear = linearStub(source, 'issues', (input) => ({
+      ...storedIssue(source)(input),
+      title: input.title.replace(/\s+/g, ' '),
+    }));
+    const result = await reconcileEntityJob(f.db, env, job.id, config.generation, {
+      fetcher: linear.fetcher,
+    });
+    expect(result.status).toBe('exported');
+    const current = await readIssue(f, issue.id);
+    expect(current.key).toBe('SRC-3100');
+    linear.record = { ...linear.record, updatedAt: '2026-09-29T17:00:00Z' };
+    const echo = await f.db.transaction((tx) =>
+      enqueueSyncJob(
+        tx,
+        actor.workspace_id,
+        { kind: 'entity', collection: 'issues', sourceId: issue.id, side: 'source' },
+        'spaced-title-echo',
+      ),
+    );
+    const echoed = await reconcileEntityJob(f.db, env, echo.id, config.generation, {
+      fetcher: linear.fetcher,
+    });
+    expect(echoed.status).toBe('converged');
+    const after = await readIssue(f, issue.id);
+    expect(after.title).toBe('Epic:  spaced\ttitle');
+    expect(after.version).toBe(current.version);
   } finally {
     await f.close();
   }
@@ -172,6 +237,55 @@ test('a retry after a lost create response adopts the normalized Linear issue in
     expect(retried.status).toBe('exported');
     expect((await readIssue(f, issue.id)).key).toBe('SRC-3100');
     expect(linear.creates).toBe(1);
+  } finally {
+    await f.close();
+  }
+});
+
+test('a Linear rename between a lost create response and its retry stays a visible identity conflict', async () => {
+  const { f, source, actor, env, config } = await configured();
+  try {
+    const { issue, job } = await pendingIssue(f, source, actor);
+    const linear = linearStub(source, 'issues', storedIssue(source), { loseCreateResponse: true });
+    await reconcileEntityJob(f.db, env, job.id, config.generation, { fetcher: linear.fetcher });
+    linear.record = { ...linear.record, title: 'Renamed in Linear' };
+    await dueNow(f, job);
+    const retried = await reconcileEntityJob(f.db, env, job.id, config.generation, {
+      fetcher: linear.fetcher,
+    });
+    expect(retried.code).toBe('SOURCE_IDENTITY_CONFLICT');
+    expect((await readIssue(f, issue.id)).key.startsWith('PENDING-')).toBe(true);
+  } finally {
+    await f.close();
+  }
+});
+
+test('a Linear field edit made while a create response was lost reaches the native issue after adoption', async () => {
+  const { f, source, actor, env, config } = await configured();
+  try {
+    const { issue, job } = await pendingIssue(f, source, actor);
+    const authored = nonMarkdownFields(issue);
+    const linear = linearStub(source, 'issues', storedIssue(source), { loseCreateResponse: true });
+    await reconcileEntityJob(f.db, env, job.id, config.generation, { fetcher: linear.fetcher });
+    linear.record = { ...linear.record, priority: 4, updatedAt: '2026-09-29T16:30:00Z' };
+    await dueNow(f, job);
+    const retried = await reconcileEntityJob(f.db, env, job.id, config.generation, {
+      fetcher: linear.fetcher,
+    });
+    expect(retried.status).toBe('exported');
+    const edit = await f.db.transaction((tx) =>
+      enqueueSyncJob(
+        tx,
+        actor.workspace_id,
+        { kind: 'entity', collection: 'issues', sourceId: issue.id, side: 'source' },
+        'lost-window-edit',
+      ),
+    );
+    await reconcileEntityJob(f.db, env, edit.id, config.generation, { fetcher: linear.fetcher });
+    const current = await readIssue(f, issue.id);
+    // The Linear edit arrives; nothing else Linear stores differently is copied over.
+    expect(nonMarkdownFields(current)).toEqual({ ...authored, priority: 4 });
+    expect(current.description).toBe(AUTHORED);
   } finally {
     await f.close();
   }

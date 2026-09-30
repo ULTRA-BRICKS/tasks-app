@@ -1,4 +1,4 @@
-import { sameField as same } from './merge-fields.mjs';
+import { MARKDOWN_FIELDS, sameField as same } from './merge-fields.mjs';
 import { sourceInScope, nativeInScope } from './scope.mjs';
 import { exportNativeIssue, exportNativeComment } from './export.mjs';
 import { exportNativeMetadata } from './export-metadata.mjs';
@@ -415,10 +415,17 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
         conflicts[field] = { ...state.conflicts[field], local: l, source: r };
         continue;
       }
-      // Neither side changed since the last synchronized pair. Their values can still differ
-      // because Linear rewrites the Markdown it stores (see readCreationIntent), and copying
-      // that rewrite over the authored native text would be a change nobody made.
-      if (same(field, l, baseLocal[field]) && same(field, r, baseSource[field])) continue;
+      // Neither side changed this Markdown since the last synchronized pair. The texts can still
+      // differ because Linear rewrites Markdown it stores (see readCreationIntent in store.mjs);
+      // copying that rewrite over the authored native text would be a change nobody made.
+      // Other fields are never rewritten, so a difference there is a real Linear-side edit
+      // (for example one made while a create response was lost) and flows to native below.
+      if (
+        MARKDOWN_FIELDS.includes(field) &&
+        same(field, l, baseLocal[field]) &&
+        same(field, r, baseSource[field])
+      )
+        continue;
       if (same(field, l, baseLocal[field])) toNative[field] = r;
       else if (same(field, r, baseSource[field])) toSource[field] = l;
       else conflicts[field] = { baseline: baseLocal[field], local: l, source: r };
