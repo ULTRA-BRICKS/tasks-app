@@ -119,7 +119,7 @@ export const MoreMatchesContextMenu: Story = {
     const canvas = within(canvasElement),
       page = within(canvasElement.ownerDocument.body);
     const title = canvas.getByRole('button', { name: 'Keep the preview content first' });
-    fireEvent.contextMenu(title, { clientX: 40, clientY: 40 });
+    await fireEvent.contextMenu(title, { clientX: 40, clientY: 40 });
     const context = await page.findByRole('menu', { name: 'Actions for TKT-7' });
     const labels = within(context)
       .getAllByRole('menuitem')
@@ -247,7 +247,7 @@ export const ContextRowKeyboard: Story = {
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('menu')).not.toBeInTheDocument());
     await waitFor(() => expect(row).toHaveFocus());
-    fireEvent.contextMenu(row, { clientX: 30, clientY: 20 });
+    await fireEvent.contextMenu(row, { clientX: 30, clientY: 20 });
     await userEvent.click(await page.findByRole('menuitem', { name: 'Open team tasks' }));
     await waitFor(() => expect(canvas.getByRole('status')).toHaveTextContent('Opened team'));
   },
