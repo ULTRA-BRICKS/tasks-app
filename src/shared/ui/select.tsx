@@ -13,6 +13,8 @@ export interface Option {
   color?: string;
   /** Secondary text that tells otherwise identical labels apart. */
   description?: string;
+  /** More search terms for a searchable picker (another name, an email); never shown. */
+  keywords?: readonly string[];
 }
 export function Picker({
   value,

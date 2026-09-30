@@ -18,6 +18,8 @@ export function IssueAssignee({
   const update = useIssueUpdate();
   const person = personInDirectory(people, issue.assignee_id);
   const name = person?.name ?? issue.assignee_name ?? 'Unassigned';
+  // While a save is pending every option is disabled, but the trigger stays enabled: disabling
+  // the focused button would drop focus to the page after each choice (docs/ROW-ASSIGNEE.md).
   const canWrite = !disabled && !update.isPending;
   const options = assigneeOptions(people, !canWrite);
   const control = useRef<HTMLDivElement>(null);
@@ -51,7 +53,6 @@ export function IssueAssignee({
         }
         options={options}
         actions={actions}
-        disabled={update.isPending}
         onChange={(id) => {
           if (canWrite) update.mutate({ issue, patch: { assignee_id: id === 'none' ? null : id } });
         }}

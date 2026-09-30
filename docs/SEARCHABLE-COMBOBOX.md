@@ -21,7 +21,7 @@ Use search in appropriate selectors and permit creating a typed missing value wh
 - Create feedback lives in the popup, so it is never lost: when an existing match is selected instead of created, a single-select popup stays open with the notice; when a create fails after the popup was closed, the popup reopens with the typed text and the error.
 - Keyboard: ArrowUp/ArrowDown move the highlight (looping to the input), Enter chooses the highlighted option, Escape closes and restores focus to the trigger. Escape is consumed by the popup, so page shortcuts (Escape → back from a task) do not run.
 - IME: Base UI ignores Enter while composing (`keyCode 229`) and keeps the composing text out of controlled updates; no option is chosen and nothing is created until composition ends.
-- People: options render the avatar (image or initials) beside the name; search matches the displayed name.
+- People: options render the avatar (image or initials) beside the name; search matches the displayed name and the option's `keywords` (never shown). Assignee suggestions add the person's other names and email ([ROW-ASSIGNEE.md](ROW-ASSIGNEE.md), UB-43).
 - Multiple mode (labels) keeps the popup open after each toggle and shows a check for selected values; label options show their colour swatch.
 - Commands (`actions`): non-value items such as `View profile` lead the list while the query is empty and hide as soon as the person types, so Enter after a search always picks a match. Choosing one closes the popup and runs its `onSelect`; it is never selected, saved or checked, and the value does not change. UB-77 uses this for the assignee picker's profile link.
 
@@ -91,7 +91,7 @@ Viewers keep read-only (disabled) pickers and never see Create. The server remai
 ## Out of scope
 
 - Task list filters and bulk status (`src/pages/issues/ui.tsx`), relationship type and API token scopes keep `Picker`.
-- Email and alias search for people, and the row/board assignee changes, belong to UB-43 and UB-29.
+- Row/board assignee changes, and email and alias search for people, are UB-43 ([ROW-ASSIGNEE.md](ROW-ASSIGNEE.md)) and UB-29.
 - Page-first project creation from a document's Project field or an initiative's Link project picker: both are searchable but offer no Create in this increment, because a knowledge document has no team to seed a project draft.
 - Creating accounts, statuses, teams or roles from a picker.
 

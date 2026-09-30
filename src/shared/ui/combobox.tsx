@@ -189,7 +189,11 @@ export function Combobox(props: SingleProps | MultipleProps) {
       }}
       // Commands only lead an empty query, so Enter after typing always picks a match.
       filter={(item: Item, search) =>
-        item.command ? search.trim() === '' : Boolean(item.action) || contains(item.label, search)
+        item.command
+          ? search.trim() === ''
+          : Boolean(item.action) ||
+            contains(item.label, search) ||
+            Boolean(item.keywords?.some((keyword) => contains(keyword, search)))
       }
       disabled={disabled}
       autoHighlight
@@ -250,6 +254,8 @@ export function Combobox(props: SingleProps | MultipleProps) {
                     disabled={item.disabled}
                     className="picker-item"
                   >
+                    {/* Leading decorations: styles.css lays out an option with a description
+                        by their count (0 to 2); another kind needs a column template there. */}
                     {item.color && (
                       <span
                         className="combobox-swatch"
