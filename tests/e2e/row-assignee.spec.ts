@@ -279,7 +279,8 @@ test.describe('desktop', () => {
   });
 });
 
-/** `collisionPadding` of the shared Combobox (src/shared/ui/combobox.tsx); half a pixel for rounding. */
+/** The 8px edge every popup keeps (src/shared/lib/safe-area.ts), half a pixel for rounding. The
+ * dock and safe-area insets on top of it are checked by phone-overflow.spec.ts. */
 const EDGE = 8 - 0.5;
 /** The popup keeps its padding from every viewport edge, its text stays inside it and the page
  * does not scroll sideways. */

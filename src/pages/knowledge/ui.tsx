@@ -13,6 +13,7 @@ import {
   Loading,
   EmptyState,
   DocumentText,
+  useDescriptionEditorReady,
 } from '@/shared/ui';
 import { useCatalog, useMe, useProjects, PersonChip } from '@/entities/workspace';
 import { useKnowledgeDraft, setKnowledgeArchive, type Knowledge, type Kind } from './model';
@@ -111,8 +112,12 @@ export function KnowledgePage({ kind }: { kind: Kind }) {
     queryFn: () => api<Knowledge>('/v1/' + kind + '/' + id),
     enabled: id !== 'new',
   });
+  // The properties sit below the body: reveal the document with its editor. An error has no
+  // body to lay out, so it shows without waiting for the editor.
+  const editorReady = useDescriptionEditorReady();
   if (!me || (id !== 'new' && query.isPending)) return <Loading />;
   if (query.error) return <ErrorState message={errorMessage(query.error)} />;
+  if (!editorReady) return <Loading />;
   return (
     <KnowledgeEditor
       key={me.workspace_id + ':' + me.id + ':' + kind + ':' + id}

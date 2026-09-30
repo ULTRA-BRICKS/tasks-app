@@ -13,6 +13,7 @@ import { createPortal } from 'react-dom';
 import { Menu } from '@base-ui/react/menu';
 import { Ellipsis, X } from 'lucide-react';
 import { hasSelectedText, nativePressTarget, useHold } from '../lib/press-hold';
+import { usePopupCollisionPadding } from '../lib/safe-area';
 import { ActionMenu } from './action-menu';
 import { MenuItems, type MenuAction } from './menu-items';
 import { Picker } from './select';
@@ -141,6 +142,7 @@ export function PressPreview({
     [pending, setPending] = useState(false),
     [openMenu, setOpenMenu] = useState(-1);
   const press = useHold();
+  const collisionPadding = usePopupCollisionPadding();
   const open = surface?.state === 'open';
   const tools: MenuAction[] = [
     ...actions.filter((action) => action.toolbar),
@@ -519,6 +521,7 @@ export function PressPreview({
                             side="top"
                             align="center"
                             sideOffset={8}
+                            collisionPadding={collisionPadding}
                           >
                             <Menu.Popup className="page-menu-popup" aria-label={tool.label}>
                               <MenuItems

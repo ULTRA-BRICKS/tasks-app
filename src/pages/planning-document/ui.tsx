@@ -13,7 +13,15 @@ import {
   PersonChip,
 } from '@/entities/workspace';
 import { DateProperty } from '@/features/issue-properties';
-import { Button, Combobox, DocumentText, InlineTitle, Loading, ErrorState } from '@/shared/ui';
+import {
+  Button,
+  Combobox,
+  DocumentText,
+  InlineTitle,
+  Loading,
+  ErrorState,
+  useDescriptionEditorReady,
+} from '@/shared/ui';
 import { api, errorMessage, ApiError } from '@/shared/api/client';
 interface Plan {
   id: string;
@@ -91,12 +99,16 @@ export function PlanningDocumentPage({ kind }: { kind: 'projects' | 'cycles' }) 
   const projects = useProjects(enabled && kind === 'projects'),
     cycles = useCycles(enabled && kind === 'cycles');
   const query = kind === 'projects' ? projects : cycles;
+  // A project's properties sit below its description: reveal the page with its editor. Errors
+  // have no description to lay out, so they show without waiting for the editor.
+  const editorReady = useDescriptionEditorReady();
   if (!enabled) return <ErrorState message="An administrator must enable this module first." />;
   if (id !== 'new' && query.isPending) return <Loading />;
   if (query.error) return <ErrorState message={errorMessage(query.error)} />;
   const existing = query.data?.find((p) => p.id === id) as Plan | undefined;
   if (id !== 'new' && !existing)
     return <ErrorState message="This item was not found in your workspace." />;
+  if (kind === 'projects' && !editorReady) return <Loading />;
   return (
     <PlanEditor
       // Each visit to a new draft is its own editor; its defaults select the draft slot.

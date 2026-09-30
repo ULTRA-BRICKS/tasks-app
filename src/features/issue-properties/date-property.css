@@ -49,11 +49,11 @@
 }
 .calendar-positioner {
   z-index: 100;
-  max-width: calc(100vw - 16px);
+  max-width: var(--available-width, calc(100vw - 16px));
 }
 .date-calendar-popup {
   width: 328px;
-  max-width: calc(100vw - 16px);
+  max-width: var(--available-width, calc(100vw - 16px));
   max-height: min(430px, var(--available-height, 80dvh));
   overflow: auto;
   padding: 8px;
