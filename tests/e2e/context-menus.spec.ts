@@ -126,7 +126,7 @@ test('pointer: the Copy submenu keeps the row menu open and a slow item click co
   expect(await page.evaluate(() => document.documentElement.dataset.copied)).toMatch(/^TKT-\d+$/);
 });
 
-test('document rows open their menu on right-click without opening the document', async ({
+test('document rows open their menu on right-click; a touch long-press keeps the link menu', async ({
   page,
 }) => {
   await login(page);
@@ -145,6 +145,19 @@ test('document rows open their menu on right-click without opening the document'
   await expect(page.getByRole('menuitem', { name: 'Archive document', exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page).toHaveURL(/\/documents$/);
+  // Android fires contextmenu for a touch long-press: the row is a link, so the browser keeps its
+  // own link menu (open in new tab, copy link) and the row's ellipsis carries the actions on touch.
+  const prevented = await row.locator('.knowledge-row').evaluate((link) => {
+    const event = new PointerEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      pointerType: 'touch',
+    });
+    link.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(prevented).toBe(false);
+  await expect(page.getByRole('menu')).toHaveCount(0);
 });
 
 test('holding a team row opens its menu and the release does not navigate', async ({ page }) => {
@@ -159,5 +172,18 @@ test('holding a team row opens its menu and the release does not navigate', asyn
   await expect(page.getByRole('menuitem', { name: 'Open team tasks', exact: true })).toBeVisible();
   await expect(page).toHaveURL(/\/tasks$/);
   await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu')).toHaveCount(0);
+  // Android follows a touch hold with contextmenu: on a row the hold owns, the browser's menu is
+  // cancelled and no second menu opens.
+  const prevented = await item.evaluate((button) => {
+    const event = new PointerEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      pointerType: 'touch',
+    });
+    button.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(prevented).toBe(true);
   await expect(page.getByRole('menu')).toHaveCount(0);
 });

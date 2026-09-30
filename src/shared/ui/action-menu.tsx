@@ -108,10 +108,15 @@ export function ActionMenu({
       const target = event.target as Element;
       // Editing and an existing text selection keep the browser's own menu (copy, spelling).
       if (target.closest(editable) || hasSelectedText()) return;
-      event.preventDefault();
-      // A touch long-press also fires contextmenu (Android); the hold gesture owns touch.
+      // A touch long-press also fires contextmenu (Android). The hold gesture owns touch, except
+      // on a link, where it never starts (nativePressTarget): that press keeps the browser's link
+      // menu, and the visible ellipsis the actions.
       const type = (event as Partial<PointerEvent>).pointerType || pointerType;
-      if (type === 'touch' || type === 'pen') return;
+      if (type === 'touch' || type === 'pen') {
+        if (!target.closest('a')) event.preventDefault();
+        return;
+      }
+      event.preventDefault();
       openAt(atPoint(event.clientX, event.clientY), focusedInside());
     };
     const keydown = (event: KeyboardEvent) => {
