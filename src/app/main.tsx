@@ -3,7 +3,7 @@ import { KnowledgeListPage, KnowledgePage } from '@/pages/knowledge';
 import { PlanningDocumentPage } from '@/pages/planning-document';
 import { WorkspaceKeyboard } from '@/features/keyboard';
 import { NewIssuePage } from '@/pages/issue-new';
-import React, { useEffect, useState, type ReactNode } from 'react';
+import React, { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -13,6 +13,7 @@ import { CreateIssue } from '@/features/issue-create';
 import { CommandMenu } from '@/features/command-menu';
 import { Navigation } from '@/widgets/navigation';
 import { IssuesPage, TaskDetailRoute, LegacyTaskRoute } from '@/pages/issues';
+import { PreCanonicalCodePage } from '@/pages/task-code-history';
 import { PlanningPage } from '@/pages/planning';
 import { InboxPage } from '@/pages/inbox';
 import { SettingsPage } from '@/pages/settings';
@@ -62,6 +63,7 @@ function Workspace() {
     navigate = useNavigate(),
     [createOpen, setCreateOpen] = useState(false),
     [searchOpen, setSearchOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
   useEffect(() => {
     document.documentElement.dataset.theme = prefs.theme;
     document.documentElement.dataset.density = prefs.density ?? 'auto';
@@ -85,13 +87,18 @@ function Workspace() {
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>
-        <Navigation onCreate={() => setCreateOpen(true)} onSearch={() => setSearchOpen(true)} />
-        <main id="main-content" className="workspace-main">
+        <Navigation
+          mainRef={mainRef}
+          onCreate={() => setCreateOpen(true)}
+          onSearch={() => setSearchOpen(true)}
+        />
+        <main ref={mainRef} id="main-content" className="workspace-main">
           <Routes>
             <Route path="/" element={<Navigate to="/tasks" replace />} />
             <Route path="/login" element={<Navigate to="/tasks" replace />} />
             <Route path="/tasks" element={<IssuesPage />} />
             <Route path="/tasks/new" element={<NewIssuePage />} />
+            <Route path="/tasks/pre-canonical/:code/:slug?" element={<PreCanonicalCodePage />} />
             <Route path="/tasks/:issueId/:slug?" element={<TaskDetailRoute />} />
             <Route path="/issues/*" element={<LegacyTaskRoute />} />
             <Route path="/my-issues" element={<LegacyTaskRoute />} />

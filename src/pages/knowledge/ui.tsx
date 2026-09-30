@@ -6,14 +6,15 @@ import { FileText, Flag } from 'lucide-react';
 import { api, errorMessage } from '@/shared/api/client';
 import {
   ActionMenu,
+  ContextRow,
   Button,
-  Picker,
+  Combobox,
   ErrorState,
   Loading,
   EmptyState,
   DocumentText,
 } from '@/shared/ui';
-import { useCatalog, useMe, useProjects } from '@/entities/workspace';
+import { useCatalog, useMe, useProjects, PersonChip } from '@/entities/workspace';
 import { useKnowledgeDraft, setKnowledgeArchive, type Knowledge, type Kind } from './model';
 
 const noun = (kind: Kind) => (kind === 'documents' ? 'document' : 'initiative');
@@ -57,43 +58,44 @@ export function KnowledgeListPage({ kind }: { kind: Kind }) {
             const path = '/' + kind + '/' + row.id,
               title = row.title ?? row.name ?? noun(kind);
             return (
-              <div className="knowledge-context-row" key={row.id}>
+              <ContextRow
+                className="knowledge-context-row"
+                key={row.id}
+                label={'Actions for ' + title}
+                items={[
+                  {
+                    label: 'Open ' + noun(kind),
+                    onSelect: () => {
+                      void navigate(path);
+                    },
+                  },
+                  ...copyActions({
+                    title,
+                    body: row.body ?? row.description,
+                    path,
+                    kind: noun(kind),
+                  }),
+                  {
+                    label: (row.archived_at ? 'Restore ' : 'Archive ') + noun(kind),
+                    disabled: me?.role === 'viewer',
+                    separatorBefore: true,
+                    onSelect: async () => {
+                      if (
+                        !window.confirm((row.archived_at ? 'Restore ' : 'Archive ') + title + '?')
+                      )
+                        return;
+                      await setKnowledgeArchive(kind, row.id, row.version, !row.archived_at);
+                      await client.invalidateQueries({ queryKey: [kind] });
+                    },
+                  },
+                ]}
+              >
                 <Link to={path} className="knowledge-row">
                   {kind === 'documents' ? <FileText size={18} /> : <Flag size={18} />}
                   <span>{title}</span>
                   <small>{row.status?.replace('_', ' ') ?? 'Document'}</small>
                 </Link>
-                <ActionMenu
-                  label={'Actions for ' + title}
-                  items={[
-                    {
-                      label: 'Open ' + noun(kind),
-                      onSelect: () => {
-                        void navigate(path);
-                      },
-                    },
-                    ...copyActions({
-                      title,
-                      body: row.body ?? row.description,
-                      path,
-                      kind: noun(kind),
-                    }),
-                    {
-                      label: (row.archived_at ? 'Restore ' : 'Archive ') + noun(kind),
-                      disabled: me?.role === 'viewer',
-                      separatorBefore: true,
-                      onSelect: async () => {
-                        if (
-                          !window.confirm((row.archived_at ? 'Restore ' : 'Archive ') + title + '?')
-                        )
-                          return;
-                        await setKnowledgeArchive(kind, row.id, row.version, !row.archived_at);
-                        await client.invalidateQueries({ queryKey: [kind] });
-                      },
-                    },
-                  ]}
-                />
-              </div>
+              </ContextRow>
             );
           })}
         </div>
@@ -141,7 +143,7 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
   };
   return (
     <section className="issue-detail-panel" aria-label={(row ? '' : 'New ') + noun(kind)}>
-      <header className="issue-detail-toolbar">
+      <header className="issue-detail-toolbar" data-page-header>
         <Link className="button button-ghost" to={'/' + kind}>
           Back to {kind}
         </Link>
@@ -214,7 +216,6 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
             title={model.draft.title}
             description={model.draft.body}
             titleMaxLength={kind === 'documents' ? 300 : 200}
-            descriptionMaxLength={kind === 'documents' ? 500000 : 100000}
             titlePlaceholder={'Untitled ' + noun(kind)}
             readOnly={disabled}
             onChange={(field, value) =>
@@ -228,7 +229,7 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
           />
           <div className="knowledge-properties">
             {kind === 'documents' ? (
-              <Picker
+              <Combobox
                 aria-label="Project"
                 value={model.draft.project_id ?? 'none'}
                 disabled={disabled}
@@ -243,7 +244,7 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
               />
             ) : (
               <>
-                <Picker
+                <Combobox
                   aria-label="Status"
                   value={model.draft.status}
                   disabled={disabled}
@@ -253,13 +254,19 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
                   }))}
                   onChange={(status) => property({ status })}
                 />
-                <Picker
-                  aria-label="Owner"
-                  value={canonicalPersonValue(catalog, model.draft.owner_id)}
-                  disabled={disabled}
-                  options={[{ value: 'none', label: 'No owner' }, ...personOptions(catalog)]}
-                  onChange={(value) => property({ owner_id: value === 'none' ? null : value })}
-                />
+                <span className="knowledge-person">
+                  {model.draft.owner_id && (
+                    // The owner's avatar opens their card; the picker stays the value editor.
+                    <PersonChip id={model.draft.owner_id} />
+                  )}
+                  <Combobox
+                    aria-label="Owner"
+                    value={canonicalPersonValue(catalog, model.draft.owner_id)}
+                    disabled={disabled}
+                    options={[{ value: 'none', label: 'No owner' }, ...personOptions(catalog)]}
+                    onChange={(value) => property({ owner_id: value === 'none' ? null : value })}
+                  />
+                </span>
               </>
             )}
           </div>
@@ -291,7 +298,7 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
                 </span>
               ))}
               {!readOnly && (
-                <Picker
+                <Combobox
                   aria-label="Link project"
                   value="none"
                   disabled={disabled}

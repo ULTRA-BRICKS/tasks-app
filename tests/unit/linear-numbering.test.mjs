@@ -1,34 +1,6 @@
 import { test, expect } from 'bun:test';
-import { fixture } from './helpers.mjs';
-import { sourceFixture } from './linear-import-fixture.mjs';
-import { targetId } from '../../packages/imports/linear-source.mjs';
+import { numberingSetup as setup } from './linear-numbering-fixture.mjs';
 import { planReferenceEdits } from '../../packages/server/modules/linear-numbering/references.mjs';
-async function setup() {
-  const f = await fixture(),
-    source = sourceFixture();
-  const run = (await f.request('POST', '/api/v1/imports/linear', { manifest: source.manifest }))
-    .data.id;
-  for (const [collection, records] of Object.entries(source.data))
-    if (records.length)
-      expect(
-        (await f.request('POST', `/api/v1/imports/linear/${run}/records`, { collection, records }))
-          .status,
-      ).toBe(200);
-  const plan = (await f.request('POST', `/api/v1/imports/linear/${run}/plan`)).data;
-  expect(
-    (await f.request('POST', `/api/v1/imports/linear/${run}/apply`, { plan_hash: plan.plan_hash }))
-      .status,
-  ).toBe(200);
-  const rows = source.data.issues.map((r) => ({
-    source_id: r.id,
-    code: r.identifier,
-    team_id: r.team.id,
-    updated_at: r.updatedAt,
-  }));
-  const ids = rows.map((r) => targetId(f.init.workspace_id, source.ids.org, 'issues', r.source_id));
-  // The synthetic local demo team has no source mapping; it is empty and not in the managed source teams.
-  return { f, source, rows, ids, input: { source_workspace_id: source.ids.org, records: rows } };
-}
 test('reference graph uses target UUIDs and origin, never substitutes cascading or ambiguous bare codes', () => {
   const mappings = [
     { id: 'a', sourceId: 'sa', oldCode: 'HYP-10', newCode: 'HYP-11' },

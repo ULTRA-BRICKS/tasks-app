@@ -56,15 +56,15 @@ Explicit local demo credentials: `demo@example.test` / `local-demo-password`. Re
 
 ## Modules
 
-| Module | Implemented behavior |
-| --- | --- |
-| Identity | Workspaces, teams, owner/admin/member/viewer roles, password sessions, scoped expiring tokens, invitations and exact-domain invitation policy. |
-| Tickets | Identifiers, statuses, labels, assignees, priorities, Markdown, dates, estimates, comments, activity, epics/subissues, blocking/related/duplicate links, archive and soft deletion. |
-| Planning | Projects, leads, health/status, dates, milestones, team cycles and versioned edits. Projects/cycles use shared inline document pages. |
-| Views | Search, URL filters, list/board modes, ordering, bulk updates and saved views. |
-| Notifications | Subscriptions and in-app notifications. |
-| Attachments | Authenticated private local, S3/R2 or Vercel Blob storage; size/MIME checks and workspace limits. |
-| Provider integrations | Signed GitHub/Slack events, deduplication and durable inbox/outbox. Own provider credentials/installations are required for live delivery. |
+| Module                | Implemented behavior                                                                                                                                                                |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity              | Workspaces, teams, owner/admin/member/viewer roles, password sessions, scoped expiring tokens, invitations and exact-domain invitation policy.                                      |
+| Tickets               | Identifiers, statuses, labels, assignees, priorities, Markdown, dates, estimates, comments, activity, epics/subissues, blocking/related/duplicate links, archive and soft deletion. |
+| Planning              | Projects, leads, health/status, dates, milestones, team cycles and versioned edits. Projects/cycles use shared inline document pages.                                               |
+| Views                 | Search, URL filters, list/board modes, ordering, bulk updates and saved views.                                                                                                      |
+| Notifications         | Subscriptions and in-app notifications.                                                                                                                                             |
+| Attachments           | Authenticated private local, S3/R2 or Vercel Blob storage; size/MIME checks and workspace limits.                                                                                   |
+| Provider integrations | Signed GitHub/Slack events, deduplication and durable inbox/outbox. Own provider credentials/installations are required for live delivery.                                          |
 
 Optional modules are gated by the server, not only navigation. This is a modular monolith, not an untrusted plugin runtime. GraphQL and REST share domain services, workspace boundaries, audit history and transactional validation.
 
@@ -74,7 +74,7 @@ In **Settings → Security**, owners/admins can edit `allowed_email_domains`. It
 
 Tab-private drafts survive navigation and reload. A delayed save cannot erase newer typing. Remote conflicts retain local text and show explicit server/local choices. Rich Markdown uses Tiptap; unsupported extended constructs remain editable as source rather than being silently dropped. Raw HTML is not executed and external images are not automatically fetched.
 
-Hold the ellipsis affordance or a card’s non-text area to preview it; slide to an action and release to activate. Moving before the hold threshold, canceling a touch pointer, scrolling, or Escape cancels appropriately. Text retains native selection. Desktop also supports ellipsis hover, right-click on non-text space and Space for quick preview. Mobile navigation is a safe-area-aware floating dock with a contextual create button.
+Hold the ellipsis affordance or a card’s non-text area to preview it; slide to an action and release to activate. Moving before the hold threshold, canceling a touch pointer, scrolling, hiding the page or Escape cancels appropriately, and only the click that belongs to a hold is consumed. Text retains native selection. The preview is content first (whole description, attachments) with one compact action capsule: Open, Status, Assign, Copy and More; on phones it is a lifted card above the bottom safe area. Desktop also supports ellipsis hover and Space for a quick preview; right-click and Shift+F10 open the same actions as a menu ([task preview](docs/TASK-PREVIEW.md)). Mobile navigation is a safe-area-aware floating dock with a contextual create button.
 
 `J/K` or arrows move through visible issues; Enter opens; `X` selects; `C/V` opens the new issue page; `G` then `I/M/P/C` navigates; `?` opens help. Cmd/Ctrl+K deliberately works inside editors. Ordinary shortcuts do not hijack typing, IME, selection or active popovers. Escape cancels the active edit or returns from issue details.
 
@@ -87,8 +87,19 @@ No full realtime collaboration, offline synchronization or account/password-reco
 ```graphql
 query WorkQueue {
   issues(first: 20, filter: { priority: { lte: 2 } }) {
-    nodes { id identifier title state { name type } }
-    pageInfo { hasNextPage endCursor }
+    nodes {
+      id
+      identifier
+      title
+      state {
+        name
+        type
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
   }
 }
 ```

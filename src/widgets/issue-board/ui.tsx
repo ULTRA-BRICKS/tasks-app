@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import {
   DndContext,
   PointerSensor,
@@ -15,20 +15,25 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Plus } from 'lucide-react';
 import type { Issue, Status } from '@tickets/contracts';
 import { IssueCard, StatusIcon } from '@/entities/issue';
-import { useIssueUpdate, useIssueWriteBusy } from '@/features/issue-edit';
+import { useIssueUpdate, useIssueWriteBusy, useTaskActions } from '@/features/issue-edit';
 import { ErrorState, Button } from '@/shared/ui';
 import { errorMessage } from '@/shared/api/client';
+/** The page's assignee control for one card (features/issue-edit IssueAssignee). */
+type AssigneeControl = (issue: Issue) => ReactNode;
 function Draggable({
   issue,
   onOpen,
   disabled,
+  assigneeControl,
 }: {
   issue: Issue;
   onOpen: () => void;
   disabled: boolean;
+  assigneeControl?: AssigneeControl;
 }) {
   const { setNodeRef, setActivatorNodeRef, isDragging, transform, listeners, attributes } =
     useDraggable({ id: issue.id, disabled });
+  const actions = useTaskActions(issue, { onOpen });
   return (
     <div
       ref={setNodeRef}
@@ -46,7 +51,12 @@ function Draggable({
       >
         <GripVertical size={13} />
       </button>
-      <IssueCard issue={issue} onOpen={onOpen} />
+      <IssueCard
+        issue={issue}
+        onOpen={onOpen}
+        actions={actions}
+        assigneeControl={assigneeControl?.(issue)}
+      />
     </div>
   );
 }
@@ -56,12 +66,14 @@ function Column({
   onOpen,
   onCreate,
   disabled,
+  assigneeControl,
 }: {
   status: Status;
   issues: Issue[];
   onOpen: (id: string) => void;
   onCreate: (status: Status) => void;
   disabled: boolean;
+  assigneeControl?: AssigneeControl;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.id });
   return (
@@ -86,7 +98,13 @@ function Column({
       </header>
       <div className="board-cards">
         {issues.map((i) => (
-          <Draggable key={i.id} issue={i} onOpen={() => onOpen(i.id)} disabled={disabled} />
+          <Draggable
+            key={i.id}
+            issue={i}
+            onOpen={() => onOpen(i.id)}
+            disabled={disabled}
+            assigneeControl={assigneeControl}
+          />
         ))}
         {!issues.length && <div className="board-empty">Drop a task here</div>}
       </div>
@@ -99,12 +117,14 @@ export function IssueBoard({
   onOpen,
   onCreate,
   readOnly,
+  assigneeControl,
 }: {
   issues: Issue[];
   statuses: Status[];
   onOpen: (id: string) => void;
   onCreate: (status: Status) => void;
   readOnly: boolean;
+  assigneeControl?: AssigneeControl;
 }) {
   const [active, setActive] = useState<Issue | null>(null),
     mutation = useIssueUpdate(),
@@ -146,13 +166,14 @@ export function IssueBoard({
               onOpen={onOpen}
               onCreate={onCreate}
               disabled={readOnly || busy}
+              assigneeControl={assigneeControl}
             />
           ))}
         </div>
         <DragOverlay>
           {active && (
             <div className="drag-preview">
-              <IssueCard issue={active} onOpen={() => {}} />
+              <IssueCard issue={active} onOpen={() => {}} actions={[]} />
             </div>
           )}
         </DragOverlay>

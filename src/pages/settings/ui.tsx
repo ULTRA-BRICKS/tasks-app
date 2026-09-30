@@ -1,5 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { PeopleInvitations } from '@/features/people-invitations';
+import { selectedPerson } from '@/shared/lib/people';
+import { IdentityReview } from './identity-review';
 import { WorkspacePolicySettings } from '@/features/workspace-policy';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,9 +17,18 @@ import {
   Palette,
   Plus,
 } from 'lucide-react';
-import { useCatalog, useMe } from '@/entities/workspace';
+import { useCatalog, useMe, PersonChip } from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
-import { Button, Input, Textarea, Picker, Avatar, ErrorState, Loading } from '@/shared/ui';
+import {
+  Button,
+  Input,
+  Textarea,
+  Picker,
+  Combobox,
+  Avatar,
+  ErrorState,
+  Loading,
+} from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
 type IntegrationState = {
@@ -126,7 +137,7 @@ export function SettingsPage() {
   ];
   return (
     <>
-      <header className="page-toolbar">
+      <header className="page-toolbar" data-page-header>
         <Button
           className="mobile-only"
           variant="ghost"
@@ -204,10 +215,15 @@ export function SettingsPage() {
                   <div className="member-row" key={p.id}>
                     <Avatar name={p.name} size="md" />
                     <div>
-                      <strong>{p.name}</strong>
+                      <strong>
+                        <PersonChip id={p.id} label={p.name} display="text" />
+                        {selectedPerson(catalog, p.id)?.needs_review && (
+                          <span className="review-badge">Needs review</span>
+                        )}
+                      </strong>
                       <span>{p.email}</span>
                     </div>
-                    <Picker
+                    <Combobox
                       aria-label={`Role of ${p.name}`}
                       value={p.role}
                       options={['owner', 'admin', 'member', 'viewer'].map((v) => ({
@@ -223,6 +239,7 @@ export function SettingsPage() {
                   </div>
                 ))}
               </div>
+              <IdentityReview catalog={catalog} />
               {admin && <PeopleInvitations />}
             </>
           )}

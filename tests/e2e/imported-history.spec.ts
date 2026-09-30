@@ -42,16 +42,17 @@ test('imported history uses source names and readable events on desktop and mobi
   const activity = page.locator('.activity-section');
   // This is a geometry/history assertion, not an in-flight navigation-cancellation test.
   // Finish the current page's queries before reloading into another viewport in WebKit.
-  await expect(activity).toContainText('changed status: Todo → Done');
+  await expect(activity).toContainText('Todo → Done');
   await page.waitForLoadState('networkidle');
   for (const width of [1280, 393]) {
     await page.setViewportSize({ width, height: 900 });
     await page.reload();
-    await expect(activity).toContainText('changed status: Todo → Done');
-    await expect(activity).toContainText('Linear updated the description');
+    await expect(activity).toContainText('Todo → Done');
+    // Linear history records that the description changed, never its text.
+    await expect(activity).toContainText('Linear history does not include the text');
     await expect(activity).toContainText('No priority → Urgent');
-    await expect(activity).toContainText('added labels: Imported fixture');
-    await expect(activity).toContainText('changed parent task: Unavailable task → No parent');
+    await expect(activity).toContainText('added Imported fixture');
+    await expect(activity).toContainText('Unavailable task → No parent');
     await expect(activity).toContainText('archived the task');
     await expect(activity).not.toContainText(/\bissues?\b/i);
     await expect(activity).not.toContainText('linear_imported_change');

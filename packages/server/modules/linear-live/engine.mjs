@@ -49,7 +49,7 @@ const ISSUE_REFS = {
   milestone_id: ['projectMilestoneId', 'projectMilestones'],
   parent_id: ['parentId', 'issues'],
 };
-export function sourcePatch(collection, patch, resolver) {
+export function sourcePatch(collection, patch, resolver, { teamId } = {}) {
   const output = {};
   const simple =
     collection === 'issues'
@@ -123,7 +123,7 @@ export function sourcePatch(collection, patch, resolver) {
       const [name, kind] = ISSUE_REFS[field];
       output[name] = resolver.reverse(kind, value);
     } else if (collection === 'issues' && field === 'label_ids')
-      output.labelIds = value.map((id) => resolver.reverse('issueLabels', id));
+      output.labelIds = value.map((id) => resolver.reverse('issueLabels', id, { teamId }));
     else
       assert(
         false,
@@ -415,13 +415,19 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
         conflicts[field] = { ...state.conflicts[field], local: l, source: r };
         continue;
       }
+      // Neither side changed since the last synchronized pair. Their values can still differ
+      // because Linear rewrites the Markdown it stores (see readCreationIntent), and copying
+      // that rewrite over the authored native text would be a change nobody made.
+      if (same(field, l, baseLocal[field]) && same(field, r, baseSource[field])) continue;
       if (same(field, l, baseLocal[field])) toNative[field] = r;
       else if (same(field, r, baseSource[field])) toSource[field] = l;
       else conflicts[field] = { baseline: baseLocal[field], local: l, source: r };
     }
     const localFingerprint = digest(context.native);
     if (Object.keys(toSource).length) {
-      const input = sourcePatch(collection, toSource, context.resolver);
+      const input = sourcePatch(collection, toSource, context.resolver, {
+        teamId: remote.team?.id,
+      });
       const checked = await readSourceEntity(env, collection, remote.id, io);
       if (!checked || checked.updatedAt !== remote.updatedAt)
         throw new SourceError('SOURCE_CHANGED_BEFORE_WRITE', 1);

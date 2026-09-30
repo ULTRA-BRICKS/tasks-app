@@ -3,7 +3,13 @@ import { digest } from '../../../imports/linear-source.mjs';
 import { markdownEquivalent } from '../linear-import/source-contract.mjs';
 import { requestLinear, readSourceEntity, SOURCE_MODELS } from './client.mjs';
 import { loadNative, referenceResolver, registerSource, normalizedNative } from './context.mjs';
-import { assertJobFence, readEntityState, writeEntityState, finishSyncJob } from './store.mjs';
+import {
+  assertJobFence,
+  readCreationIntent,
+  readEntityState,
+  writeEntityState,
+  finishSyncJob,
+} from './store.mjs';
 import { normalizedSource } from './model.mjs';
 const TYPES = Object.freeze({
   projects: 'Project',
@@ -92,16 +98,13 @@ export async function exportNativeMetadata(db, env, job, options = {}) {
     const native = await loadNative(tx, job.config, collection, target);
     assert(native, 404, 'SYNC_TARGET_ABSENT', 'Native metadata is unavailable');
     const resolver = await referenceResolver(tx, job.config, collection, null, null, native);
-    const state = await readEntityState(tx, job.workspace_id, collection, target);
-    const original =
-      state?.intent?.kind === 'create' && state.intent.nativeBefore?.id === target
-        ? state.intent.nativeBefore
-        : native;
+    const intent = await readCreationIntent(tx, job.workspace_id, collection, target);
     return {
       native,
-      original,
+      original: intent ? intent.nativeBefore : native,
       input: createInput(collection, native, resolver),
       fingerprint: digest(native),
+      createdHere: Boolean(intent),
     };
   });
   const page = (
@@ -121,6 +124,7 @@ export async function exportNativeMetadata(db, env, job, options = {}) {
   let record = page.nodes[0];
   if (!record) {
     prepared.original = prepared.native;
+    prepared.createdHere = true;
     if (collection === 'projects') {
       const list = (
         await requestLinear(
@@ -191,13 +195,16 @@ export async function exportNativeMetadata(db, env, job, options = {}) {
     );
     record = outcome[model.one];
   }
+  // Content identifies only a record we did not create (see readCreationIntent); the
+  // normalization difference is recorded below as a source-create-normalization conflict.
   assert(
     record.id === target &&
-      (record.title ?? record.name) === (prepared.original.title ?? prepared.original.name) &&
-      markdownEquivalent(
-        record.content ?? record.description ?? '',
-        prepared.original.body ?? prepared.original.description ?? '',
-      ),
+      (prepared.createdHere ||
+        ((record.title ?? record.name) === (prepared.original.title ?? prepared.original.name) &&
+          markdownEquivalent(
+            record.content ?? record.description ?? '',
+            prepared.original.body ?? prepared.original.description ?? '',
+          ))),
     409,
     'SOURCE_IDENTITY_CONFLICT',
     'Source UUID has a different title or body',
@@ -239,6 +246,10 @@ export async function exportNativeMetadata(db, env, job, options = {}) {
       originalNative = normalizedNative(collection, prepared.original, Object.keys(source)),
       conflicts = {};
     for (const field of Object.keys(source)) {
+      // A confirmed create may reserialize authored Markdown. Preserve the distinct
+      // baselines, as for issue/comment creation, without freezing subsequent edits.
+      // Dates, ownership and other source defaults remain explicit conflicts.
+      if (prepared.createdHere && ['description', 'body'].includes(field)) continue;
       const equal = ['description', 'body'].includes(field)
         ? markdownEquivalent(originalNative[field], source[field])
         : digest(originalNative[field]) === digest(source[field]);

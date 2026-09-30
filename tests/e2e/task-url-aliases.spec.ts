@@ -1,5 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { login } from './session-fixture';
+import { teamSourceFixture } from '../unit/linear-import-fixture.mjs';
 test('UUID, code, optional slug and legacy paths open the same task without changing identity', async ({
   page,
 }) => {
@@ -133,4 +134,99 @@ test('saving and commenting from a code-slug URL refresh the same immutable task
   const fresh = await (await page.request.get('/api/v1/issues/' + task.id)).json();
   expect(fresh.key).toBe(task.key);
   expect(fresh.title).toBe(updated);
+});
+
+/** Imports a synthetic Linear team (Parent is <team>-7, Child <team>-8) and returns a renumber helper. */
+async function importedSourceTeam(page: Page, team: string) {
+  const source = teamSourceFixture(team);
+  const headers = { Origin: new URL(page.url()).origin, 'x-tickets-csrf': '1' };
+  const post = async (path: string, data?: unknown) => {
+    const response = await page.request.post(path, { headers, data });
+    expect(response.status(), path).toBeLessThan(300);
+    return response.json();
+  };
+  const run = (await post('/api/v1/imports/linear', { manifest: source.manifest })).id;
+  for (const [collection, records] of Object.entries(source.data))
+    if (records.length)
+      await post(`/api/v1/imports/linear/${run}/records`, { collection, records });
+  const plan = await post(`/api/v1/imports/linear/${run}/plan`);
+  await post(`/api/v1/imports/linear/${run}/apply`, { plan_hash: plan.plan_hash });
+  return async (codes: { parent: string; child: string }) => {
+    // The fixture's source updatedAt; the snapshot schema requires it on every record.
+    const updated_at = '2024-02-03T04:05:06.007Z',
+      team_id = source.ids.team;
+    const input = {
+      source_workspace_id: source.ids.org,
+      records: [
+        { source_id: source.ids.issue, code: codes.parent, team_id, updated_at },
+        { source_id: source.ids.child, code: codes.child, team_id, updated_at },
+      ],
+    };
+    const preview = await post('/api/v1/sync/linear/numbering', input);
+    const applied = await post('/api/v1/sync/linear/numbering', {
+      ...input,
+      plan_hash: preview.plan_hash,
+    });
+    expect(applied.applied).toBe(true);
+  };
+}
+test('a pre-canonical code link opens the renumbered task while the bare code keeps its holder', async ({
+  page,
+  browserName,
+}) => {
+  await login(page);
+  const team = browserName === 'webkit' ? 'PCW' : 'PCC',
+    old = team + '-7',
+    next = team + '-8';
+  const renumber = await importedSourceTeam(page, team);
+  await renumber({ parent: next, child: old });
+  let mutations = 0;
+  page.on('request', (request) => {
+    if (request.url().includes('/api/') && !['GET', 'HEAD'].includes(request.method())) mutations++;
+  });
+  await page.goto('/tasks/pre-canonical/' + old.toLowerCase() + '-a-stale-title');
+  await expect(
+    page.getByRole('heading', { name: 'Pre-canonical ' + old, exact: true }),
+  ).toBeVisible();
+  const matches = page.getByRole('list', { name: 'Tasks that had ' + old });
+  await expect(matches.getByRole('listitem').filter({ hasText: 'Parent' })).toContainText(
+    old + ' → ' + next,
+  );
+  await expect(page.getByText('Today ' + old + ' opens')).toBeVisible();
+  await matches.getByRole('link', { name: next + ' Parent' }).click();
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Parent');
+  await expect(page.getByText(next, { exact: true }).first()).toBeVisible();
+  await page.goBack();
+  await expect(
+    page.getByRole('heading', { name: 'Pre-canonical ' + old, exact: true }),
+  ).toBeVisible();
+  await page.goto('/issues/pre-canonical/' + old + '/a-stale-title');
+  await expect(page).toHaveURL(new RegExp('/tasks/pre-canonical/' + old + '/a-stale-title$'));
+  await expect(
+    page.getByRole('heading', { name: 'Pre-canonical ' + old, exact: true }),
+  ).toBeVisible();
+  await page.goto('/tasks/' + old);
+  await expect(page.getByRole('textbox', { name: 'Title', exact: true })).toHaveValue('Child');
+  await page.goto('/tasks/pre-canonical/' + team + '-99');
+  await expect(
+    page.getByRole('heading', {
+      name: 'No task had ' + team + '-99 before canonical renumbering',
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open current ' + team + '-99' })).toBeVisible();
+  expect(mutations).toBe(0);
+
+  await renumber({ parent: old, child: next });
+  await page.goto('/tasks/pre-canonical/' + old);
+  await expect(
+    page.getByText(old + ' referred to 2 tasks before canonical renumbering'),
+  ).toBeVisible();
+  await expect(matches.getByRole('link')).toHaveText([
+    new RegExp(next + '\\s*Child'),
+    new RegExp(old + '\\s*Parent'),
+  ]);
+  await expect(matches.getByRole('listitem').filter({ hasText: 'Parent' })).toContainText(
+    next + ' → ' + old,
+  );
 });
