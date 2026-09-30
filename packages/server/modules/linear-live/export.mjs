@@ -3,7 +3,13 @@ import { digest, targetId } from '../../../imports/linear-source.mjs';
 import { markdownEquivalent } from '../linear-import/source-contract.mjs';
 import { requestLinear, SOURCE_MODELS } from './client.mjs';
 import { loadNative, referenceResolver, registerSource, normalizedNative } from './context.mjs';
-import { assertJobFence, readEntityState, writeEntityState, finishSyncJob } from './store.mjs';
+import {
+  assertJobFence,
+  readCreationIntent,
+  readEntityState,
+  writeEntityState,
+  finishSyncJob,
+} from './store.mjs';
 import { assignLinearCode } from './domain.mjs';
 import { normalizedSource } from './model.mjs';
 async function beginSourceCreate(db, job, collection, target, native, input, fingerprint) {
@@ -60,12 +66,14 @@ export async function exportNativeIssue(db, env, job, options) {
     if (assignee) input.assigneeId = reverse('users', assignee);
     if (native.due_date) input.dueDate = native.due_date;
     if (native.estimate !== null) input.estimate = native.estimate;
-    const state = await readEntityState(tx, job.workspace_id, 'issues', target);
-    const original =
-      state?.intent?.kind === 'create' && state.intent.nativeBefore?.id === target
-        ? state.intent.nativeBefore
-        : native;
-    return { native, original, input, fingerprint: digest(native) };
+    const intent = await readCreationIntent(tx, job.workspace_id, 'issues', target);
+    return {
+      native,
+      original: intent ? intent.nativeBefore : native,
+      input,
+      fingerprint: digest(native),
+      createdHere: Boolean(intent),
+    };
   });
   const existing = (
     await requestLinear(
@@ -86,6 +94,7 @@ export async function exportNativeIssue(db, env, job, options) {
   let record = existing.nodes[0];
   if (!record) {
     prepared.original = prepared.native;
+    prepared.createdHere = true;
     await beginSourceCreate(
       db,
       job,
@@ -113,10 +122,12 @@ export async function exportNativeIssue(db, env, job, options) {
     );
     record = result.issue;
   }
+  // Content identifies only a record we did not create (see readCreationIntent).
   assert(
     record.id === target &&
-      record.title === prepared.original.title &&
-      markdownEquivalent(record.description ?? '', prepared.original.description),
+      (prepared.createdHere ||
+        (record.title === prepared.original.title &&
+          markdownEquivalent(record.description ?? '', prepared.original.description))),
     409,
     'SOURCE_IDENTITY_CONFLICT',
     'Existing source UUID has different content; explicit reconciliation is required',
@@ -197,12 +208,14 @@ export async function exportNativeComment(db, env, job, options) {
       body: row.body,
       createdAt: row.created_at,
     };
-    const state = await readEntityState(tx, job.workspace_id, 'comments', target);
-    const original =
-      state?.intent?.kind === 'create' && state.intent.nativeBefore?.id === target
-        ? state.intent.nativeBefore
-        : row;
-    return { row, original, input, fingerprint: digest(row) };
+    const intent = await readCreationIntent(tx, job.workspace_id, 'comments', target);
+    return {
+      row,
+      original: intent ? intent.nativeBefore : row,
+      input,
+      fingerprint: digest(row),
+      createdHere: Boolean(intent),
+    };
   });
   const page = (
     await requestLinear(
@@ -223,6 +236,7 @@ export async function exportNativeComment(db, env, job, options) {
   let record = page.nodes[0];
   if (!record) {
     prepared.original = prepared.row;
+    prepared.createdHere = true;
     await beginSourceCreate(
       db,
       job,
@@ -253,7 +267,7 @@ export async function exportNativeComment(db, env, job, options) {
   assert(
     record?.id === target &&
       record.issue?.id === prepared.input.issueId &&
-      markdownEquivalent(record.body, prepared.original.body),
+      (prepared.createdHere || markdownEquivalent(record.body, prepared.original.body)),
     409,
     'SOURCE_IDENTITY_CONFLICT',
     'Source comment UUID does not match the native comment',
