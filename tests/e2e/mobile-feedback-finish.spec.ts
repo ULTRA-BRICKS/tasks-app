@@ -450,22 +450,26 @@ test('a pending preview action keeps keyboard focus in the toolbar and reports f
   await page.keyboard.press('Enter');
   const preview = page.getByRole('dialog', { name: 'Task preview', exact: true });
   const open = preview.getByRole('button', { name: 'Open task', exact: true });
-  const copy = preview.getByRole('button', { name: 'Copy link', exact: true });
+  const copy = preview.getByRole('button', { name: 'Copy', exact: true });
   await expect(open).toBeFocused();
-  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('End');
+  await page.keyboard.press('ArrowLeft');
   await expect(copy).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('menuitem', { name: 'Copy link', exact: true })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(preview).toHaveAttribute('aria-busy', 'true');
   await expect(copy).toBeDisabled();
   await expect(copy).toBeFocused();
   await page.keyboard.press('Enter');
+  await expect(page.getByRole('menu')).toHaveCount(0);
   expect(await page.evaluate(() => Reflect.get(window, 'copyCalls'))).toBe(1);
   await page.evaluate(() => (Reflect.get(window, 'failCopy') as () => void)());
   await expect(preview.getByRole('alert')).toContainText('could not be confirmed');
   await expect(copy).toBeEnabled();
   await expect(copy).toBeFocused();
   await page.keyboard.press('ArrowLeft');
-  await expect(open).toBeFocused();
+  await expect(preview.getByRole('combobox', { name: /^Assignee: / })).toBeFocused();
 });
 
 /** Largest per-channel difference between two same-size PNG screenshots, decoded by the page. */

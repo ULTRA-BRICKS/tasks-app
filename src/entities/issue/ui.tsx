@@ -12,9 +12,12 @@ import {
   SignalLow,
   AlertTriangle,
   Minus,
+  FolderKanban,
+  Paperclip,
+  CalendarDays,
 } from 'lucide-react';
 import type { Issue, Status, StatusCategory } from '@tickets/contracts';
-import { Avatar, PressPreview, Markdown } from '@/shared/ui';
+import { Avatar, PressPreview, Markdown, type MenuAction } from '@/shared/ui';
 import { formatDate, isOverdue } from '@/shared/lib/date';
 import { priorities, useIssue } from './model';
 export function StatusIcon({
@@ -55,41 +58,37 @@ export function PriorityIcon({ value }: { value: number }) {
     />
   );
 }
-export function IssueRow({
-  issue,
-  status,
-  onOpen,
-  selected,
-  onSelect,
-  canSelect = true,
-  updating = false,
-  assigneeControl,
-}: {
+export interface IssueRowProps {
   issue: Issue;
   status?: Status;
   onOpen: () => void;
+  /** The task's shared contextual actions (features/issue-edit useTaskActions). */
+  actions: MenuAction[];
   selected?: boolean;
   onSelect?: () => void;
   canSelect?: boolean;
   updating?: boolean;
   assigneeControl?: ReactNode;
-}) {
+}
+export function IssueRow({
+  issue,
+  status,
+  onOpen,
+  actions,
+  selected,
+  onSelect,
+  canSelect = true,
+  updating = false,
+  assigneeControl,
+}: IssueRowProps) {
   return (
     <PressPreview
       label={`Preview ${issue.key}`}
       dialogLabel="Task preview"
+      heading={issue.key}
+      menuLabel={`Actions for ${issue.key}`}
       content={<IssuePeek issue={issue} />}
-      actions={[
-        { label: 'Open task', run: onOpen },
-        {
-          label: 'Copy link',
-          run: () =>
-            navigator.clipboard.writeText(new URL('/tasks/' + issue.id, location.origin).href),
-        },
-        ...(canSelect && onSelect
-          ? [{ label: selected ? 'Deselect task' : 'Select task', run: onSelect }]
-          : []),
-      ]}
+      actions={actions}
     >
       <div
         className={'issue-row' + (selected ? ' is-selected' : '')}
@@ -152,68 +151,122 @@ export function IssueCard({
   issue,
   onOpen,
   assigneeAvatarUrl,
+  actions,
+  assigneeControl,
 }: {
   issue: Issue;
   onOpen: () => void;
-  /** Photo of the assignee's canonical person (docs/SLACK-PROFILES.md); initials without it. */
+  actions: MenuAction[];
+  /** Rendered beside the open button: a combobox cannot nest inside a button. */
+  assigneeControl?: ReactNode;
+  /** Photo of the assignee's canonical person (docs/SLACK-PROFILES.md) for the avatar shown
+   * without an assignee control; initials without it. */
   assigneeAvatarUrl?: string | null;
 }) {
   return (
     <PressPreview
       label={`Preview ${issue.key}`}
       dialogLabel="Task preview"
+      heading={issue.key}
+      menuLabel={`Actions for ${issue.key}`}
       content={<IssuePeek issue={issue} />}
-      actions={[
-        { label: 'Open task', run: onOpen },
-        {
-          label: 'Copy link',
-          run: () =>
-            navigator.clipboard.writeText(new URL('/tasks/' + issue.id, location.origin).href),
-        },
-      ]}
+      actions={actions}
     >
-      <button
-        type="button"
-        className="issue-card"
-        onClick={() => {
-          if (!window.getSelection()?.toString()) onOpen();
-        }}
-      >
-        <span className="card-meta">
-          <span className="issue-key" data-selectable>
-            {issue.key}
+      <div className="issue-card">
+        <button
+          type="button"
+          className="issue-card-open"
+          aria-label={issue.key + ' ' + issue.title}
+          onClick={() => {
+            if (!window.getSelection()?.toString()) onOpen();
+          }}
+        >
+          <span className="card-meta">
+            <span className="issue-key" data-selectable>
+              {issue.key}
+            </span>
+            <PriorityIcon value={issue.priority} />
           </span>
-          <PriorityIcon value={issue.priority} />
+          <span className="card-title" data-selectable>
+            {issue.title}
+          </span>
+          <span className="card-footer">
+            <span>{issue.labels[0]?.name ?? (issue.kind === 'epic' ? 'Epic' : 'Task')}</span>
+          </span>
+        </button>
+        <span className="card-assignee">
+          {assigneeControl ?? <Avatar name={issue.assignee_name} src={assigneeAvatarUrl} />}
         </span>
-        <span className="card-title" data-selectable>
-          {issue.title}
-        </span>
-        <span className="card-footer">
-          <span>{issue.labels[0]?.name ?? (issue.kind === 'epic' ? 'Epic' : 'Task')}</span>
-          <Avatar name={issue.assignee_name} src={assigneeAvatarUrl} />
-        </span>
-      </button>
+      </div>
     </PressPreview>
   );
 }
 
+/** Content first: title, compact properties, the whole description and attachments. */
 function IssuePeek({ issue }: { issue: Issue }) {
   const details = useIssue(issue.id);
   return (
     <>
-      <span className="issue-key" data-selectable>
-        {issue.key}
-      </span>
       <h2 data-selectable>{issue.title}</h2>
-      <p className="muted">
-        {priorities[issue.priority]?.label} · {issue.assignee_name || 'Unassigned'}
-      </p>
+      <div className="peek-properties">
+        <span className="peek-chip">
+          <StatusIcon category={issue.status_category} color={issue.status_color} />
+          {issue.status_name}
+        </span>
+        <span className="peek-chip">
+          <PriorityIcon value={issue.priority} />
+          {priorities[issue.priority]?.label}
+        </span>
+        <span className="peek-chip">
+          <Avatar name={issue.assignee_name} />
+          {issue.assignee_name || 'Unassigned'}
+        </span>
+        {issue.labels.map((l) => (
+          <span className="label-pill" key={l.id}>
+            <i style={{ '--label-color': l.color } as CSSProperties} />
+            {l.name}
+          </span>
+        ))}
+        {issue.project_name && (
+          <span className="peek-chip">
+            <FolderKanban size={14} />
+            {issue.project_name}
+          </span>
+        )}
+        {issue.due_date && (
+          <span
+            className={
+              'peek-chip' + (isOverdue(issue.due_date, issue.status_category) ? ' overdue' : '')
+            }
+          >
+            <CalendarDays size={14} />
+            {formatDate(issue.due_date)}
+          </span>
+        )}
+      </div>
       {details.isPending ? (
         <output>Loading preview…</output>
       ) : details.error ? (
         <output>Details unavailable. You can still open the task.</output>
       ) : (
-        <Markdown>{(details.data?.description || 'No description yet.').slice(0, 2000)}</Markdown>
+        <>
+          <Markdown>{details.data.description || 'No description yet.'}</Markdown>
+          {details.data.attachments.length > 0 && (
+            <section className="peek-attachments" aria-label="Attachments">
+              {details.data.attachments.map((a) => (
+                <a
+                  className="attachment-row"
+                  key={a.id}
+                  href={`/api/v1/attachments/${a.id}/content`}
+                >
+                  <Paperclip size={15} />
+                  <span>{a.filename}</span>
+                  <span className="muted">{Math.ceil(a.bytes / 1024)} KB</span>
+                </a>
+              ))}
+            </section>
+          )}
+        </>
       )}
     </>
   );

@@ -39,7 +39,8 @@ export function IssueAssignee({
     [person],
   );
   return (
-    <div className="row-assignee" ref={control}>
+    // A touch hold on the avatar opens the task preview at its Assign action.
+    <div className="row-assignee" data-hold-action="assign" ref={control}>
       <Combobox
         aria-label={'Assignee for ' + issue.key + ': ' + name}
         searchLabel="Search people"

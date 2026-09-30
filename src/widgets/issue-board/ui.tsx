@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState, type ComponentProps, type CSSProperties, type ReactNode } from 'react';
 import {
   DndContext,
   PointerSensor,
@@ -16,18 +16,19 @@ import { GripVertical, Plus } from 'lucide-react';
 import type { Issue, Status } from '@tickets/contracts';
 import { IssueCard, StatusIcon } from '@/entities/issue';
 import { useCatalog } from '@/entities/workspace';
-import { useIssueUpdate, useIssueWriteBusy } from '@/features/issue-edit';
+import { useIssueUpdate, useIssueWriteBusy, useTaskActions } from '@/features/issue-edit';
 import { selectedPerson } from '@/shared/lib/people';
 import { ErrorState, Button } from '@/shared/ui';
 import { errorMessage } from '@/shared/api/client';
+/** The page's assignee control for one card (features/issue-edit IssueAssignee). */
+type AssigneeControl = (issue: Issue) => ReactNode;
 /** A board card whose assignee photo comes from the shared person projection. */
-function BoardCard({ issue, onOpen }: { issue: Issue; onOpen: () => void }) {
+function BoardCard(props: Omit<ComponentProps<typeof IssueCard>, 'assigneeAvatarUrl'>) {
   const { data: catalog } = useCatalog();
   return (
     <IssueCard
-      issue={issue}
-      onOpen={onOpen}
-      assigneeAvatarUrl={selectedPerson(catalog, issue.assignee_id)?.avatar_url}
+      {...props}
+      assigneeAvatarUrl={selectedPerson(catalog, props.issue.assignee_id)?.avatar_url}
     />
   );
 }
@@ -35,13 +36,16 @@ function Draggable({
   issue,
   onOpen,
   disabled,
+  assigneeControl,
 }: {
   issue: Issue;
   onOpen: () => void;
   disabled: boolean;
+  assigneeControl?: AssigneeControl;
 }) {
   const { setNodeRef, setActivatorNodeRef, isDragging, transform, listeners, attributes } =
     useDraggable({ id: issue.id, disabled });
+  const actions = useTaskActions(issue, { onOpen });
   return (
     <div
       ref={setNodeRef}
@@ -59,7 +63,12 @@ function Draggable({
       >
         <GripVertical size={13} />
       </button>
-      <BoardCard issue={issue} onOpen={onOpen} />
+      <BoardCard
+        issue={issue}
+        onOpen={onOpen}
+        actions={actions}
+        assigneeControl={assigneeControl?.(issue)}
+      />
     </div>
   );
 }
@@ -69,12 +78,14 @@ function Column({
   onOpen,
   onCreate,
   disabled,
+  assigneeControl,
 }: {
   status: Status;
   issues: Issue[];
   onOpen: (id: string) => void;
   onCreate: (status: Status) => void;
   disabled: boolean;
+  assigneeControl?: AssigneeControl;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.id });
   return (
@@ -99,7 +110,13 @@ function Column({
       </header>
       <div className="board-cards">
         {issues.map((i) => (
-          <Draggable key={i.id} issue={i} onOpen={() => onOpen(i.id)} disabled={disabled} />
+          <Draggable
+            key={i.id}
+            issue={i}
+            onOpen={() => onOpen(i.id)}
+            disabled={disabled}
+            assigneeControl={assigneeControl}
+          />
         ))}
         {!issues.length && <div className="board-empty">Drop a task here</div>}
       </div>
@@ -112,12 +129,14 @@ export function IssueBoard({
   onOpen,
   onCreate,
   readOnly,
+  assigneeControl,
 }: {
   issues: Issue[];
   statuses: Status[];
   onOpen: (id: string) => void;
   onCreate: (status: Status) => void;
   readOnly: boolean;
+  assigneeControl?: AssigneeControl;
 }) {
   const [active, setActive] = useState<Issue | null>(null),
     mutation = useIssueUpdate(),
@@ -159,13 +178,14 @@ export function IssueBoard({
               onOpen={onOpen}
               onCreate={onCreate}
               disabled={readOnly || busy}
+              assigneeControl={assigneeControl}
             />
           ))}
         </div>
         <DragOverlay>
           {active && (
             <div className="drag-preview">
-              <BoardCard issue={active} onOpen={() => {}} />
+              <BoardCard issue={active} onOpen={() => {}} actions={[]} />
             </div>
           )}
         </DragOverlay>

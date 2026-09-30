@@ -44,16 +44,18 @@ export async function exportNativeIssue(db, env, job, options) {
       'Deleted native issue must not be created in Linear',
     );
     const resolver = await referenceResolver(tx, job.config, 'issues', null, null, native);
-    const reverse = (kind, id) => (id == null ? null : resolver.reverse(kind, id));
+    const reverse = (kind, id, options) =>
+      id == null ? null : resolver.reverse(kind, id, options);
+    const teamId = reverse('teams', native.team_id);
     const input = {
       id: target,
-      teamId: reverse('teams', native.team_id),
+      teamId,
       title: native.title,
       description: native.description,
       stateId: reverse('workflowStates', native.status_id),
       priority: native.priority,
       createdAt: native.created_at,
-      labelIds: (native.label_ids ?? []).map((id) => reverse('issueLabels', id)),
+      labelIds: (native.label_ids ?? []).map((id) => reverse('issueLabels', id, { teamId })),
     };
     for (const [field, source, kind] of [
       ['project_id', 'projectId', 'projects'],
