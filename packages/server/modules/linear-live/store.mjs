@@ -401,6 +401,20 @@ export async function readEntityState(tx, workspace, collection, sourceId) {
   );
   return row ? JSON.parse(row.payload) : null;
 }
+// The intent an exporter persists immediately before creating `target` in Linear under that
+// client-chosen UUID. When it exists, a Linear record with that UUID is the one this runtime
+// created: exporters adopt it without comparing content. Linear rewrites Markdown when it
+// stores it: bare domain-like words such as `ship.sh` become links, and an HTML comment after
+// a quote moves into the quote. A content check would keep the task PENDING forever.
+// Squatting the UUID in the gap between intent and create would require Linear write access.
+// That access can already edit the adopted record afterwards, so this adds no new capability.
+// A same-UUID record without this intent still needs matching content.
+export async function readCreationIntent(tx, workspace, collection, target) {
+  const state = await readEntityState(tx, workspace, collection, target);
+  return state?.intent?.kind === 'create' && state.intent.nativeBefore?.id === target
+    ? state.intent
+    : null;
+}
 export async function writeEntityState(tx, workspace, collection, sourceId, value) {
   const stamp = now();
   await tx.exec(

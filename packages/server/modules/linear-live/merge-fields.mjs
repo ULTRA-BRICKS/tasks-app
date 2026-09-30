@@ -1,12 +1,14 @@
 import { canonical } from '../../../imports/linear-source.mjs';
 import { markdownEquivalent } from '../linear-import/source-contract.mjs';
+// Fields holding Markdown, which Linear rewrites when it stores it; compared semantically.
+export const MARKDOWN_FIELDS = Object.freeze(['description', 'body']);
 // Generic per-field 3-way compare. `baseline` should essentially never be null for an
 // entity that went through the import (bootstrap it from the frozen linear_import_records
 // payload via map.mjs before calling this). `baseline === null` legitimately means "brand
 // new entity, no local row yet" — a plain create, never routed through this function.
 export const sameField = (field, a, b) =>
   a === b ||
-  (['description', 'body'].includes(field) && typeof a === 'string' && typeof b === 'string'
+  (MARKDOWN_FIELDS.includes(field) && typeof a === 'string' && typeof b === 'string'
     ? markdownEquivalent(a, b)
     : canonical(a ?? null) === canonical(b ?? null));
 
