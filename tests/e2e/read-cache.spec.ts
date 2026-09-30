@@ -37,12 +37,15 @@ test('a warm start renders the saved list and task read-only until the session i
   await expect(notice).toContainText('Saved copy from');
   await expect(notice).toContainText('Read-only. Checking your session');
   await expect(title).toHaveValue(task.title);
-  await expect(page.getByRole('button', { name: task.key + ' ' + task.title })).toBeVisible();
   // A property change is refused before the network and explained; nothing is sent.
   await page.getByRole('combobox', { name: 'Estimate', exact: true }).click();
   await page.getByRole('option', { name: '5 points', exact: true }).click();
   await expect(page.getByText('Tasks is showing a saved copy until your session')).toBeVisible();
   expect(writes).toBe(0);
+  // The saved list opens in the app too while the network is still held.
+  await page.getByRole('link', { name: 'All tasks', exact: true }).click();
+  await expect(page.getByRole('button', { name: task.key + ' ' + task.title })).toBeVisible();
+  await expect(notice).toContainText('Read-only. Checking your session');
   await api.release();
   await expect(notice).toBeHidden();
 });
@@ -75,6 +78,41 @@ test('rate limiting, server errors and a lost connection stay explicit until a r
   await expect(notice).toBeHidden();
 });
 
+test('once the session is confirmed, a failed refresh shows its error instead of the old list', async ({
+  page,
+}) => {
+  await signIn(page, JAMIE);
+  await expect(page.getByRole('status', { name: 'Saved copy' })).toHaveCount(0);
+  await page.route(
+    (url) => url.pathname === '/api/v1/issues',
+    (route) =>
+      route.fulfill({
+        status: 403,
+        json: { error: { code: 'FORBIDDEN', message: 'Synthetic lost access' } },
+      }),
+  );
+  await page.getByRole('button', { name: 'Refresh tasks', exact: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Synthetic lost access' })).toBeVisible();
+  await expect(page.getByTestId('issue-row')).toHaveCount(0);
+});
+
+test('a project missing from the saved copy is not reported as deleted while offline', async ({
+  page,
+}) => {
+  await signIn(page, JAMIE);
+  await page.goto('/projects');
+  await expect.poll(async () => (await savedCopy(page)).keys).toContain('["projects"]');
+  await page.route(
+    (url) => url.pathname.startsWith('/api/'),
+    (route) => route.abort('internetdisconnected'),
+  );
+  await page.goto('/projects/00000000-0000-4000-8000-00000000abcd');
+  await expect(page.getByRole('status', { name: 'Saved copy' })).toContainText(
+    'No connection to Tasks',
+  );
+  await expect(page.getByRole('alert')).toContainText('not in the saved copy');
+});
+
 test('Load more pages and filtered lists come back from the saved copy with their cursor', async ({
   page,
 }) => {
@@ -104,6 +142,8 @@ test('Load more pages and filtered lists come back from the saved copy with thei
   await page.goto('/tasks');
   await page.getByRole('button', { name: 'Load more tasks', exact: true }).click();
   await expect(page.getByText(extra)).toBeVisible();
+  // Writes are coalesced for 400 ms; a full page load before then would drop the second page.
+  await expect.poll(async () => (await savedCopy(page, [extra])).found[0]).toBe(true);
   const word = sample.title.split(/\W+/).sort((a, b) => b.length - a.length)[0];
   await page.goto('/tasks?q=' + encodeURIComponent(word));
   await expect(page.getByTestId('issue-row').first()).toBeVisible();
@@ -168,6 +208,8 @@ test('newer unsent drafts win over the saved copy and a rejected edit never reac
   await page.reload();
   await expect(page.getByRole('status', { name: 'Saved copy' })).toBeVisible();
   await expect(title).toHaveValue('Unsent newer title');
+  // The saved list still has the confirmed assignee: the rolled-back change never reached it.
+  await page.getByRole('link', { name: 'All tasks', exact: true }).click();
   await expect(assignee).toHaveAttribute('aria-label', before!);
   await api.release();
 });
@@ -263,6 +305,11 @@ test('when the browser session now belongs to another account the previous copy 
   await page.reload();
   await expect(page.locator('.profile-row')).toContainText('Jamie Chen');
   await expect(page.getByTestId('issue-row').first()).toBeVisible();
-  await expect.poll(async () => (await savedCopy(page, [sam.id])).owners[0]).toBe(false);
-  expect((await savedCopy(page)).accounts).toBe(1);
+  // Sam's entries go at once; Jamie's confirmed replies are written after the 400 ms coalescing.
+  await expect
+    .poll(async () => {
+      const saved = await savedCopy(page, [sam.id]);
+      return { sam: saved.owners[0], accounts: saved.accounts };
+    })
+    .toEqual({ sam: false, accounts: 1 });
 });

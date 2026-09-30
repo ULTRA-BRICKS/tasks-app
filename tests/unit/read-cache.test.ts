@@ -339,27 +339,28 @@ test('nothing is written after sign-out or from a late reply of an older session
 
   const restored = w.open();
   await restored.cache.restore(restored.client);
-  let resolveLate!: (value: unknown) => void;
+  const lateReply = Promise.withResolvers<unknown>();
   const late = restored.client.fetchQuery({
     queryKey: ['issue', 'late'],
-    queryFn: () => new Promise((resolve) => (resolveLate = resolve)),
+    queryFn: () => lateReply.promise,
   });
   await signIn(restored);
-  let resolveOld!: (value: unknown) => void;
-  const old = restored.client.fetchQuery({
-    queryKey: ['issue', 'old-session'],
-    queryFn: () => new Promise((resolve) => (resolveOld = resolve)),
-  });
+  const oldReply = Promise.withResolvers<unknown>();
+  // Bob's sign-in cancels Alice's request still in flight: its reply is neither shown nor written.
+  const old = restored.client
+    .fetchQuery({ queryKey: ['issue', 'old-session'], queryFn: () => oldReply.promise })
+    .catch(() => undefined);
   await restored.cache.signOut();
   expect(restored.cache.getState().phase).toBe('signed-out');
   expect(restored.cache.canWrite()).toBe(false);
-  resolveLate({ id: 'late', title: 'Arrived after sign-out' });
+  lateReply.resolve({ id: 'late', title: 'Arrived after sign-out' });
   await late;
   await restored.cache.flush();
   await signIn(restored, bob);
-  resolveOld({ id: 'old-session', title: 'Alice reply after Bob signed in' });
+  oldReply.resolve({ id: 'old-session', title: 'Alice reply after Bob signed in' });
   await old;
   await restored.cache.flush();
+  expect(restored.client.getQueryData(['issue', 'old-session'])).toBeUndefined();
   restored.detach();
 
   const text = JSON.stringify(await rawRecords(w.idb));
@@ -410,6 +411,28 @@ test('a revoked session (401) deletes the private copy but only the owning tab b
   expect(next.cache.getState().phase).toBe('signed-out');
   next.detach();
   expect(await rawRecords(w.idb)).toEqual([]);
+});
+
+test('another account signing in after a 401 never sees the previous account in memory', async () => {
+  const w = world();
+  const t = w.open();
+  await signIn(t, alice);
+  await load(t, ['issues', {}], { pages: [page(['alice-task'])], pageParams: [undefined] });
+  await t.client
+    .fetchQuery({
+      queryKey: ['issue', 'gone'],
+      queryFn: async () => {
+        throw new ApiError(401, 'UNAUTHENTICATED', 'Sign in');
+      },
+    })
+    .catch(() => undefined);
+  await t.cache.flush();
+  expect(t.cache.getState().phase).toBe('signed-out');
+  // The same tab signs in again as another account (the login page only refetches /me).
+  await signIn(t, bob);
+  expect(t.client.getQueryData(['issues', {}])).toBeUndefined();
+  expect(t.client.getQueryData<typeof bob>(['me'])).toEqual(bob);
+  t.detach();
 });
 
 test('sign-out clears the private cache in every open tab through BroadcastChannel', async () => {

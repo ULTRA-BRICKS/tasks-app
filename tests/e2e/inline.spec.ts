@@ -43,6 +43,8 @@ test('keyboard list navigation, opening and return do not capture editor input',
   page,
 }) => {
   await login(page);
+  // The heading renders before the list loads; j/k only move between rendered rows.
+  await expect(page.locator('.issue-list .issue-open').first()).toBeVisible();
   await page.keyboard.press('j');
   await expect(page.locator('.issue-list .issue-open').first()).toBeFocused();
   await page.keyboard.press('j');

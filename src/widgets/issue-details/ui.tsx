@@ -24,6 +24,7 @@ import { useIssue, StatusIcon } from '@/entities/issue';
 import { useCatalog, useMe, moduleEnabled } from '@/entities/workspace';
 import { useIssueUpdate, useIssueWriteBusy, useInlineDocument } from '@/features/issue-edit';
 import { CreateIssue } from '@/features/issue-create';
+import { useVisibleError } from '@/features/saved-copy';
 import {
   Button,
   ActionMenu,
@@ -42,17 +43,18 @@ import { formatDate } from '@/shared/lib/date';
 import { ActivityFeed } from './activity-feed';
 export function IssueDetails({ id, onClose }: { id: string; onClose: () => void }) {
   const query = useIssue(id);
+  const loadError = useVisibleError(query);
   return (
     <section className="issue-detail-panel" aria-label="Task details">
       {query.isPending ? (
         <Loading label="Loading task" />
-      ) : query.error ? (
+      ) : loadError ? (
         <>
           <Button variant="ghost" onClick={onClose}>
             <ChevronLeft size={15} />
             Back to tasks
           </Button>
-          <ErrorState message={errorMessage(query.error)} retry={() => void query.refetch()} />
+          <ErrorState message={errorMessage(loadError)} retry={() => void query.refetch()} />
         </>
       ) : query.data ? (
         <Editor key={query.data.id} issue={query.data} onClose={onClose} />

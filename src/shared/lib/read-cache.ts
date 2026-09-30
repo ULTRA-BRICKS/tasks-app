@@ -172,6 +172,11 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
   /** Increments on sign-out, revocation and account switch; older replies are never persisted. */
   let epoch = 0;
   let partition: string | null = null;
+  /**
+   * The account whose replies this tab's QueryClient may still hold. Unlike `partition` it outlives
+   * a sign-out or `401` until the client is reset, so another account signing in next purges them.
+   */
+  let memoryOwner: string | null = null;
   /** Saved entries of `partition` in eviction order (oldest first). */
   let known = new Map<string, number>();
   let database: Promise<IDBDatabase | null> | null = null;
@@ -428,6 +433,7 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
   }
   /** Drops this tab's private data in memory; server state is refetched under the current cookie. */
   async function resetClient() {
+    memoryOwner = null;
     const target = client;
     if (!target) return;
     await target.cancelQueries();
@@ -492,9 +498,9 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
   function confirm(query: Query) {
     const owner = partitionOf(query.state.data);
     if (!owner) return;
-    const previous = partition;
+    const previous = partition ?? memoryOwner;
     if (state.phase === 'signed-out' || (previous !== null && previous !== owner)) {
-      const switched = previous !== null;
+      const switched = previous !== null && previous !== owner;
       forget('live');
       if (switched) {
         post({ type: 'account', partition: owner });
@@ -512,7 +518,7 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
       }
     }
     fetchEpochs.set(query, epoch);
-    partition = owner;
+    partition = memoryOwner = owner;
     clearTimeout(retryTimer);
     retryTimer = undefined;
     failures = 0;
@@ -621,7 +627,7 @@ export function createReadCache(overrides: Partial<ReadCacheOptions> = {}): Read
           // However recent, a saved copy is never fresh: every mounted query revalidates.
           void target.invalidateQueries({ queryKey: row.key, exact: true, refetchType: 'none' });
         }
-        partition = pointer.partition;
+        partition = memoryOwner = pointer.partition;
         known = new Map([...order].filter(([hash]) => usable.some((row) => row.hash === hash)));
         update({
           phase: 'restored',

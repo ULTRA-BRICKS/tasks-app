@@ -5,6 +5,7 @@ import { Plus, FolderKanban, CalendarRange, PanelLeft, ArrowUpRight, Flag } from
 import type { Project } from '@tickets/contracts';
 import { useCatalog, useProjects, useCycles, useMe, moduleEnabled } from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
+import { useVisibleError } from '@/features/saved-copy';
 import {
   Button,
   Picker,
@@ -25,6 +26,7 @@ export function PlanningPage({ kind }: { kind: 'projects' | 'cycles' }) {
   const projects = useProjects(kind === 'projects' && enabled),
     cycles = useCycles(kind === 'cycles' && enabled),
     query = kind === 'projects' ? projects : cycles;
+  const listError = useVisibleError(query);
   const groupedProjects = useMemo(() => {
     const groups = new Map<Project['status'], Project[]>();
     if (kind !== 'projects') return groups;
@@ -90,8 +92,8 @@ export function PlanningPage({ kind }: { kind: 'projects' | 'cycles' }) {
           />
         ) : query.isPending ? (
           <Loading />
-        ) : query.error ? (
-          <ErrorState message={errorMessage(query.error)} />
+        ) : listError ? (
+          <ErrorState message={errorMessage(listError)} />
         ) : kind === 'projects' ? (
           projects.data?.length ? (
             <div className="project-groups">

@@ -19,7 +19,9 @@ import { InboxPage } from '@/pages/inbox';
 import { SettingsPage } from '@/pages/settings';
 import { LoginPage, InvitePage, ForgotPasswordPage, ResetPasswordPage } from '@/pages/auth';
 import { ErrorState, Loading } from '@/shared/ui';
-import { ApiError, errorMessage } from '@/shared/api/client';
+import { ApiError, errorMessage, setApiSession } from '@/shared/api/client';
+import { readCache } from '@/shared/lib/read-cache';
+import { SavedCopyNotice, useVisibleError } from '@/features/saved-copy';
 import './styles.css';
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +33,13 @@ const queryClient = new QueryClient({
     },
     mutations: { retry: false },
   },
+});
+// The saved workspace copy (docs/PERSISTENT-READ-CACHE.md) stays read-only until /me confirms the
+// session; any 401 deletes it in every tab.
+readCache.attach(queryClient);
+setApiSession({
+  canWrite: () => readCache.canWrite(),
+  onUnauthorized: () => void readCache.revoke(),
 });
 class Boundary extends React.Component<
   {
@@ -63,6 +72,8 @@ function Workspace() {
     navigate = useNavigate(),
     [createOpen, setCreateOpen] = useState(false),
     [searchOpen, setSearchOpen] = useState(false);
+  // The saved copy keeps rendering while /me cannot be revalidated (offline, 429, 5xx).
+  const meError = useVisibleError(me);
   const mainRef = useRef<HTMLElement>(null);
   useEffect(() => {
     document.documentElement.dataset.theme = prefs.theme;
@@ -75,10 +86,10 @@ function Workspace() {
       </div>
     );
   if (me.error instanceof ApiError && me.error.status === 401) return <LoginPage />;
-  if (me.error)
+  if (meError)
     return (
       <div className="app-loading">
-        <ErrorState message={errorMessage(me.error)} retry={() => void me.refetch()} />
+        <ErrorState message={errorMessage(meError)} retry={() => void me.refetch()} />
       </div>
     );
   return (
@@ -93,6 +104,7 @@ function Workspace() {
           onSearch={() => setSearchOpen(true)}
         />
         <main ref={mainRef} id="main-content" className="workspace-main">
+          <SavedCopyNotice />
           <Routes>
             <Route path="/" element={<Navigate to="/tasks" replace />} />
             <Route path="/login" element={<Navigate to="/tasks" replace />} />
@@ -140,6 +152,8 @@ function Workspace() {
     </ImportedFilesProvider>
   );
 }
+// Render the saved copy on the first frame instead of waiting for the network.
+await readCache.restore(queryClient);
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Boundary>

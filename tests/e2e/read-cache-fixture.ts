@@ -5,7 +5,14 @@ export const JAMIE = 'jamie.chen@example.test',
   CASEY = 'casey.brooks@example.test',
   SAM = 'sam.rivera@example.test';
 export const sessions = new Map<string, Cookie[]>();
+/** Signs in on /tasks and waits until the confirmed first screen is saved (writes wait 400 ms). */
 export async function signIn(page: Page, email: string) {
+  await openTasks(page, email);
+  await expect
+    .poll(async () => (await savedCopy(page)).keys)
+    .toEqual(expect.arrayContaining(['["me"]', '["catalog"]', '["issues",{}]']));
+}
+async function openTasks(page: Page, email: string) {
   const saved = sessions.get(email);
   if (saved) {
     await page.context().addCookies(saved);

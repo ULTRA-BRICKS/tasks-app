@@ -22,6 +22,7 @@ import { useIssues, IssueRow, StatusIcon } from '@/entities/issue';
 import { useMe, useCatalog, useProjects, moduleEnabled } from '@/entities/workspace';
 import { CreateIssue } from '@/features/issue-create';
 import { usePreferences } from '@/features/preferences';
+import { useVisibleError } from '@/features/saved-copy';
 import { IssueDetails } from '@/widgets/issue-details';
 import { IssueBoard } from '@/widgets/issue-board';
 import {
@@ -95,6 +96,7 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
     return f;
   }, [params, title]);
   const query = useIssues(filters, { live: !issueId });
+  const listError = useVisibleError(query);
   const sourceRows = useMemo(() => query.data?.pages.flatMap((p) => p.data) ?? [], [query.data]);
   const directory = useMemo(() => peopleDirectory(catalog), [catalog]);
   const sourceRowsById = useMemo(
@@ -410,8 +412,8 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
           )}
         {query.isPending ? (
           <SkeletonRows />
-        ) : query.error ? (
-          <ErrorState message={errorMessage(query.error)} retry={() => void query.refetch()} />
+        ) : listError ? (
+          <ErrorState message={errorMessage(listError)} retry={() => void query.refetch()} />
         ) : !issues.length ? (
           <EmptyState
             title={Object.keys(filters).length ? 'No matching tasks' : 'A clear place to start'}

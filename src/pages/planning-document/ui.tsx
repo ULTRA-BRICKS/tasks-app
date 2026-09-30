@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, Folder, CalendarRange } from 'lucide-react';
 import { useCatalog, useMe, useProjects, useCycles, moduleEnabled } from '@/entities/workspace';
 import { DateProperty } from '@/features/issue-properties';
+import { useShowingSavedCopy, useVisibleError } from '@/features/saved-copy';
 import { Button, Picker, DocumentText, InlineTitle, Loading, ErrorState } from '@/shared/ui';
 import { api, errorMessage, ApiError } from '@/shared/api/client';
 interface Plan {
@@ -59,12 +60,23 @@ export function PlanningDocumentPage({ kind }: { kind: 'projects' | 'cycles' }) 
   const projects = useProjects(enabled && kind === 'projects'),
     cycles = useCycles(enabled && kind === 'cycles');
   const query = kind === 'projects' ? projects : cycles;
+  const listError = useVisibleError(query),
+    savedCopy = useShowingSavedCopy();
   if (!enabled) return <ErrorState message="An administrator must enable this module first." />;
   if (id !== 'new' && query.isPending) return <Loading />;
-  if (query.error) return <ErrorState message={errorMessage(query.error)} />;
+  if (listError) return <ErrorState message={errorMessage(listError)} />;
   const existing = query.data?.find((p) => p.id === id) as Plan | undefined;
   if (id !== 'new' && !existing)
-    return <ErrorState message="This item was not found in your workspace." />;
+    return (
+      <ErrorState
+        message={
+          // The saved copy may simply predate the item; only the live list proves it is gone.
+          savedCopy
+            ? 'This item is not in the saved copy on this device. It opens once your session is confirmed.'
+            : 'This item was not found in your workspace.'
+        }
+      />
+    );
   return <PlanEditor key={kind + id} kind={kind} existing={existing} />;
 }
 function serverPlan(server: Plan, current: Draft): Draft {
