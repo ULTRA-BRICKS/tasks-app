@@ -12,6 +12,7 @@ import {
   Loading,
   EmptyState,
   DocumentText,
+  useDescriptionEditorReady,
 } from '@/shared/ui';
 import { useCatalog, useMe, useProjects, PersonChip } from '@/entities/workspace';
 import { useKnowledgeDraft, setKnowledgeArchive, type Knowledge, type Kind } from './model';
@@ -109,7 +110,9 @@ export function KnowledgePage({ kind }: { kind: Kind }) {
     queryFn: () => api<Knowledge>('/v1/' + kind + '/' + id),
     enabled: id !== 'new',
   });
-  if (!me || (id !== 'new' && query.isPending)) return <Loading />;
+  // The properties sit below the body: reveal the document with its editor.
+  const editorReady = useDescriptionEditorReady();
+  if (!me || !editorReady || (id !== 'new' && query.isPending)) return <Loading />;
   if (query.error) return <ErrorState message={errorMessage(query.error)} />;
   return (
     <KnowledgeEditor

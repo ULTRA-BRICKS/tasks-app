@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Menu } from '@base-ui/react/menu';
 import { Ellipsis, X } from 'lucide-react';
 import { MenuItems, type MenuAction } from './menu-items';
+import { usePopupCollisionPadding } from '../lib/safe-area';
 export type { MenuAction } from './menu-items';
 function useMenuActions() {
   const [error, setError] = useState(''),
@@ -58,6 +59,7 @@ export function ActionMenu({
   onOpenChange?: (open: boolean) => void;
 }) {
   const action = useMenuActions();
+  const collisionPadding = usePopupCollisionPadding();
   return (
     <>
       <Menu.Root onOpenChange={(open) => onOpenChange?.(open)}>
@@ -71,7 +73,12 @@ export function ActionMenu({
           <Ellipsis size={18} />
         </Menu.Trigger>
         <Menu.Portal>
-          <Menu.Positioner className="page-menu-positioner" sideOffset={8} align="end">
+          <Menu.Positioner
+            className="page-menu-positioner"
+            sideOffset={8}
+            align="end"
+            collisionPadding={collisionPadding}
+          >
             <Menu.Popup className="page-menu-popup" aria-label={label}>
               <MenuItems items={items} run={action.run} disabled={action.busy} />
             </Menu.Popup>

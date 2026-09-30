@@ -3,6 +3,7 @@ import { Avatar } from './avatar';
 import { Select } from '@base-ui/react/select';
 import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/cn';
+import { usePopupCollisionPadding } from '../lib/safe-area';
 export interface Option {
   value: string;
   label: string;
@@ -30,6 +31,7 @@ export function Picker({
   className?: string;
   triggerContent?: ReactNode;
 }) {
+  const collisionPadding = usePopupCollisionPadding();
   return (
     <Select.Root
       value={value}
@@ -48,6 +50,7 @@ export function Picker({
       <Select.Portal>
         <Select.Positioner
           sideOffset={6}
+          collisionPadding={collisionPadding}
           alignItemWithTrigger={false}
           className="popover-positioner"
         >

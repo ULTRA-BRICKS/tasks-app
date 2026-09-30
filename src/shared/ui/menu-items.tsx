@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { Menu } from '@base-ui/react/menu';
 import { ChevronRight } from 'lucide-react';
+import { usePopupCollisionPadding } from '../lib/safe-area';
 export type MenuAction = {
   label: string;
   onSelect?: () => void | Promise<unknown>;
@@ -18,6 +19,7 @@ export function MenuItems({
   run: (item: MenuAction) => void;
   disabled?: boolean;
 }) {
+  const collisionPadding = usePopupCollisionPadding();
   return items.map((item) => (
     <Fragment key={item.label}>
       {item.separatorBefore && <Menu.Separator className="action-menu-separator" />}
@@ -32,7 +34,12 @@ export function MenuItems({
             <ChevronRight size={14} aria-hidden="true" />
           </Menu.SubmenuTrigger>
           <Menu.Portal>
-            <Menu.Positioner sideOffset={4} alignOffset={-4} className="page-menu-positioner">
+            <Menu.Positioner
+              sideOffset={4}
+              alignOffset={-4}
+              collisionPadding={collisionPadding}
+              className="page-menu-positioner"
+            >
               <Menu.Popup className="page-menu-popup" aria-label={item.label}>
                 <MenuItems items={item.children} run={run} disabled={disabled || item.disabled} />
               </Menu.Popup>

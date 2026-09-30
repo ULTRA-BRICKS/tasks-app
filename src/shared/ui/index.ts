@@ -13,7 +13,7 @@ export { PersonCard, PersonPopover } from './person-popover';
 export { Markdown } from './markdown';
 export { EmptyState, ErrorState, Loading, SkeletonRows } from './feedback';
 
-export { DocumentText, InlineTitle } from './document';
+export { DocumentText, InlineTitle, useDescriptionEditorReady } from './document';
 
 export { PressPreview } from './press-preview';
 
