@@ -6,6 +6,7 @@ import { ChevronLeft, Layers } from 'lucide-react';
 import type { Issue, IssueCreate } from '@tickets/contracts';
 import { useCatalog, useMe } from '@/entities/workspace';
 import { api, errorMessage, ApiError } from '@/shared/api/client';
+import { useUnloadWarning } from '@/shared/lib/unload-warning';
 import { Button, DocumentText, ErrorState } from '@/shared/ui';
 import { newIssueDraft, createIssueInput, issueDraftKey, type Draft } from './model';
 
@@ -102,16 +103,13 @@ function IssueDraftPage() {
       lock.current = false;
     }
   }
-  useEffect(() => {
-    const warn = (e: BeforeUnloadEvent) => {
-      if (current.current.title || current.current.description) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, []);
+  useUnloadWarning(() =>
+    !(current.current.title || current.current.description)
+      ? 'none'
+      : storageError
+        ? 'lost'
+        : 'kept',
+  );
   useEffect(() => {
     const listener = (e: KeyboardEvent) => {
       if (!e.isComposing && (e.metaKey || e.ctrlKey) && e.key === 'Enter') {

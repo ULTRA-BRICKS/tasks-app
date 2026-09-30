@@ -58,7 +58,7 @@ export function SavedCopyNotice({ source = readCache }: { source?: SavedCopySour
   const note = state.phase === 'live' ? STORAGE_NOTE[state.storage] : undefined;
   if (!note || dismissed === state.storage) return null;
   return (
-    <div className="saved-copy-notice is-storage">
+    <div className="saved-copy-notice">
       <CloudOff size={15} aria-hidden="true" />
       <output aria-label="Offline copy">
         <span>{note} Everything still works online.</span>

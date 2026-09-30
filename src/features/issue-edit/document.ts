@@ -1,4 +1,5 @@
 import { mergeVersioned } from '@/shared/lib/versioned';
+import { useUnloadWarning } from '@/shared/lib/unload-warning';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { IssueDetail } from '@tickets/contracts';
 import { useIssueUpdate } from './model';
@@ -54,16 +55,7 @@ export function useInlineDocument(issue: IssueDetail, storageKey: string) {
       if (next !== current.current) publish(next);
     }
   }, [issue, publish]);
-  useEffect(() => {
-    const warn = (e: BeforeUnloadEvent) => {
-      if (draftDirty(current.current)) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, []);
+  useUnloadWarning(() => (!draftDirty(current.current) ? 'none' : storageError ? 'lost' : 'kept'));
   async function drain(): Promise<IssueDetail | null> {
     running.current = true;
     try {

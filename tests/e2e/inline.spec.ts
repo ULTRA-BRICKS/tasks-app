@@ -289,24 +289,6 @@ test('planning conflict can be resolved explicitly without trapping a persisted 
   await page.reload();
   await expect(title).toHaveValue('Now reconciled');
 });
-test('logout clears planning drafts as well as issue drafts', async ({ page }) => {
-  await login(page);
-  await page.goto('/projects/new');
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Private project draft');
-  expect(
-    await page.evaluate(() => Object.keys(sessionStorage).some((k) => k.startsWith('plan-draft:'))),
-  ).toBe(true);
-  page.on('dialog', (d) => d.accept());
-  await page.getByRole('button', { name: /sign out|log out/i }).click();
-  await expect(page).toHaveURL(/\/login$/);
-  expect(
-    await page.evaluate(() =>
-      Object.keys(sessionStorage).some((k) => /^(plan-draft:|ticket-new:|ticket-draft:)/.test(k)),
-    ),
-  ).toBe(false);
-  savedCookies = undefined;
-});
-
 test('command menu works inside text editors without treating ordinary letters as commands', async ({
   page,
 }) => {

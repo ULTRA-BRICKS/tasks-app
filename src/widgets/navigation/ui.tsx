@@ -17,12 +17,12 @@ import {
   UserRound,
   Archive,
   PanelLeftClose,
-  LogOut,
   Ellipsis,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCatalog, useMe, useViews, useNotifications, moduleEnabled } from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
+import { SignOutButton } from '@/features/sign-out';
 import { Avatar, Button, Modal, ActionMenu } from '@/shared/ui';
 import { api } from '@/shared/api/client';
 export function Navigation({
@@ -57,14 +57,6 @@ export function Navigation({
   }, []);
   function close() {
     prefs.setSidebarOpen(false);
-  }
-  async function logout() {
-    await api('/auth/logout', { method: 'POST' });
-    client.clear();
-    for (const key of Object.keys(sessionStorage))
-      if (['ticket-draft:', 'ticket-new:', 'plan-draft:'].some((prefix) => key.startsWith(prefix)))
-        sessionStorage.removeItem(key);
-    window.location.assign('/login');
   }
   const navClass = ({ isActive }: { isActive: boolean }) =>
     'nav-item' + (isActive ? ' active' : '');
@@ -338,9 +330,7 @@ export function Navigation({
         <div className="profile-row">
           <Avatar name={me?.name} />
           <span>{me?.name}</span>
-          <Button variant="ghost" size="icon" aria-label="Sign out" onClick={() => void logout()}>
-            <LogOut size={14} />
-          </Button>
+          <SignOutButton />
         </div>
       </div>
     </aside>

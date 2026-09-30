@@ -21,7 +21,9 @@ export function Modal({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Backdrop className="dialog-backdrop" />
+        {/* Base UI skips the backdrop of a nested dialog; without it a dialog opened from the phone
+            navigation (Sign out) would float over an undimmed drawer. */}
+        <Dialog.Backdrop className="dialog-backdrop" forceRender />
         <Dialog.Viewport className="dialog-viewport">
           <Dialog.Popup
             ref={popup}

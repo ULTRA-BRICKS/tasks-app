@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError, errorMessage } from '@/shared/api/client';
 import { draftPersistence } from '@/shared/lib/draft-persistence';
+import { useUnloadWarning } from '@/shared/lib/unload-warning';
 export type Kind = 'documents' | 'initiatives';
 export type Knowledge = {
   id: string;
@@ -110,16 +111,7 @@ export function useKnowledgeDraft(kind: Kind, key: string, row?: Knowledge) {
       setDraft(next);
     }
   }, [row]);
-  useEffect(() => {
-    const warn = (event: BeforeUnloadEvent) => {
-      if (dirtyRef.current) {
-        event.preventDefault();
-        event.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, []);
+  useUnloadWarning(() => (!dirtyRef.current ? 'none' : storageError ? 'lost' : 'kept'));
   async function save() {
     if (row && !dirtyRef.current) return;
     requested.current = true;

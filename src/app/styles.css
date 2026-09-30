@@ -305,10 +305,13 @@ button {
   backdrop-filter: blur(3px);
   transition: opacity var(--motion-normal);
 }
+/* Backdrop and viewport share one z-index, so open dialogs stack in DOM order. Base UI mounts a
+   nested dialog's portal inside its parent's, after the parent's viewport, so a dialog opened from
+   another (Sign out in the phone navigation) dims the one beneath at any depth. */
 .dialog-viewport {
   position: fixed;
   inset: 0;
-  z-index: 91;
+  z-index: 90;
   display: grid;
   place-items: center;
   overflow-y: auto;

@@ -1,5 +1,6 @@
 import { personOptions, canonicalPersonValue } from '@/shared/lib/people';
 import { mergeVersioned } from '@/shared/lib/versioned';
+import { useUnloadWarning } from '@/shared/lib/unload-warning';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -314,23 +315,12 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
     if (existing) void save();
   }
   const frozen = readonly || (!existing && (busy || Boolean(draft.attempt)));
-  useEffect(() => {
-    const warn = (event: BeforeUnloadEvent) => {
-      try {
-        if (sessionStorage.getItem(storageKey)) {
-          event.preventDefault();
-          event.returnValue = '';
-        }
-      } catch {
-        if (current.current.name) {
-          event.preventDefault();
-          event.returnValue = '';
-        }
-      }
-    };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, [storageKey]);
+  useUnloadWarning(() => {
+    try {
+      if (!storageError) return sessionStorage.getItem(storageKey) ? 'kept' : 'none';
+    } catch {}
+    return current.current.name ? 'lost' : 'none';
+  });
   return (
     <section className="issue-detail-panel" aria-label={(existing ? '' : 'New ') + noun}>
       <header className="issue-detail-toolbar" data-page-header>

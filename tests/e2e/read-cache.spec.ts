@@ -1,4 +1,4 @@
-import { test, expect, type Route } from '@playwright/test';
+import { test, expect, type Page, type Route } from '@playwright/test';
 import {
   CASEY,
   JAMIE,
@@ -15,6 +15,18 @@ import {
 // Real IndexedDB in Chromium and WebKit with the Service Worker blocked; the network is held or
 // mocked per scenario. The real worker is exercised separately by read-cache.shell.spec.ts.
 test.use({ serviceWorkers: 'block' });
+/**
+ * Records browser dialogs ("Leave site?" is `beforeunload`), accepting them so a test fails on
+ * the assertion instead of hanging on the prompt.
+ */
+function leavePrompts(page: Page) {
+  const prompts: string[] = [];
+  page.on('dialog', (dialog) => {
+    prompts.push(dialog.type());
+    void dialog.accept();
+  });
+  return prompts;
+}
 
 test('a warm start renders the saved list and task read-only until the session is confirmed', async ({
   page,
@@ -222,12 +234,14 @@ test('sign-out keeps unsent drafts for the same account and deletes the saved co
   const title = page.getByRole('textbox', { name: 'Title', exact: true });
   await title.fill('Private project draft');
   await expect.poll(async () => (await savedCopy(page)).entries).toBeGreaterThan(0);
-  page.on('dialog', (dialog) => void dialog.accept());
+  const prompts = leavePrompts(page);
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Sign out' });
   await expect(dialog).toContainText('You have 1 unsent draft on this device.');
   await dialog.getByRole('button', { name: 'Keep drafts and sign out', exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
+  // The dialog already settled the drafts, so the browser does not ask "Leave site?" again.
+  expect(prompts).toEqual([]);
   expect((await savedCopy(page)).entries).toBe(0);
   expect(await draftKeys(page, 'plan-draft:')).toBe(1);
   sessions.delete(TAYLOR);
@@ -238,21 +252,160 @@ test('sign-out keeps unsent drafts for the same account and deletes the saved co
 
 test('discarding at sign-out removes only this account’s drafts', async ({ page }) => {
   await signIn(page, TAYLOR);
-  await page.goto('/projects/new');
-  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Discard me');
+  // The new-task editor asks "Leave site?" from its in-memory text, which discarding keeps.
+  await page.goto('/tasks/new');
+  const title = page.getByRole('textbox', { name: 'Title', exact: true });
+  await title.fill('Discard me');
+  await expect.poll(() => draftKeys(page, 'ticket-new:')).toBe(1);
   await page.evaluate(() =>
-    sessionStorage.setItem('plan-draft:other-workspace:other-user:projects:new', '{}'),
+    sessionStorage.setItem('ticket-new:other-workspace:other-user:issue', '{}'),
   );
-  page.on('dialog', (dialog) => void dialog.accept());
+  const prompts = leavePrompts(page);
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Sign out' });
   await dialog.getByRole('button', { name: 'Discard drafts and sign out', exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
+  expect(prompts).toEqual([]);
   expect(
     await page.evaluate(() =>
-      Object.keys(sessionStorage).filter((k) => k.startsWith('plan-draft:')),
+      Object.keys(sessionStorage).filter((k) => k.startsWith('ticket-new:')),
     ),
-  ).toEqual(['plan-draft:other-workspace:other-user:projects:new']);
+  ).toEqual(['ticket-new:other-workspace:other-user:issue']);
+  sessions.delete(TAYLOR);
+});
+
+test('discarding drafts waits until the sign-out reaches the server', async ({ page }) => {
+  await signIn(page, JAMIE);
+  await page.goto('/tasks/new');
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Keep me until signed out');
+  await expect.poll(() => draftKeys(page, 'ticket-new:')).toBe(1);
+  await page.route('**/api/auth/logout', (route) => route.abort('internetdisconnected'));
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Sign out' });
+  await dialog.getByRole('button', { name: 'Discard drafts and sign out', exact: true }).click();
+  await expect(dialog).toContainText('This browser is still signed in.');
+  // Still signed in, so the drafts are still wanted: nothing is discarded until sign-out succeeds.
+  expect(await draftKeys(page, 'ticket-new:')).toBe(1);
+  await expect(dialog).toContainText('Nothing was discarded.');
+});
+
+test('after a failed sign-out every tab stays signed in and can edit', async ({ page }) => {
+  await signIn(page, JAMIE);
+  const [task] = await firstTasks(page, 1);
+  await page.goto('/tasks/' + task.id);
+  const estimate = page.getByRole('combobox', { name: 'Estimate', exact: true });
+  await expect(estimate).toBeVisible();
+  const other = await page.context().newPage();
+  await other.goto('/tasks');
+  await expect(other.getByTestId('issue-row').first()).toBeVisible();
+  await page.route('**/api/auth/logout', (route) => route.abort('internetdisconnected'));
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Sign out' });
+  await expect(dialog).toContainText('This browser is still signed in.');
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  // The device copy was deleted, but the session was not: the tabs confirm it again and rebuild it.
+  await expect.poll(async () => (await savedCopy(page)).keys).toContain('["me"]');
+  await expect(other.getByTestId('issue-row').first()).toBeVisible();
+  // An edit leaves this tab again (aborted here, so the shared test data stays unchanged).
+  await page.route(
+    (url) => url.pathname.startsWith('/api/v1/issues/'),
+    (route) => (route.request().method() === 'PATCH' ? route.abort() : route.fallback()),
+  );
+  const write = page.waitForRequest((request) => request.method() === 'PATCH', { timeout: 5000 });
+  await estimate.click();
+  await page.getByRole('option', { name: '5 points', exact: true }).click();
+  await write;
+});
+
+test('on a phone the Sign out dialog covers the navigation drawer it opens from', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  leavePrompts(page);
+  await signIn(page, JAMIE);
+  await page.goto('/projects/new');
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Phone draft');
+  await page.goto('/tasks');
+  await page.getByRole('button', { name: 'More navigation', exact: true }).click();
+  const inbox = page
+    .getByRole('dialog', { name: 'Navigation' })
+    .getByRole('link', { name: /^Inbox/ });
+  const box = await inbox.boundingBox();
+  if (!box) throw new Error('The navigation drawer did not lay out its Inbox link');
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Sign out' })).toBeVisible();
+  // Topmost first: the Sign out dialog's backdrop lies above the drawer and dims it.
+  const layers = await page.evaluate(
+    ([x, y]) =>
+      document.elementsFromPoint(x, y).map((element) => element.getAttribute('class') ?? ''),
+    [box.x + box.width / 2, box.y + box.height / 2],
+  );
+  const backdrop = layers.findIndex((name) => name.includes('dialog-backdrop'));
+  expect(backdrop).toBeGreaterThanOrEqual(0);
+  expect(backdrop).toBeLessThan(layers.findIndex((name) => name.includes('mobile-nav-dialog')));
+});
+
+test('text saved nowhere is asked about before sign-out ends the session', async ({ page }) => {
+  await signIn(page, CASEY);
+  await page.goto('/tasks/new');
+  // Storage refuses the draft, so nothing is counted and only the editor's in-memory text remains.
+  await page.evaluate(() => {
+    Storage.prototype.setItem = () => {
+      throw new DOMException('Storage is full', 'QuotaExceededError');
+    };
+  });
+  const title = page.getByRole('textbox', { name: 'Title', exact: true });
+  await title.fill('Saved nowhere');
+  const prompts = leavePrompts(page);
+  let logouts = 0;
+  page.on('request', (request) => {
+    if (request.url().endsWith('/api/auth/logout')) logouts++;
+  });
+  const signOut = page.getByRole('button', { name: 'Sign out', exact: true });
+  await signOut.click();
+  const dialog = page.getByRole('dialog', { name: 'Sign out' });
+  await expect(dialog).toContainText('could not be saved on this device');
+  // Nothing focused would discard the text; Cancel keeps it and the session.
+  const cancel = dialog.getByRole('button', { name: 'Cancel', exact: true });
+  await expect(cancel).toBeFocused();
+  await cancel.click();
+  await expect(dialog).toBeHidden();
+  await expect(title).toHaveValue('Saved nowhere');
+  expect(logouts).toBe(0);
+  await signOut.click();
+  await dialog.getByRole('button', { name: 'Discard text and sign out', exact: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  // The dialog already asked, so the browser does not ask "Leave site?" once the session ended.
+  expect(prompts).toEqual([]);
+  expect(logouts).toBe(1);
+  sessions.delete(CASEY);
+});
+
+test('text saved nowhere is asked about even when other drafts are kept', async ({ page }) => {
+  await signIn(page, TAYLOR);
+  await page.goto('/projects/new');
+  await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Kept plan');
+  await expect.poll(() => draftKeys(page, 'plan-draft:')).toBe(1);
+  const prompts = leavePrompts(page);
+  await page.goto('/tasks/new');
+  // Storage fills up after the plan draft was kept, so this editor's text lives only in memory.
+  await page.evaluate(() => {
+    Storage.prototype.setItem = () => {
+      throw new DOMException('Storage is full', 'QuotaExceededError');
+    };
+  });
+  const title = page.getByRole('textbox', { name: 'Title', exact: true });
+  await title.fill('Saved nowhere');
+  const asked = prompts.length;
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Sign out' });
+  await expect(dialog).toContainText('You have 1 unsent draft on this device.');
+  await expect(dialog).toContainText('could not be saved on this device');
+  await dialog.getByRole('button', { name: 'Keep drafts and sign out', exact: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  // The dialog answered for the text, so the sign-out navigation does not ask "Leave site?".
+  expect(prompts.length).toBe(asked);
+  expect(await draftKeys(page, 'plan-draft:')).toBe(1);
   sessions.delete(TAYLOR);
 });
 
@@ -269,6 +422,19 @@ test('sign-out in one tab deletes the saved copy and signs out every open tab', 
   await expect(other.getByRole('heading', { name: 'Welcome back', exact: true })).toBeVisible();
   await expect(other.getByTestId('issue-row')).toHaveCount(0);
   expect((await savedCopy(other)).entries).toBe(0);
+  sessions.delete(CASEY);
+});
+
+test('signing out after the session already ended completes the sign-out', async ({ page }) => {
+  await signIn(page, CASEY);
+  await expect.poll(async () => (await savedCopy(page)).entries).toBeGreaterThan(0);
+  // Another client ends this session before this tab makes its next request.
+  expect(
+    (await page.request.post('/api/auth/logout', { headers: { 'x-tickets-csrf': '1' } })).ok(),
+  ).toBe(true);
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  expect((await savedCopy(page)).entries).toBe(0);
   sessions.delete(CASEY);
 });
 
