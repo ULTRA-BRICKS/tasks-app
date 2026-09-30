@@ -214,6 +214,12 @@ export const NestedLayer: Story = {
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('dialog', { name: 'Person card' })).toBeNull());
     await expectOpen(preview);
+    // An outside press, too, closes the nested card and leaves the preview open.
+    await userEvent.click(within(preview).getByRole('button', { name: 'Person' }));
+    await page.findByRole('dialog', { name: 'Person card' });
+    await userEvent.click(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.queryByRole('dialog', { name: 'Person card' })).toBeNull());
+    await expectOpen(preview);
     // Navigating from inside the preview leaves the page it previews.
     await userEvent.click(within(preview).getByRole('button', { name: 'Person' }));
     try {

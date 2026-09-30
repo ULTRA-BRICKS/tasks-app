@@ -132,6 +132,8 @@ export function PressPreview({
     returnFocus = useRef<HTMLElement | null>(null),
     sourcePosition = useRef<{ left: number; top: number } | null>(null),
     busy = useRef(false),
+    // Whether the current press started while a popup opened from the content was open.
+    pressOnContentPopup = useRef(false),
     hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [surface, setSurface] = useState<{
     state: 'open' | 'closing';
@@ -297,8 +299,20 @@ export function PressPreview({
       if ((event as CustomEvent<Element>).detail !== anchor.current) close();
     };
     const outside = (e: Event) => {
+      // A popup opened from the content (a person card) is the top layer: an outside press
+      // closes only that popup, as Escape does. Unlike Escape, this skips the toolbar's pickers
+      // and menus, which are part of the preview and close with it. Read at press start: the
+      // popup closes itself on this press's click (mouse) or touchend (touch).
+      pressOnContentPopup.current = Boolean(
+        popup.current?.querySelector('.peek-content [data-popup-open]'),
+      );
       const node = e.target as Node;
-      if (!anchor.current?.contains(node) && !layer.current?.contains(node)) close();
+      if (
+        !pressOnContentPopup.current &&
+        !anchor.current?.contains(node) &&
+        !layer.current?.contains(node)
+      )
+        close();
     };
     const keyboard = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
@@ -394,7 +408,9 @@ export function PressPreview({
               className="peek-scrim"
               data-state={surface.state}
               aria-hidden="true"
-              onClick={() => close(true)}
+              onClick={() => {
+                if (!pressOnContentPopup.current) close(true);
+              }}
             />
             <dialog
               open
