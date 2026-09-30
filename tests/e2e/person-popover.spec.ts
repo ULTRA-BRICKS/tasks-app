@@ -514,7 +514,10 @@ test('the task preview’s assignee opens the card above the preview, and the ca
   await login(page);
   const { jamie, preview, trigger, chip } = await jamiePreview(page);
   const card = page.getByRole('dialog', { name: 'Jamie Chen', exact: true });
-  await chip.click();
+  // The whole pill is the trigger: a click at its rounded edge, left of the avatar, opens the card.
+  const pill = chip.locator('..'),
+    height = (await pill.boundingBox())!.height;
+  await pill.click({ position: { x: 4, y: height / 2 } });
   await expect(card).toContainText(jamie.email);
   await expectAbove(card, preview);
   // A press inside the card is not an outside press for the preview.

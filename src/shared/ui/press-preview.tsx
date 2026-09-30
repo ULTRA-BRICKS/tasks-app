@@ -298,8 +298,9 @@ export function PressPreview({
     };
     const outside = (e: Event) => {
       // A popup opened from the content (a person card) is the top layer: an outside press
-      // closes only that popup, as Escape does. Read at press start: the popup closes itself on
-      // this press's click (mouse) or touchend (touch).
+      // closes only that popup, as Escape does. Unlike Escape, this skips the toolbar's pickers
+      // and menus, which are part of the preview and close with it. Read at press start: the
+      // popup closes itself on this press's click (mouse) or touchend (touch).
       pressOnContentPopup.current = Boolean(
         popup.current?.querySelector('.peek-content [data-popup-open]'),
       );
