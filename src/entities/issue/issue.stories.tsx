@@ -39,7 +39,7 @@ const issue: Issue = {
 const meta = {
   title: 'Entities/Issue row',
   component: IssueRow,
-  args: { issue, onOpen: fn(), onSelect: fn(), selected: false },
+  args: { issue, onOpen: fn(), onSelect: fn(), selected: false, actions: [] },
 } satisfies Meta<typeof IssueRow>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -77,7 +77,7 @@ export const ReadOnly: Story = { args: { canSelect: false } };
 export const BoardCard: Story = {
   render: () => (
     <div style={{ width: 280 }}>
-      <IssueCard issue={issue} onOpen={fn()} />
+      <IssueCard issue={issue} onOpen={fn()} actions={[]} />
     </div>
   ),
 };
