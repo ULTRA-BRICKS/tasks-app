@@ -252,6 +252,8 @@ export function Combobox(props: SingleProps | MultipleProps) {
                     disabled={item.disabled}
                     className="picker-item"
                   >
+                    {/* Leading decorations: styles.css lays out an option with a description
+                        by their count (0 to 2); another kind needs a column template there. */}
                     {item.color && (
                       <span
                         className="combobox-swatch"
