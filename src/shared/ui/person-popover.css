@@ -39,7 +39,7 @@
   box-shadow: 0 0 0 2px var(--color-border-strong);
 }
 /* 44 px touch target around a 22 px avatar without moving anything around it. A name alone is
-   inline text (activity, previews): enlarging it would cover the lines around it. */
+   inline text (activity, the People list): enlarging it would cover the lines around it. */
 @media (pointer: coarse) {
   .person-trigger:has(> .avatar)::after {
     content: '';

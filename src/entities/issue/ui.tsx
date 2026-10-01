@@ -69,6 +69,8 @@ export interface IssueRowProps {
   canSelect?: boolean;
   updating?: boolean;
   assigneeControl?: ReactNode;
+  /** The assignee in the task preview while one is set, e.g. a person chip that opens their card. */
+  peekAssignee?: ReactNode;
 }
 export function IssueRow({
   issue,
@@ -80,6 +82,7 @@ export function IssueRow({
   canSelect = true,
   updating = false,
   assigneeControl,
+  peekAssignee,
 }: IssueRowProps) {
   return (
     <PressPreview
@@ -87,7 +90,7 @@ export function IssueRow({
       dialogLabel="Task preview"
       heading={issue.key}
       menuLabel={`Actions for ${issue.key}`}
-      content={<IssuePeek issue={issue} />}
+      content={<IssuePeek issue={issue} assignee={peekAssignee} />}
       actions={actions}
     >
       <div
@@ -152,12 +155,15 @@ export function IssueCard({
   onOpen,
   actions,
   assigneeControl,
+  peekAssignee,
 }: {
   issue: Issue;
   onOpen: () => void;
   actions: MenuAction[];
   /** Rendered beside the open button: a combobox cannot nest inside a button. */
   assigneeControl?: ReactNode;
+  /** As on `IssueRow`: the assignee in the task preview while one is set. */
+  peekAssignee?: ReactNode;
 }) {
   return (
     <PressPreview
@@ -165,7 +171,7 @@ export function IssueCard({
       dialogLabel="Task preview"
       heading={issue.key}
       menuLabel={`Actions for ${issue.key}`}
-      content={<IssuePeek issue={issue} />}
+      content={<IssuePeek issue={issue} assignee={peekAssignee} />}
       actions={actions}
     >
       <div className="issue-card">
@@ -199,7 +205,7 @@ export function IssueCard({
 }
 
 /** Content first: title, compact properties, the whole description and attachments. */
-function IssuePeek({ issue }: { issue: Issue }) {
+function IssuePeek({ issue, assignee }: { issue: Issue; assignee?: ReactNode }) {
   const details = useIssue(issue.id);
   return (
     <>
@@ -214,8 +220,14 @@ function IssuePeek({ issue }: { issue: Issue }) {
           {priorities[issue.priority]?.label}
         </span>
         <span className="peek-chip">
-          <Avatar name={issue.assignee_name} />
-          {issue.assignee_name || 'Unassigned'}
+          {issue.assignee_id && assignee ? (
+            assignee
+          ) : (
+            <>
+              <Avatar name={issue.assignee_name} />
+              {issue.assignee_name || 'Unassigned'}
+            </>
+          )}
         </span>
         {issue.labels.map((l) => (
           <span className="label-pill" key={l.id}>
