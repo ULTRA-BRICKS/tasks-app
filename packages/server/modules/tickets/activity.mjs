@@ -93,7 +93,7 @@ const verbs = new Set([
 export function describeImportedChange(
   raw,
   resolve = (collection) => unavailable[collection],
-  person = () => '',
+  person = () => undefined,
 ) {
   const event = payload(raw),
     notes = [],
@@ -104,18 +104,25 @@ export function describeImportedChange(
     const before = valueAt(event, 'from' + suffix),
       after = valueAt(event, 'to' + suffix);
     if (before === after || (before === null && after === null)) continue;
+    const key = (value) => (object(value) ? value.id : value);
     const render = (value) => {
       if (value === null) return empty;
       if (collection)
         return (
           // A Linear user shown by its canonical Tasks name when the projection knows it.
-          (collection === 'users' && person(object(value) ? value.id : value)) ||
+          (collection === 'users' && person(key(value))?.name) ||
           (object(value) ? text(value.name) : '') ||
-          resolve(collection, object(value) ? value.id : value)
+          resolve(collection, key(value))
         );
       return scalar(field, value);
     };
-    changes.push({ kind: 'value', field, label, from: render(before), to: render(after) });
+    const change = { kind: 'value', field, label, from: render(before), to: render(after) };
+    // The canonical person behind a Linear user, for the client's avatar and person card.
+    if (collection === 'users') {
+      change.from_id = before === null ? null : (person(key(before))?.id ?? null);
+      change.to_id = after === null ? null : (person(key(after))?.id ?? null);
+    }
+    changes.push(change);
   }
   // Linear history records that the description changed, never its text.
   if (event.updatedDescription === true || list(event.changes?.descriptionUpdatedByIds).length)
@@ -307,13 +314,21 @@ export function describeNativeChange(action, data, name) {
         if (table) return typeof value === 'string' ? name(table, value) : nativeTables[table][0];
         return scalar(field, value);
       };
-      changes.push({
+      const presented = {
         kind: 'value',
         field,
         label,
         from: render(change.from),
         to: render(change.to),
-      });
+      };
+      // The stored person ID (member or alias) behind each name, for the client's avatar and card;
+      // a missing or empty value means the field was cleared.
+      if (table === 'people') {
+        const personId = (value) => (typeof value === 'string' && value ? value : null);
+        presented.from_id = personId(change.from);
+        presented.to_id = personId(change.to);
+      }
+      changes.push(presented);
     }
     const labels = stored(data, 'label_ids');
     if (labels) {
@@ -393,7 +408,7 @@ export async function presentActivity(tx, workspace, issueId, rows, links = []) 
   );
   const directory = mentionsPeople ? await identityDirectory(tx, workspace) : null;
   // Payloads name Linear user IDs (source_id), not stored person IDs; issueDetails names the row actor.
-  const person = (key) => directory?.bySource.get('linear:' + key)?.name ?? '';
+  const person = (key) => directory?.bySource.get('linear:' + key);
   return parsed.map((row) =>
     row.action === 'linear_imported_change'
       ? {

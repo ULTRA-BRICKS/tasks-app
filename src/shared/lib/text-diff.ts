@@ -3,7 +3,8 @@
 export type DiffPart = { type: 'same' | 'added' | 'removed'; text: string };
 export type DiffRow =
   | { type: 'same' | 'added' | 'removed'; parts: DiffPart[] }
-  | { type: 'skip'; count: number };
+  // Collapsed unchanged lines, kept so the reader can expand them in place.
+  | { type: 'skip'; lines: string[] };
 
 // Beyond either bound the caller shows the complete before/after texts instead of a diff:
 // comparisons cap the LCS table; lines cap rendered rows (a pasted document has no pairs).
@@ -126,7 +127,7 @@ export function diffText(before: string, after: string): DiffRow[] | null {
     for (const parts of removedRows) rows.push({ type: 'removed', parts });
     for (const parts of addedRows) rows.push({ type: 'added', parts });
   }
-  // Keep a little unchanged context around each change; summarize the rest.
+  // Keep a little unchanged context around each change; collapse the rest.
   const keep = rows.map((row, index) =>
     rows
       .slice(Math.max(0, index - CONTEXT), index + CONTEXT + 1)
@@ -136,9 +137,10 @@ export function diffText(before: string, after: string): DiffRow[] | null {
   rows.forEach((row, index) => {
     if (keep[index]) result.push(row);
     else {
-      const last = result.at(-1);
-      if (last?.type === 'skip') last.count++;
-      else result.push({ type: 'skip', count: 1 });
+      const last = result.at(-1),
+        line = row.parts[0].text;
+      if (last?.type === 'skip') last.lines.push(line);
+      else result.push({ type: 'skip', lines: [line] });
     }
   });
   return result;
