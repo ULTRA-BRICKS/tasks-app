@@ -1,6 +1,7 @@
 import { test, expect } from 'bun:test';
 import type { Catalog } from '@tickets/contracts';
 import {
+  assigneeOptions,
   canonicalPersonValue,
   identityConflicts,
   peopleDirectory,
@@ -39,16 +40,16 @@ test('new catalog identity refreshes names without leaking another workspace pro
   expect(selectedPerson(second, 'member')?.name).toBe('Updated');
   expect(selectedPerson(first, 'member')?.name).toBe('Person');
 });
+const profile = (id: string, name: string, email: string | null, provider: string, extra = {}) => ({
+  id,
+  name,
+  email,
+  provider,
+  source_id: id,
+  avatar_url: null,
+  ...extra,
+});
 test('every legacy ID resolves to one picker entry while review conflicts and bots stay labeled', () => {
-  const profile = (id: string, name: string, email: string, provider: string, extra = {}) => ({
-    id,
-    name,
-    email,
-    provider,
-    source_id: id,
-    avatar_url: null,
-    ...extra,
-  });
   const c = {
     people: [
       { id: 'ultra', name: 'Ultra', email: 'ultra@example.test', role: 'owner' },
@@ -81,6 +82,59 @@ test('every legacy ID resolves to one picker entry while review conflicts and bo
     { kind: 'same_provider_email', email: 'danny@example.test', providers: ['linear'] },
   ]);
   expect(identityConflicts(c)).toBe(identityConflicts(c));
+});
+test('assignee suggestions describe a person by email unless a bot or review label must show, and search every name and the email', () => {
+  const c = {
+    people: [
+      { id: 'ultra', name: 'Ultra', email: 'ultra@example.test', role: 'owner' },
+      { id: 'danny', name: 'Danny', email: 'danny@example.test', role: 'member' },
+    ],
+    source_people: [
+      profile('ultra-linear', 'Ultra L', 'ULTRA@example.test', 'linear'),
+      profile('ultra-slack', 'Ultra S', 'private@example.test', 'slack'),
+      profile('ci-bot', 'CI', 'ci@example.test', 'slack', { bot: true }),
+      profile('danny-linear', 'Danny', 'danny@example.test', 'linear'),
+      profile('danny-linear-2', 'Danny', 'danny@example.test', 'linear'),
+      profile('robin', 'Robin', null, 'slack'),
+    ],
+    identity_bindings: [
+      { member_id: 'ultra', source_person_id: 'ultra-slack', via: 'slack_user_map' },
+    ],
+  } as Catalog;
+  const directory = peopleDirectory(c);
+  const [unassigned, ...people] = assigneeOptions(directory, false);
+  expect(unassigned).toEqual({ value: 'none', label: 'Unassigned' });
+  expect(
+    people.map((option) => [
+      option.value,
+      option.label,
+      option.description,
+      [...(option.keywords ?? [])].sort(),
+    ]),
+  ).toEqual([
+    ['ci-bot', 'CI', 'Bot', ['CI', 'ci@example.test']],
+    ['danny', 'Danny', 'Member · Needs review', ['Danny', 'danny@example.test']],
+    ['danny-linear', 'Danny', 'Linear · Needs review', ['Danny', 'danny@example.test']],
+    ['danny-linear-2', 'Danny', 'Linear · Needs review', ['Danny', 'danny@example.test']],
+    ['robin', 'Robin', undefined, ['Robin']],
+    [
+      'ultra',
+      'Ultra S',
+      'ultra@example.test',
+      ['Ultra', 'Ultra L', 'Ultra S', 'ultra@example.test'],
+    ],
+  ]);
+  // A viewer reads the same suggestions, each one disabled.
+  const readonly = assigneeOptions(directory, true);
+  expect(readonly.map(({ disabled, ...option }) => option)).toEqual([unassigned, ...people]);
+  expect(readonly.every((option) => option.disabled)).toBe(true);
+  // The plain person options of other pickers (filters, lead, owner) show no email.
+  expect(personOptions(c).find((option) => option.value === 'ultra')?.description).toBeUndefined();
+  // A Slack profile's email is searchable in no picker, only the account's and Linear's are.
+  const searchable = (option: { keywords?: readonly string[] } | undefined) => option?.keywords;
+  expect(searchable(personOptions(c).find((option) => option.value === 'ultra'))).not.toContain(
+    'private@example.test',
+  );
 });
 test('picker search matches every alias name and email of a person, not only the shown name', () => {
   const c = {

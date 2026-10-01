@@ -117,7 +117,16 @@ test('server names and assignee filters use the canonical person across aliases'
     const imported = details.activity.find((a) => a.action === 'linear_imported_change');
     expect(imported?.actor_name).toBe(name);
     expect(imported?.changes).toEqual([
-      { kind: 'value', field: 'assignee', label: 'Assignee', from: 'Unassigned', to: name },
+      // The Linear user's canonical person, so the client can show that person's avatar and card.
+      {
+        kind: 'value',
+        field: 'assignee',
+        label: 'Assignee',
+        from: 'Unassigned',
+        to: name,
+        from_id: null,
+        to_id: f.init.user_id,
+      },
     ]);
     // A native reassignment to the Linear alias names the canonical person, not the alias row.
     const reassigned = await f.request('PATCH', '/api/v1/issues/' + botTask.id, {
@@ -129,7 +138,15 @@ test('server names and assignee filters use the canonical person across aliases'
       (a) => a.action === 'updated',
     );
     expect(native?.changes).toEqual([
-      { kind: 'value', field: 'assignee', label: 'Assignee', from: 'Codex', to: name },
+      {
+        kind: 'value',
+        field: 'assignee',
+        label: 'Assignee',
+        from: 'Codex',
+        to: name,
+        from_id: ids.bot,
+        to_id: ids.linear,
+      },
     ]);
     const posted = await f.request('POST', '/api/v1/issues/' + aliasTask.id + '/comments', {
       body: 'Native comment',

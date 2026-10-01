@@ -1,14 +1,19 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
 import { login } from './session-fixture';
 import { identityFixture, type Person } from './identity-fixture';
-/** Opens a task assigned to Jamie and returns Jamie's catalog record. */
-async function openJamieTask(page: Page) {
+/** Jamie's catalog record and the first task assigned to Jamie. */
+async function jamieTask(page: Page) {
   const catalog = await (await page.request.get('/api/v1/catalog')).json();
   const jamie: Person = catalog.people.find((p: Person) => p.name === 'Jamie Chen');
   const list = await (
     await page.request.get('/api/v1/issues?limit=1&assignee_id=' + jamie.id)
   ).json();
-  await page.goto('/tasks/' + list.data[0].id);
+  return { jamie, task: list.data[0] as { id: string; key: string; title: string } };
+}
+/** Opens a task assigned to Jamie and returns Jamie's catalog record. */
+async function openJamieTask(page: Page) {
+  const { jamie, task } = await jamieTask(page);
+  await page.goto('/tasks/' + task.id);
   await descriptionMounted(page);
   const assignee = page
     .locator('.compact-property')
@@ -308,20 +313,39 @@ test('on a phone the drawer profile opens the signed-in card and View tasks clos
     await context.close();
   }
 });
-/** The task list filtered to Jamie's tasks, its first row and that row's assignee picker (the
- * UB-43 avatar). */
-async function jamieRow(page: Page) {
+/** The task list filtered to Jamie's tasks, as rows or as the board, its first row or card and
+ * that one's assignee picker (the UB-43 avatar). */
+async function jamieRow(page: Page, view: 'list' | 'board' = 'list') {
   const catalog = await (await page.request.get('/api/v1/catalog')).json();
   const jamie: Person = catalog.people.find((p: Person) => p.name === 'Jamie Chen');
   await page.goto('/tasks?assignee_id=' + jamie.id);
+  if (view === 'board') await page.getByRole('button', { name: 'Board view', exact: true }).click();
   const assignee = /^Assignee for .+: Jamie Chen$/;
-  const row = page
-    .getByTestId('issue-row')
+  const row = (view === 'board' ? page.locator('.issue-card') : page.getByTestId('issue-row'))
     .filter({ has: page.getByRole('combobox', { name: assignee }) })
     .first();
   const picker = row.getByRole('combobox', { name: assignee });
   await expect(picker).toBeVisible();
   return { catalog, jamie, row, picker };
+}
+/** The server's own `me` answer with the viewer role. */
+async function asViewer(page: Page) {
+  await page.route('**/api/v1/me', async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      json: { ...(await response.json()), role: 'viewer', scopes: ['read'] },
+    });
+  });
+}
+/** The card lies directly below or above the control it was opened from. */
+async function expectAgainst(card: Locator, control: Locator) {
+  const at = await control.boundingBox(),
+    box = await card.boundingBox();
+  if (!at || !box) throw new Error('not laid out');
+  expect(
+    Math.min(Math.abs(box.y - (at.y + at.height)), Math.abs(at.y - (box.y + box.height))),
+  ).toBeLessThanOrEqual(12);
 }
 test('a list row avatar keeps assigning, and its View profile opens the card at the avatar', async ({
   page,
@@ -345,12 +369,7 @@ test('a list row avatar keeps assigning, and its View profile opens the card at 
   await expect(card).toContainText(jamie.email);
   await expect(page.getByRole('listbox')).toHaveCount(0);
   // The card sits against the row avatar, directly below or above it.
-  const at = await picker.boundingBox(),
-    box = await card.boundingBox();
-  if (!at || !box) throw new Error('not laid out');
-  expect(
-    Math.min(Math.abs(box.y - (at.y + at.height)), Math.abs(at.y - (box.y + box.height))),
-  ).toBeLessThanOrEqual(12);
+  await expectAgainst(card, picker);
   await page.keyboard.press('Escape');
   await expect(card).toHaveCount(0);
   await expect(picker).toBeFocused();
@@ -392,10 +411,148 @@ test('a list row avatar keeps assigning, and its View profile opens the card at 
   await page
     .getByRole('combobox', { name: 'Assignee for ' + task.key + ': Unassigned', exact: true })
     .click();
-  await expect(page.getByRole('option', { name: 'Jamie Chen', exact: true })).toBeVisible();
+  // The option also shows the person's email (docs/ROW-ASSIGNEE.md): match the name's own text.
+  await expect(
+    page.getByRole('option').filter({ has: page.getByText('Jamie Chen', { exact: true }) }),
+  ).toBeVisible();
   await expect(page.getByRole('option', { name: 'View profile' })).toHaveCount(0);
 });
-test('on a phone a viewer opens a row’s card from the assignee picker but cannot assign', async ({
+for (const [view, surface] of [
+  ['list', 'row'],
+  ['board', 'board card'],
+] as const)
+  test(`on a phone a viewer opens a ${surface}’s card from the assignee picker but cannot assign`, async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+    });
+    const page = await context.newPage();
+    try {
+      await login(page);
+      await asViewer(page);
+      const { jamie, picker } = await jamieRow(page, view);
+      await picker.tap();
+      await expect(page.getByRole('option', { name: 'Unassigned', exact: true })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+      // Playwright WebKit's touch emulation sends no click after a tap on an option whose
+      // pointerdown is cancelled (Base UI does); iOS Safari still clicks. So the option is chosen
+      // with a click; the avatar above was tapped.
+      await page.getByRole('option', { name: 'View profile', exact: true }).click();
+      const card = page.getByRole('dialog', { name: 'Jamie Chen', exact: true });
+      await expect(card).toContainText(jamie.email);
+      await expect(card).toBeInViewport({ ratio: 1 });
+      await expect(picker).toBeInViewport();
+      await expect(card.getByRole('link', { name: 'View tasks', exact: true })).toBeVisible();
+      await expect(picker).toHaveAccessibleName(/: Jamie Chen$/);
+      await expect(page.getByRole('dialog', { name: 'Task preview' })).toHaveCount(0);
+    } finally {
+      await context.close();
+    }
+  });
+test('a board card’s assignee avatar offers View profile, and the card opens at the avatar', async ({
+  page,
+}) => {
+  await login(page);
+  const writes: string[] = [];
+  page.on('request', (request) => {
+    if (request.method() === 'PATCH') writes.push(request.url());
+  });
+  const { jamie, picker } = await jamieRow(page, 'board');
+  const card = page.getByRole('dialog', { name: 'Jamie Chen', exact: true });
+  await picker.click();
+  const options = page.getByRole('listbox', { name: /^Assignee for / }).getByRole('option');
+  await expect(options.first()).toHaveText('View profile');
+  await options.first().click();
+  await expect(card).toContainText(jamie.email);
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  await expectAgainst(card, picker);
+  // The card is portalled out of the board card: a press in it opens neither the task nor its
+  // preview.
+  const url = page.url();
+  await card.getByText(jamie.email).click();
+  await expect(card).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Task preview' })).toHaveCount(0);
+  expect(page.url()).toBe(url);
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveCount(0);
+  await expect(picker).toBeFocused();
+  expect(writes).toEqual([]);
+});
+/**
+ * Opens the preview of a task assigned to Jamie from a list found by its title, so the person's
+ * View tasks leads somewhere else.
+ */
+async function jamiePreview(page: Page, press: 'click' | 'tap' = 'click') {
+  const { jamie, task } = await jamieTask(page);
+  await page.goto('/tasks?q=' + encodeURIComponent(task.title));
+  const trigger = page.getByRole('button', { name: 'Preview ' + task.key, exact: true });
+  await trigger[press]();
+  const preview = page.getByRole('dialog', { name: 'Task preview', exact: true });
+  await expect(preview).toBeVisible();
+  const chip = preview.getByRole('button', { name: 'Jamie Chen', exact: true });
+  return { jamie, preview, trigger, chip };
+}
+/** Where the card and the preview overlap, the card is on top. */
+async function expectAbove(card: Locator, preview: Locator) {
+  const a = (await card.boundingBox())!,
+    b = (await preview.boundingBox())!;
+  const left = Math.max(a.x, b.x),
+    top = Math.max(a.y, b.y),
+    right = Math.min(a.x + a.width, b.x + b.width),
+    bottom = Math.min(a.y + a.height, b.y + b.height);
+  expect(right - left).toBeGreaterThan(20);
+  expect(bottom - top).toBeGreaterThan(20);
+  const point = { x: (left + right) / 2, y: (top + bottom) / 2 };
+  expect(
+    await card.evaluate((el, p) => el.contains(document.elementFromPoint(p.x, p.y)), point),
+  ).toBe(true);
+}
+test('the task preview’s assignee opens the card above the preview, and the card closes first', async ({
+  page,
+}) => {
+  await login(page);
+  const { jamie, preview, trigger, chip } = await jamiePreview(page);
+  const card = page.getByRole('dialog', { name: 'Jamie Chen', exact: true });
+  // The whole pill is the trigger: a click at its rounded edge, left of the avatar, opens the card.
+  const pill = chip.locator('..'),
+    height = (await pill.boundingBox())!.height;
+  await pill.click({ position: { x: 4, y: height / 2 } });
+  await expect(card).toContainText(jamie.email);
+  await expectAbove(card, preview);
+  // A press inside the card is not an outside press for the preview.
+  await card.getByText(jamie.email).click();
+  await expect(card).toBeVisible();
+  await expect(preview).toBeVisible();
+  // Escape closes the card and returns focus to the chip; the next Escape closes the preview.
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveCount(0);
+  await expect(preview).toBeVisible();
+  await expect(chip).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(preview).toHaveCount(0);
+  // An outside press, too, closes the card first.
+  await trigger.click();
+  await chip.click();
+  await expect(card).toBeVisible();
+  const heading = page.getByRole('heading', { level: 1 });
+  await heading.click();
+  await expect(card).toHaveCount(0);
+  await expect(preview).toBeVisible();
+  await heading.click();
+  await expect(preview).toHaveCount(0);
+  // View tasks leaves the previewed list for the person's tasks, and the preview closes.
+  await trigger.click();
+  await chip.click();
+  await card.getByRole('link', { name: 'View tasks', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp('[?&]assignee_id=' + jamie.id));
+  await expect(preview).toHaveCount(0);
+  await expect(card).toHaveCount(0);
+});
+test('on a phone a viewer opens the preview assignee’s whole card; a tap outside closes the card first', async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -405,29 +562,24 @@ test('on a phone a viewer opens a row’s card from the assignee picker but cann
   const page = await context.newPage();
   try {
     await login(page);
-    await page.route('**/api/v1/me', async (route) => {
-      const response = await route.fetch();
-      await route.fulfill({
-        response,
-        json: { ...(await response.json()), role: 'viewer', scopes: ['read'] },
-      });
-    });
-    const { jamie, picker } = await jamieRow(page);
-    await picker.tap();
-    await expect(page.getByRole('option', { name: 'Unassigned', exact: true })).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
-    // Playwright WebKit's touch emulation sends no click after a tap on an option whose
-    // pointerdown is cancelled (Base UI does); iOS Safari still clicks. So the option is chosen
-    // with a click; the avatar above was tapped.
-    await page.getByRole('option', { name: 'View profile', exact: true }).click();
+    await asViewer(page);
+    const { jamie, preview, chip } = await jamiePreview(page, 'tap');
     const card = page.getByRole('dialog', { name: 'Jamie Chen', exact: true });
+    await chip.tap();
     await expect(card).toContainText(jamie.email);
     await expect(card).toBeInViewport({ ratio: 1 });
-    await expect(picker).toBeInViewport();
-    await expect(card.getByRole('link', { name: 'View tasks', exact: true })).toBeVisible();
-    await expect(picker).toHaveAccessibleName(/: Jamie Chen$/);
+    await expectAbove(card, preview);
+    // The dimmed strip above the preview, clear of the card.
+    const outside = { x: 195, y: 12 },
+      box = (await card.boundingBox())!;
+    expect(box.y).toBeGreaterThan(outside.y);
+    const url = page.url();
+    await page.touchscreen.tap(outside.x, outside.y);
+    await expect(card).toHaveCount(0);
+    await expect(preview).toBeVisible();
+    await page.touchscreen.tap(outside.x, outside.y);
+    await expect(preview).toHaveCount(0);
+    expect(page.url()).toBe(url);
   } finally {
     await context.close();
   }

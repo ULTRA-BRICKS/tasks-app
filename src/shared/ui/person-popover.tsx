@@ -4,7 +4,9 @@ import { ListTodo } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { PersonProfile } from '../lib/people';
 import { cn } from '../lib/cn';
+import { usePopupCollisionPadding } from '../lib/safe-area';
 import { Avatar } from './avatar';
+import { usePreviewLayer } from './press-preview';
 import './person-popover.css';
 
 const openDelay = 500,
@@ -13,7 +15,6 @@ const openDelay = 500,
 const cardPlacement = {
   sideOffset: 8,
   align: 'start',
-  collisionPadding: 8,
   className: 'popover-positioner',
 } as const;
 /**
@@ -53,6 +54,10 @@ export function PersonPopover({
     trigger = useRef<HTMLButtonElement>(null),
     returnFocus = useRef(false);
   const name = label ?? profile.name;
+  // Inside a task preview the card joins the preview's layer: it stacks above the preview, and
+  // presses in it stay inside the preview (docs/PERSON-POPOVER.md).
+  const layer = usePreviewLayer();
+  const collisionPadding = usePopupCollisionPadding();
   const clearTimers = () => {
     clearTimeout(openTimer.current);
     clearTimeout(closeTimer.current);
@@ -123,8 +128,8 @@ export function PersonPopover({
         {display !== 'text' && <Avatar name={profile.name} src={profile.avatar_url} decorative />}
         {display !== 'avatar' && <span className="person-trigger-text">{name}</span>}
       </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner {...cardPlacement}>
+      <Popover.Portal container={layer ?? undefined}>
+        <Popover.Positioner {...cardPlacement} collisionPadding={collisionPadding}>
           <Popover.Popup
             ref={(element) => {
               if (element) lastPopup.current = element;
@@ -182,6 +187,7 @@ export function PersonCard({
 }) {
   const firstAction = useRef<HTMLAnchorElement>(null),
     dismissed = useRef(true);
+  const collisionPadding = usePopupCollisionPadding();
   return (
     <Popover.Root
       open={open}
@@ -192,7 +198,7 @@ export function PersonCard({
       }}
     >
       <Popover.Portal>
-        <Popover.Positioner anchor={anchor} {...cardPlacement}>
+        <Popover.Positioner anchor={anchor} {...cardPlacement} collisionPadding={collisionPadding}>
           <Popover.Popup
             className="person-card"
             initialFocus={firstAction}

@@ -42,19 +42,33 @@ function index(directory: PersonDirectory): DirectoryIndex {
   if (saved) return saved;
   const aliases = new Map<string, CanonicalPerson>();
   for (const person of directory) for (const alias of person.aliases) aliases.set(alias, person);
-  const options = directory.map((person): PersonOption => {
-    const description = optionDescription(person);
-    // Earlier names and every alias email stay searchable after a Slack name takes over (UB-34).
+  const options: PersonOption[] = [],
+    suggestions: PersonOption[] = [];
+  for (const person of directory) {
+    const kind = optionDescription(person);
+    // Earlier names and every non-Slack alias email stay searchable after a Slack name takes over
+    // (UB-34).
     const keywords = [...person.names.filter((name) => name !== person.name), ...person.emails];
-    return {
+    const option: PersonOption = {
       value: person.id,
       label: person.name,
       avatar_url: person.avatar_url,
-      ...(description ? { description } : {}),
+      ...(kind ? { description: kind } : {}),
       ...(keywords.length ? { keywords } : {}),
     };
-  });
-  const editable = [{ value: 'none', label: 'Unassigned' }, ...options];
+    options.push(option);
+    // Assignee suggestions (UB-43, docs/ROW-ASSIGNEE.md): the email tells people apart unless a
+    // bot or review label must show, and every name and the email are searchable.
+    const description = kind ?? person.email;
+    suggestions.push({
+      ...option,
+      ...(description ? { description } : {}),
+      keywords: [
+        ...new Set([...person.names, ...(person.email ? [person.email] : []), ...person.emails]),
+      ],
+    });
+  }
+  const editable = [{ value: 'none', label: 'Unassigned' }, ...suggestions];
   const result = {
     aliases,
     options,

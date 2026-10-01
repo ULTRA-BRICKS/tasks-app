@@ -1,4 +1,4 @@
-import type { Activity } from '@tickets/contracts';
+import type { Activity, ActivityChange } from '@tickets/contracts';
 
 // Consecutive edits by one person within this gap read as one entry (docs/TASK-ACTIVITY.md).
 export const GROUP_WINDOW_MS = 10 * 60 * 1000;
@@ -42,4 +42,38 @@ export function groupActivity(activity: Activity[], limit = 8): ActivityEntry[] 
       });
   }
   return entries.slice(-limit);
+}
+
+// One sentence per line (UB-100): a change, or a verb such as `created the task`.
+export type ActivityLine =
+  | { kind: 'change'; change: ActivityChange }
+  | { kind: 'note'; text: string };
+
+// The lines of an entry, first line first. `updated the task` is never a line of its own while
+// the entry names what changed: the changes are the sentence. Any other verb leads its changes.
+export function entryLines(entry: ActivityEntry): ActivityLine[] {
+  const lines: ActivityLine[] = [];
+  if (entry.summary !== UPDATE) lines.push({ kind: 'note', text: entry.summary });
+  // Every change line comes before every detail line.
+  const details: ActivityLine[] = [];
+  for (const event of entry.events) {
+    for (const change of event.changes ?? []) lines.push({ kind: 'change', change });
+    for (const text of event.details ?? []) details.push({ kind: 'note', text });
+  }
+  lines.push(...details);
+  return lines.length ? lines : [{ kind: 'note', text: entry.summary }];
+}
+
+// Inline wording of a label change: `added label Bug`, `added labels A B and removed C`.
+export function labelPhrases(change: Extract<ActivityChange, { kind: 'labels' }>) {
+  const labelNoun = (names: string[]) => (names.length === 1 ? 'label' : 'labels');
+  const phrases: { verb: string; names: string[] }[] = [];
+  if (change.added.length)
+    phrases.push({ verb: 'added ' + labelNoun(change.added), names: change.added });
+  if (change.removed.length)
+    phrases.push({
+      verb: phrases.length ? 'and removed' : 'removed ' + labelNoun(change.removed),
+      names: change.removed,
+    });
+  return phrases;
 }

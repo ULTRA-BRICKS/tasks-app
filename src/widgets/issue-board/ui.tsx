@@ -16,6 +16,7 @@ import { GripVertical, Plus } from 'lucide-react';
 import type { Issue, Status } from '@tickets/contracts';
 import { IssueCard, StatusIcon } from '@/entities/issue';
 import { useCatalog } from '@/entities/workspace';
+import { PersonChip } from '@/entities/workspace';
 import { useIssueUpdate, useIssueWriteBusy, useTaskActions } from '@/features/issue-edit';
 import { selectedPerson } from '@/shared/lib/people';
 import { ErrorState, Button } from '@/shared/ui';
@@ -63,6 +64,9 @@ function Draggable({
         onOpen={onOpen}
         actions={actions}
         assigneeControl={assigneeControl?.(issue)}
+        peekAssignee={
+          <PersonChip id={issue.assignee_id} name={issue.assignee_name} display="name" />
+        }
       />
     </div>
   );

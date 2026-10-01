@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode, type RefObject } from 'react';
 import { Menu } from '@base-ui/react/menu';
 import { Check, ChevronRight } from 'lucide-react';
+import { usePopupCollisionPadding } from '../lib/safe-area';
 import type { Option } from './select';
 /** A single choice among options, such as a task's status or assignee. */
 export type MenuChoice = {
@@ -34,6 +35,7 @@ export function MenuItems({
   /** Keeps nested menus inside the caller's layer (the preview) for focus and outside-press checks. */
   container?: RefObject<HTMLElement | null>;
 }) {
+  const collisionPadding = usePopupCollisionPadding();
   return items.map((item) => (
     <Fragment key={item.label}>
       {item.separatorBefore && <Menu.Separator className="action-menu-separator" />}
@@ -48,7 +50,12 @@ export function MenuItems({
             <ChevronRight size={14} aria-hidden="true" />
           </Menu.SubmenuTrigger>
           <Menu.Portal container={container}>
-            <Menu.Positioner sideOffset={4} alignOffset={-4} className="page-menu-positioner">
+            <Menu.Positioner
+              sideOffset={4}
+              alignOffset={-4}
+              collisionPadding={collisionPadding}
+              className="page-menu-positioner"
+            >
               <Menu.Popup className="page-menu-popup" aria-label={item.label}>
                 {item.choice ? (
                   <ChoiceItems

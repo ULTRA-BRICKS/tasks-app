@@ -88,12 +88,12 @@ The Slack card on **Settings → Integrations** (visible to administrators only,
 All places use the one projection:
 
 - Assignee pickers, project lead and initiative owner pickers, and the task-list assignee filter: option label and photo.
-- The task row's and board card's assignee control, the task preview's assignee, and any card or row rendered without an assignee control, such as the card being dragged (it was initials-only before).
+- The task row's and board card's assignee control, the task preview's assignee (the UB-77 person chip, which selects the same projection), and a card rendered without an assignee control, such as the card being dragged (it was initials-only before).
 - People settings: the member's photo. The row keeps the account name, because role changes act on the account; the person card shows the projection name.
 - Person cards opened from comments, activity and anywhere else.
 - Server-rendered names: `assignee_name`, comment `author_name`, activity `actor_name` (UB-29).
 
-A photo that fails to load falls back to initials (`Avatar` drops the failed URL). **Old names and emails stay searchable:** picker search also matches every name and email of the person's aliases, so "jchen" still finds a person now shown under their Slack name.
+A photo that fails to load falls back to initials (`Avatar` drops the failed URL). **Old names and emails stay searchable:** picker search also matches every name and every non-Slack email of the person's aliases (the sync stores no Slack email, and one on a Slack alias would not be a search term), so "jchen" still finds a person now shown under their Slack name.
 
 There is no visible "imported" postfix. Commit `dee62bd` removed it; `tests/e2e/people-layout-feedback.spec.ts` asserts its absence. Provenance stays in the data: `provider`, `source_id`, the aliases and the person card's account list.
 

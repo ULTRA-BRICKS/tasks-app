@@ -230,7 +230,14 @@ export function resolveIdentities(members = [], sources = [], bindings = []) {
           null,
         aliases: group.map((person) => person.id),
         names: [...new Set(group.map((person) => person.name))],
-        emails: [...new Set(group.flatMap((person) => normalizeEmail(person.email) ?? []))],
+        // The Slack sync stores no email (docs/SLACK-PROFILES.md); one on a Slack alias is no search term.
+        emails: [
+          ...new Set(
+            group.flatMap((person) =>
+              person.provider === 'slack' ? [] : (normalizeEmail(person.email) ?? []),
+            ),
+          ),
+        ],
         providers: [...new Set(group.map((person) => person.provider))],
         bot: identity.bot,
         needs_review: review.get(root) ?? false,

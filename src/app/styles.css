@@ -100,17 +100,21 @@ button {
 ::selection {
   background: var(--color-selected);
 }
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-border-strong);
-  border-radius: var(--radius-round);
-  border: 2px solid var(--color-canvas);
+/* Desktop scrollbars only: on touch, a drawn 8px gutter narrows WebKit's visual viewport, so
+   focusing a field pans the page sideways (docs/PHONE-OVERFLOW.md). */
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border-radius: var(--radius-round);
+    border: 2px solid var(--color-canvas);
+  }
 }
 .sr-only {
   position: absolute;
@@ -248,7 +252,7 @@ button {
   box-shadow: 0 10px 35px rgb(0 0 0 / 0.28);
   max-height: min(var(--available-height), 340px);
   min-width: max(var(--anchor-width), 170px);
-  max-width: min(360px, calc(100vw - 24px));
+  max-width: min(360px, var(--available-width, calc(100vw - 24px)));
   overflow: auto;
   outline: 0;
 }
@@ -1268,6 +1272,19 @@ kbd {
   padding: var(--space-6) var(--space-8);
   text-align: left;
 }
+/* Tables are an explicit horizontal-scroll region (docs/PHONE-OVERFLOW.md): cells keep whole
+   words, and a table wider than the phone scrolls inside its wrapper instead of widening the
+   page. The editor's wrapper comes from Tiptap's TableView, read-only Markdown adds its own. */
+.markdown .tableWrapper {
+  overflow-x: auto;
+}
+.markdown .tableWrapper:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.markdown .tableWrapper :is(th, td) {
+  overflow-wrap: break-word;
+}
 .markdown input[type='checkbox'] {
   margin-right: var(--space-6);
 }
@@ -1384,142 +1401,227 @@ kbd {
 .attachment-row > svg {
   color: var(--color-subtle);
 }
+/* Task activity (docs/TASK-ACTIVITY.md, UB-100): one sentence per line on a 20 px line box, so a
+   change never takes a heading row; the time floats at the end of the first line and later
+   lines and an open diff use the whole width. */
 .activity-event {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   gap: var(--space-8);
   font-size: var(--font-size-11);
   color: var(--color-muted);
-  padding: var(--space-6) 0;
+  padding: var(--space-4) 0;
 }
-.activity-message {
+.activity-lines {
   min-width: 0;
   flex: 1;
+  display: flow-root;
+}
+.activity-lines > time {
+  float: right;
+  margin-left: var(--space-8);
+  font-size: 10px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.activity-line {
+  line-height: 20px;
   overflow-wrap: anywhere;
 }
-.activity-detail {
-  margin-top: var(--space-4);
+.activity-line + .activity-line {
+  margin-top: var(--space-2);
 }
-.activity-event strong {
-  font-weight: 500;
-  color: var(--color-muted);
-}
-.activity-event time {
-  margin-left: auto;
-  font-size: 10px;
-  white-space: nowrap;
+.activity-actor,
+.activity-field {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
 }
 .activity-dot {
   flex-shrink: 0;
   width: 5px;
   height: 5px;
+  /* Centred on the first 20 px line. */
+  margin: 7.5px 8px 0;
   border-radius: 50%;
   background: var(--color-border-strong);
-  margin-inline: 8px;
 }
-.activity-changes {
-  display: grid;
-  gap: var(--space-4);
-  margin: var(--space-4) 0 0;
-}
-.activity-change {
-  display: grid;
-  grid-template-columns: minmax(72px, max-content) minmax(0, 1fr);
-  column-gap: var(--space-8);
-  align-items: baseline;
-}
-.activity-change dd {
-  margin: 0;
-  min-width: 0;
+.activity-value {
   color: var(--color-text);
-  overflow-wrap: anywhere;
+  font-weight: var(--font-weight-medium);
 }
 .activity-from {
   color: var(--color-muted);
+  font-weight: var(--font-weight-regular);
 }
-.activity-to {
-  font-weight: 500;
+.activity-arrow {
+  color: var(--color-muted);
+}
+/* A person value keeps the text baseline: a 16 px avatar sits inside the 20 px line box. */
+.activity-value :is(.person-trigger, .person-static) {
+  display: inline-block;
+  max-width: 100%;
+}
+.activity-value .avatar {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  margin-right: var(--space-4);
+  /* The box's middle, not the initials' baseline (a photo avatar has none), sets its height. */
+  vertical-align: middle;
+  font-size: 7px;
+}
+/* Inline text among other lines: an enlarged touch target would cover the lines around it
+   (the actor uses the text-only trigger for the same reason). */
+.activity-line .person-trigger:has(> .avatar)::after {
+  display: none;
+}
+.activity-label {
+  display: inline-block;
+  padding: 0 var(--space-6);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-round);
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+  line-height: 16px;
 }
 .activity-note {
   color: var(--color-muted);
 }
 .activity-diff-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-  min-height: 24px;
+  position: relative;
+  padding: 0;
   border-radius: var(--radius-sm);
   color: var(--color-accent);
-  cursor: pointer;
-}
-.activity-diff-toggle::-webkit-details-marker {
-  display: none;
+  font-weight: var(--font-weight-medium);
 }
 @media (hover: hover) {
   .activity-diff-toggle:hover {
     text-decoration: underline;
+    text-underline-offset: 2px;
   }
 }
 .activity-diff-toggle:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+/* 44 px touch target without growing the line. */
 @media (pointer: coarse) {
-  .activity-diff-toggle {
-    min-height: 44px;
+  .activity-diff-toggle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: 44px;
+    transform: translate(-50%, -50%);
   }
 }
 .activity-diff {
-  margin-top: var(--space-4);
-  max-height: 320px;
-  overflow: auto;
+  margin: var(--space-6) 0 var(--space-4);
+  overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-panel);
+  color: var(--color-text);
+}
+.diff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-10);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-elevated);
+  color: var(--color-muted);
+  font-weight: var(--font-weight-medium);
+}
+.diff-stats {
+  display: inline-flex;
+  gap: var(--space-8);
   font-family: var(--font-mono);
-  line-height: 1.5;
+}
+.diff-stat-removed,
+.diff-removed .diff-sign {
+  color: var(--color-danger);
+}
+.diff-stat-added,
+.diff-added .diff-sign {
+  color: var(--color-success);
+}
+/* Long descriptions scroll inside the diff, never the page; long lines wrap, never sideways. */
+.diff-body {
+  max-height: 320px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4) 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-12);
+  line-height: 20px;
 }
 .diff-row {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr);
+  grid-template-columns: 24px minmax(0, 1fr);
   /* Blank Markdown lines keep their height so paragraph breaks stay visible. */
-  min-height: 1.5em;
-  padding: 0 var(--space-6);
+  min-height: 20px;
+  padding-right: var(--space-10);
+}
+.diff-sign {
+  text-align: center;
+  user-select: none;
 }
 .diff-text {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .diff-added {
-  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
 }
 .diff-removed {
-  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
 }
+/* Colour is not the only cue: <ins> keeps an underline and <del> a strike-through. */
 .activity-diff ins {
-  background: color-mix(in srgb, var(--color-success) 28%, transparent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-success) 30%, transparent);
   color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--color-success);
+  text-underline-offset: 3px;
 }
 .activity-diff del {
-  background: color-mix(in srgb, var(--color-danger) 28%, transparent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-danger) 30%, transparent);
   color: inherit;
+  text-decoration: line-through;
+  text-decoration-color: var(--color-danger);
 }
 .diff-skip {
-  padding: 0 var(--space-6) 0 calc(14px + var(--space-6));
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-10) var(--space-2) 24px;
+  background: color-mix(in srgb, var(--color-accent) 7%, transparent);
   color: var(--color-muted);
   font-family: var(--font-family);
+  font-size: var(--font-size-11);
+  line-height: 20px;
+  text-align: left;
+}
+@media (hover: hover) {
+  .diff-skip:hover {
+    background: var(--color-hover);
+    color: var(--color-text);
+  }
+}
+.diff-skip:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 .diff-version {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-6);
+  padding: var(--space-6) var(--space-10);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-@media (max-width: 767px) {
-  .activity-change {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 .comment {
   border: 1px solid var(--color-border);
@@ -1542,6 +1644,10 @@ kbd {
 }
 .comment strong {
   font-weight: 500;
+}
+/* The author's name wraps (person-popover.css); the short time beside it stays on one line. */
+.comment > header time {
+  white-space: nowrap;
 }
 .comment .markdown {
   font-size: var(--font-size-12);
@@ -3402,6 +3508,16 @@ button,
   height: 18px;
   font-size: 8px;
 }
+/* The assignee pill is the person trigger itself (UB-77): the whole pill opens the card. */
+.peek-chip:has(> .person-trigger) {
+  padding: 0;
+}
+.peek-chip > .person-trigger {
+  align-self: stretch;
+  padding: 2px 10px 2px 7px;
+  border-radius: inherit;
+  color: inherit;
+}
 .peek-chip.overdue {
   color: var(--color-danger, #ff7a7a);
 }
@@ -3531,6 +3647,8 @@ button,
 @media (max-width: 767px) {
   html {
     scroll-padding-bottom: var(--mobile-dock-clearance);
+    /* Popups keep clear of the navigation bar (usePopupCollisionPadding, docs/PHONE-OVERFLOW.md). */
+    --fixed-chrome-bottom: var(--mobile-dock-reach);
   }
   .workspace-main {
     padding-bottom: var(--mobile-dock-clearance);
@@ -3768,7 +3886,7 @@ button,
 }
 .page-menu-popup {
   min-width: 216px;
-  max-width: calc(100vw - 24px);
+  max-width: min(calc(100vw - 24px), var(--available-width, 100vw));
   padding: 6px;
   color: var(--color-text);
   background: var(--color-elevated);
@@ -4239,9 +4357,6 @@ button,
   html {
     scroll-padding-top: calc(var(--page-header-height) + var(--space-8));
   }
-  body {
-    overflow-x: clip;
-  }
   .app-shell {
     height: auto;
     min-height: 100svh;
@@ -4522,12 +4637,35 @@ button,
   overflow-wrap: anywhere;
   white-space: normal;
 }
-.picker-item-description {
-  flex-shrink: 0;
-  max-width: 50%;
+/* A description (a person's email, Bot, a review note) sits under the name: beside it, a long
+   email squeezed the name and ran past a 240px popup (UB-43, docs/ROW-ASSIGNEE.md). Every part
+   spans both rows except the name (row 1) and its description (row 2); grid auto-placement then
+   puts each leading decoration (avatar, colour swatch) in a column of its own, the description
+   under the name and the check after them. The template gives the name's column the free space;
+   there is one template per count of leading decorations Combobox can render (0 to 2), so a third
+   kind needs a template here (story DescriptionsSitUnderTheName checks every count). */
+.picker-item:has(> .picker-item-description) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 var(--space-8);
+}
+.picker-item:has(> .picker-item-description):has(> :first-child + .picker-item-text) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.picker-item:has(> .picker-item-description):has(> :first-child + * + .picker-item-text) {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+}
+.picker-item:has(> .picker-item-description) > * {
+  grid-row: 1 / span 2;
+}
+.picker-item:has(> .picker-item-description) > .picker-item-text {
+  grid-row: 1;
+}
+.picker-item > .picker-item-description {
+  grid-row: 2;
   color: var(--color-muted);
   font-size: var(--font-size-11);
-  text-align: end;
+  overflow-wrap: anywhere;
 }
 .picker-chevron {
   flex-shrink: 0;
@@ -4635,8 +4773,11 @@ button,
   --sticky-glass: color-mix(in srgb, var(--color-elevated) 72%, transparent);
   /* useMobileChrome writes the measured value; this covers the first frame. */
   --page-header-height: calc(88px + env(safe-area-inset-top));
-  /* Dock (4px edge + 54px) plus breathing room: page end padding and scroll-into-view inset. */
-  --mobile-dock-clearance: calc(88px + env(safe-area-inset-bottom));
+  /* How far the dock reaches up from the bottom edge: its 4px edge plus the dock's rendered
+     56px height (measured in both engines; .mobile-dock sets min-height 54px). */
+  --mobile-dock-reach: calc(60px + env(safe-area-inset-bottom, 0px));
+  /* The dock plus breathing room: page end padding and scroll-into-view inset. */
+  --mobile-dock-clearance: calc(var(--mobile-dock-reach) + 28px);
   /* Sticky layers: board column headings stay local; group headings pass under the header. */
   --z-board-column-header: 3;
   --z-sticky-group: 35;

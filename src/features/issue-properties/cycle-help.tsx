@@ -2,10 +2,12 @@ import { useRef, useState } from 'react';
 import { Popover } from '@base-ui/react/popover';
 import { Info, Maximize2 } from 'lucide-react';
 import { Button, Modal } from '@/shared/ui';
+import { usePopupCollisionPadding } from '@/shared/lib/safe-area';
 export function CycleHelp() {
   const [hint, setHint] = useState(false),
     [guide, setGuide] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  const collisionPadding = usePopupCollisionPadding();
   const closeGuide = (open: boolean) => {
     setGuide(open);
     if (!open) requestAnimationFrame(() => trigger.current?.focus({ preventScroll: true }));
@@ -23,7 +25,11 @@ export function CycleHelp() {
           <Info size={16} />
         </Popover.Trigger>
         <Popover.Portal>
-          <Popover.Positioner sideOffset={8} className="popover-positioner">
+          <Popover.Positioner
+            sideOffset={8}
+            collisionPadding={collisionPadding}
+            className="popover-positioner"
+          >
             <Popover.Popup
               className="property-popup cycle-help-summary"
               finalFocus={guide ? false : trigger}

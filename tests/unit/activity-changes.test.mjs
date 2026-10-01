@@ -83,7 +83,15 @@ test('every native field update is presented as old → new with names, not IDs'
     const statusName = f.catalog.statuses.find((s) => s.id === todo).name;
     expect(events[0].changes).toEqual([
       { kind: 'value', field: 'status', label: 'Status', from: statusName, to: done.name },
-      { kind: 'value', field: 'assignee', label: 'Assignee', from: 'Unassigned', to: 'Owner' },
+      {
+        kind: 'value',
+        field: 'assignee',
+        label: 'Assignee',
+        from: 'Unassigned',
+        to: 'Owner',
+        from_id: null,
+        to_id: f.init.user_id,
+      },
     ]);
     expect(byField(events[1])).toEqual({
       priority: {
@@ -151,6 +159,8 @@ test('every native field update is presented as old → new with names, not IDs'
         label: 'Assignee',
         from: 'Owner',
         to: 'Unassigned',
+        from_id: f.init.user_id,
+        to_id: null,
       },
       due_date: {
         kind: 'value',
@@ -162,7 +172,14 @@ test('every native field update is presented as old → new with names, not IDs'
       estimate: { kind: 'value', field: 'estimate', label: 'Estimate', from: '3', to: '0' },
       type: { kind: 'value', field: 'type', label: 'Type', from: 'Task', to: 'Epic' },
     });
-    const text = JSON.stringify(events.map((e) => [e.summary, e.changes, e.details]));
+    // Display text never shows an ID; person IDs travel only in `from_id`/`to_id` (for avatars).
+    const text = JSON.stringify(
+      events.map((e) => [
+        e.summary,
+        e.changes.map((c) => Object.entries(c).filter(([key]) => !key.endsWith('_id'))),
+        e.details,
+      ]),
+    );
     for (const raw of [
       done.id,
       f.init.user_id,
@@ -326,6 +343,8 @@ test('assignee changes to imported people use their workspace person name', asyn
         label: 'Assignee',
         from: 'Unassigned',
         to: 'Imported Person',
+        from_id: null,
+        to_id: person,
       },
     ]);
   } finally {

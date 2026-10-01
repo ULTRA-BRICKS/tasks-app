@@ -1,9 +1,4 @@
-import {
-  canonicalPersonValue,
-  peopleDirectory,
-  personInDirectory,
-  personOptions,
-} from '@/shared/lib/people';
+import { canonicalPersonValue, peopleDirectory, personOptions } from '@/shared/lib/people';
 import { IssueAssignee, useTaskActions } from '@/features/issue-edit';
 import { useLiveFeed } from '@/shared/lib/use-live-feed';
 import { useState, useMemo } from 'react';
@@ -24,7 +19,7 @@ import {
 } from 'lucide-react';
 import type { Issue, IssueFilters, IssueCreate, Status, StatusCategory } from '@tickets/contracts';
 import { useIssues, IssueRow, StatusIcon, type IssueRowProps } from '@/entities/issue';
-import { useMe, useCatalog, useProjects, moduleEnabled } from '@/entities/workspace';
+import { useMe, useCatalog, useProjects, moduleEnabled, PersonChip } from '@/entities/workspace';
 import { CreateIssue } from '@/features/issue-create';
 import { usePreferences } from '@/features/preferences';
 import { IssueDetails } from '@/widgets/issue-details';
@@ -495,9 +490,6 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
                               disabled={!me || readOnly}
                             />
                           }
-                          // The rendered row's assignee: a paced live update must not pair
-                          // this row's name with the next version's person.
-                          assignee={personInDirectory(directory, i.assignee_id)}
                           canSelect={!readOnly}
                           selected={selected.has(i.id)}
                           onSelect={() =>
@@ -560,11 +552,22 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
   );
 }
 /** A list row whose preview and context menus act on the current source version of the task. */
-function TaskListRow({ current, ...row }: Omit<IssueRowProps, 'actions'> & { current: Issue }) {
+function TaskListRow({
+  current,
+  ...row
+}: Omit<IssueRowProps, 'actions' | 'peekAssignee'> & { current: Issue }) {
   const actions = useTaskActions(current, {
     onOpen: row.onOpen,
     selected: row.selected,
     onSelect: row.canSelect ? row.onSelect : undefined,
   });
-  return <IssueRow {...row} actions={actions} />;
+  return (
+    <IssueRow
+      {...row}
+      actions={actions}
+      peekAssignee={
+        <PersonChip id={row.issue.assignee_id} name={row.issue.assignee_name} display="name" />
+      }
+    />
+  );
 }

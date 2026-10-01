@@ -146,9 +146,18 @@ export interface Attachment {
   created_at: string;
 }
 // Display-ready field changes (docs/TASK-ACTIVITY.md). Text `from`/`to` are null when the
-// source history recorded only that the description changed.
+// source history recorded only that the description changed. Assignee changes add the person
+// IDs behind their names (`null` when cleared or unmapped) for avatars and person cards.
 export type ActivityChange =
-  | { kind: 'value'; field: string; label: string; from: string; to: string }
+  | {
+      kind: 'value';
+      field: string;
+      label: string;
+      from: string;
+      to: string;
+      from_id?: Id | null;
+      to_id?: Id | null;
+    }
   | { kind: 'labels'; field: 'labels'; label: string; added: string[]; removed: string[] }
   | { kind: 'text'; field: 'description'; label: string; from: string | null; to: string | null };
 export interface Activity {
