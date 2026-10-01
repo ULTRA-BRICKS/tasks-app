@@ -176,6 +176,9 @@ test('an administrator syncs Slack profiles from Settings and sees the summary o
     'Slack is rate limiting requests. Try again in 30 seconds.',
   );
   expect(calls).toBe(2);
+  // A successful sync refetches the integrations; a refetch still in flight when the page
+  // closes would fail this test with "Response has been disposed" in the route handler.
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
 });
 
 test('without the Slack bot token and team the sync is disabled and names the missing variables', async ({
