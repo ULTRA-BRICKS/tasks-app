@@ -58,10 +58,34 @@ export function PriorityIcon({ value }: { value: number }) {
     />
   );
 }
+/** Opens the task page; `labels` also lands focus on its Labels property (docs/LABEL-CLICK.md). */
+export type OpenTask = (focus?: 'labels') => void;
+/** A label is a real button beside the open button, never nested in it. */
+function LabelChip({
+  issue,
+  label,
+  onOpenLabels,
+}: {
+  issue: Issue;
+  label: Issue['labels'][number];
+  onOpenLabels: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="label-pill label-pill-button"
+      aria-label={`Edit labels of ${issue.key}: ${label.name}`}
+      onClick={onOpenLabels}
+    >
+      <i style={{ '--label-color': label.color } as CSSProperties} />
+      {label.name}
+    </button>
+  );
+}
 export interface IssueRowProps {
   issue: Issue;
   status?: Status;
-  onOpen: () => void;
+  onOpen: OpenTask;
   /** The task's shared contextual actions (features/issue-edit useTaskActions). */
   actions: MenuAction[];
   selected?: boolean;
@@ -90,7 +114,9 @@ export function IssueRow({
       dialogLabel="Task preview"
       heading={issue.key}
       menuLabel={`Actions for ${issue.key}`}
-      content={<IssuePeek issue={issue} assignee={peekAssignee} />}
+      content={
+        <IssuePeek issue={issue} assignee={peekAssignee} onOpenLabels={() => onOpen('labels')} />
+      }
       actions={actions}
     >
       <div
@@ -132,10 +158,7 @@ export function IssueRow({
         </button>
         <div className="issue-labels">
           {issue.labels.slice(0, 2).map((l) => (
-            <span className="label-pill" key={l.id}>
-              <i style={{ '--label-color': l.color } as CSSProperties} />
-              {l.name}
-            </span>
+            <LabelChip key={l.id} issue={issue} label={l} onOpenLabels={() => onOpen('labels')} />
           ))}
         </div>
         <span
@@ -158,7 +181,7 @@ export function IssueCard({
   peekAssignee,
 }: {
   issue: Issue;
-  onOpen: () => void;
+  onOpen: OpenTask;
   actions: MenuAction[];
   /** Rendered beside the open button: a combobox cannot nest inside a button. */
   assigneeControl?: ReactNode;
@@ -171,7 +194,9 @@ export function IssueCard({
       dialogLabel="Task preview"
       heading={issue.key}
       menuLabel={`Actions for ${issue.key}`}
-      content={<IssuePeek issue={issue} assignee={peekAssignee} />}
+      content={
+        <IssuePeek issue={issue} assignee={peekAssignee} onOpenLabels={() => onOpen('labels')} />
+      }
       actions={actions}
     >
       <div className="issue-card">
@@ -205,7 +230,15 @@ export function IssueCard({
 }
 
 /** Content first: title, compact properties, the whole description and attachments. */
-function IssuePeek({ issue, assignee }: { issue: Issue; assignee?: ReactNode }) {
+function IssuePeek({
+  issue,
+  assignee,
+  onOpenLabels,
+}: {
+  issue: Issue;
+  assignee?: ReactNode;
+  onOpenLabels: () => void;
+}) {
   const details = useIssue(issue.id);
   return (
     <>
@@ -230,10 +263,7 @@ function IssuePeek({ issue, assignee }: { issue: Issue; assignee?: ReactNode }) 
           )}
         </span>
         {issue.labels.map((l) => (
-          <span className="label-pill" key={l.id}>
-            <i style={{ '--label-color': l.color } as CSSProperties} />
-            {l.name}
-          </span>
+          <LabelChip key={l.id} issue={issue} label={l} onOpenLabels={onOpenLabels} />
         ))}
         {issue.project_name && (
           <span className="peek-chip">

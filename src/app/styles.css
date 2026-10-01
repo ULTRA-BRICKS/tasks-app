@@ -4933,3 +4933,28 @@ a.code-history-task:hover {
     min-height: var(--mobile-tap);
   }
 }
+
+/* A label chip is a button that opens the task on its Labels property (docs/LABEL-CLICK.md). */
+.label-pill-button {
+  background: transparent;
+  font-family: inherit;
+  cursor: default;
+}
+.label-pill-button:hover {
+  background: var(--color-hover);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+.label-pill-button:focus-visible {
+  outline-offset: -2px;
+}
+@media (pointer: coarse) {
+  .peek-properties .label-pill-button {
+    min-height: var(--mobile-tap);
+  }
+}
+/* Focus landed by a label click (a script, so not :focus-visible after a pointer) looks the same. */
+.picker[data-landed] {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}

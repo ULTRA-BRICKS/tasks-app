@@ -396,7 +396,8 @@ test('a list row avatar keeps assigning, and its View profile opens the card at 
   await viewProfile();
   await page.keyboard.press('Shift+Tab');
   await expect(card).toHaveCount(0);
-  await expect(row.locator('.issue-open')).toBeFocused();
+  // The row's last tab stop before the avatar: a label chip (UB-99) when it has labels.
+  await expect(row.locator('.issue-open, .label-pill-button').last()).toBeFocused();
   // The card never assigns.
   expect(writes).toEqual([]);
   // An unassigned row has nobody to show.

@@ -426,7 +426,9 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
           <IssueBoard
             issues={issues}
             statuses={statuses}
-            onOpen={(id) => navigate('/tasks/' + id)}
+            onOpen={(id, focus) =>
+              navigate('/tasks/' + id, focus ? { state: { focus } } : undefined)
+            }
             onCreate={create}
             readOnly={readOnly}
             assigneeControl={(issue) => (
@@ -500,8 +502,11 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
                               return next;
                             })
                           }
-                          onOpen={() =>
-                            navigate('/tasks/' + i.id + (params.toString() ? '?' + params : ''))
+                          onOpen={(focus) =>
+                            navigate(
+                              '/tasks/' + i.id + (params.toString() ? '?' + params : ''),
+                              focus ? { state: { focus } } : undefined,
+                            )
                           }
                         />
                       ))}

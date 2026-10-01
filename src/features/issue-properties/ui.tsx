@@ -2,7 +2,7 @@ import { DateProperty } from './date-property';
 import { CycleHelp } from './cycle-help';
 import { useInlineCreate } from './inline-create';
 import { selectedPerson, personOptions, canonicalPersonValue } from '@/shared/lib/people';
-import type { ReactNode } from 'react';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CircleDashed, Folder, Layers, Triangle, UserRound } from 'lucide-react';
 import type { Catalog, IssuePatch, Milestone } from '@tickets/contracts';
@@ -53,6 +53,12 @@ export function IssueProperties({
     person = selectedPerson(c, v.assignee_id);
   // Viewers never see Create; the server still rejects their writes.
   const canCreate = !!me && me.role !== 'viewer';
+  // Consume a focus request so a reload or Back does not pull focus to Labels again.
+  const consumeFocusRequest = useCallback(() => {
+    const rest = { ...location.state };
+    delete rest.focus;
+    void navigate(location, { replace: true, state: Object.keys(rest).length ? rest : null });
+  }, [location, navigate]);
   const milestoneCreate = useInlineCreate<Milestone, Milestone[]>(
     {
       noun: 'milestone',
@@ -179,6 +185,8 @@ export function IssueProperties({
         disabled={disabled}
         canCreate={canCreate}
         onChange={(ids) => onChange({ label_ids: ids })}
+        focusRequested={location.state?.focus === 'labels'}
+        onFocused={consumeFocusRequest}
       />
       {moduleEnabled(c, 'planning') && (
         <>
@@ -241,12 +249,27 @@ function LabelPicker({
   onChange,
   disabled,
   canCreate,
+  focusRequested,
+  onFocused,
 }: {
   selected: string[];
   onChange: (ids: string[]) => void;
   disabled: boolean;
   canCreate: boolean;
+  /** A link from the list asked for this field: take focus once the trigger can hold it. */
+  focusRequested: boolean;
+  onFocused: () => void;
 }) {
+  const trigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const button = trigger.current;
+    if (!focusRequested || disabled || !button) return;
+    button.focus();
+    // Focus set by script after a pointer click is not :focus-visible: show it anyway until blur.
+    button.dataset.landed = '';
+    button.addEventListener('blur', () => delete button.dataset.landed, { once: true });
+    onFocused();
+  }, [focusRequested, disabled, onFocused]);
   const { data: c } = useCatalog();
   const create = useInlineCreate<Catalog['labels'][number], Catalog>(
     {
@@ -266,6 +289,7 @@ function LabelPicker({
     <Combobox
       multiple
       aria-label="Labels"
+      triggerRef={trigger}
       className="property-label-trigger"
       value={selected}
       onChange={onChange}

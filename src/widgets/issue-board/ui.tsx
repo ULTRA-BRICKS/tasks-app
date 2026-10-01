@@ -14,7 +14,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Plus } from 'lucide-react';
 import type { Issue, Status } from '@tickets/contracts';
-import { IssueCard, StatusIcon } from '@/entities/issue';
+import { IssueCard, StatusIcon, type OpenTask } from '@/entities/issue';
 import { PersonChip } from '@/entities/workspace';
 import { useIssueUpdate, useIssueWriteBusy, useTaskActions } from '@/features/issue-edit';
 import { ErrorState, Button } from '@/shared/ui';
@@ -28,7 +28,7 @@ function Draggable({
   assigneeControl,
 }: {
   issue: Issue;
-  onOpen: () => void;
+  onOpen: OpenTask;
   disabled: boolean;
   assigneeControl?: AssigneeControl;
 }) {
@@ -74,7 +74,7 @@ function Column({
 }: {
   status: Status;
   issues: Issue[];
-  onOpen: (id: string) => void;
+  onOpen: (id: string, focus?: 'labels') => void;
   onCreate: (status: Status) => void;
   disabled: boolean;
   assigneeControl?: AssigneeControl;
@@ -105,7 +105,7 @@ function Column({
           <Draggable
             key={i.id}
             issue={i}
-            onOpen={() => onOpen(i.id)}
+            onOpen={(focus) => onOpen(i.id, focus)}
             disabled={disabled}
             assigneeControl={assigneeControl}
           />
@@ -125,7 +125,7 @@ export function IssueBoard({
 }: {
   issues: Issue[];
   statuses: Status[];
-  onOpen: (id: string) => void;
+  onOpen: (id: string, focus?: 'labels') => void;
   onCreate: (status: Status) => void;
   readOnly: boolean;
   assigneeControl?: AssigneeControl;

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Combobox as BaseCombobox } from '@base-ui/react/combobox';
 import { Check, ChevronDown, Plus } from 'lucide-react';
 import { Avatar } from './avatar';
@@ -42,6 +42,8 @@ interface SharedProps {
   disabled?: boolean;
   className?: string;
   triggerContent?: ReactNode;
+  /** The trigger button, for callers that move focus to it (a link that lands on this field). */
+  triggerRef?: Ref<HTMLButtonElement>;
   /** Accessible name of the search field; defaults to `Search <field>`. */
   searchLabel?: string;
   create?: ComboboxCreate;
@@ -69,6 +71,7 @@ export function Combobox(props: SingleProps | MultipleProps) {
     disabled,
     className,
     triggerContent,
+    triggerRef,
     searchLabel = 'Search ' + props['aria-label'].toLowerCase(),
     create,
     actions,
@@ -198,7 +201,7 @@ export function Combobox(props: SingleProps | MultipleProps) {
       disabled={disabled}
       autoHighlight
     >
-      <BaseCombobox.Trigger aria-label={label} className={cn('picker', className)}>
+      <BaseCombobox.Trigger ref={triggerRef} aria-label={label} className={cn('picker', className)}>
         {triggerContent ?? <span>{selected?.label ?? ''}</span>}
         <BaseCombobox.Icon className="picker-chevron">
           <ChevronDown size={12} />
