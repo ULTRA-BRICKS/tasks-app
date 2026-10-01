@@ -43,6 +43,11 @@ import * as tickets from './modules/tickets/service.mjs';
 import * as planning from './modules/planning/service.mjs';
 import * as files from './modules/attachments/service.mjs';
 import * as integrations from './modules/integrations/service.mjs';
+import {
+  slackProfilesConfigured,
+  slackProfileSyncStatus,
+  syncSlackProfiles,
+} from './modules/integrations/slack-profiles.mjs';
 import { readFile } from 'node:fs/promises';
 
 const json = (value, status = 200, headers = {}) =>
@@ -102,6 +107,8 @@ export function createApp({
   storage,
   logger = console,
   mailTransport,
+  /** Transport for Slack profile reads (docs/SLACK-PROFILES.md); tests inject a fake. */
+  slackFetch = fetch,
   defer,
 } = {}) {
   assert(db, 500, 'CONFIG', 'Database is required');
@@ -1060,6 +1067,8 @@ export function createApp({
                   env.SLACK_CHANNEL_ID,
                 ),
                 outbound_configured: Boolean(env.SLACK_BOT_TOKEN),
+                profiles_configured: slackProfilesConfigured(env, a.workspace_id),
+                profile_sync: await slackProfileSyncStatus(tx, a.workspace_id),
                 config: configs.find((m) => m.id === 'slack')?.config,
               },
               jobs: await tx.all(
@@ -1073,6 +1082,8 @@ export function createApp({
             };
           }),
         );
+      else if (path === '/api/v1/integrations/slack/profiles/sync' && method === 'POST')
+        response = json(await syncSlackProfiles({ run, env, fetcher: slackFetch }));
       else if (/^\/api\/v1\/integrations\/(github|slack)$/.test(path) && method === 'PATCH') {
         const provider = path.split('/').at(-1),
           input = await body(

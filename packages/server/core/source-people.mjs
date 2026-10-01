@@ -21,12 +21,31 @@ export async function resolvePerson(tx, actor, value) {
   assert(found, 422, 'INVALID_PERSON', 'Person is not part of this workspace');
   return { member: null, source: value };
 }
+/** Private settings row the Slack profile sync owns (docs/SLACK-PROFILES.md): per-profile flags,
+ * the audit trail and a rate-limit pause. It is not a module and is never listed or toggled. */
+export const SLACK_PROFILE_STATE = 'slack-profiles';
+/** @returns {Promise<{profiles:Record<string,{bot?:true,deactivated?:true}>,runs:object[],paused_until?:string}>} */
+export async function slackProfileState(tx, workspace) {
+  const row = await tx.one('SELECT config FROM module_settings WHERE workspace_id=? AND module=?', [
+    workspace,
+    SLACK_PROFILE_STATE,
+  ]);
+  const state = JSON.parse(row?.config ?? '{}');
+  return { ...state, profiles: state.profiles ?? {}, runs: state.runs ?? [] };
+}
 async function listSourcePeople(tx, workspace) {
   const rows = await tx.all(
     'SELECT id,name,email,avatar_url,provider,source_id FROM source_people WHERE workspace_id=? ORDER BY name,id',
     [workspace],
   );
-  return rows.map((row) => ({ ...row, bot: isBotProfile(row) }));
+  const { profiles } = await slackProfileState(tx, workspace);
+  return rows.map((row) => ({
+    ...row,
+    bot: isBotProfile({
+      ...row,
+      bot: row.provider === 'slack' ? profiles[row.source_id]?.bot : undefined,
+    }),
+  }));
 }
 /** Rows for the identity projection and inventory, read with SELECT statements only. */
 export async function loadIdentityInputs(tx, workspace) {
@@ -34,7 +53,8 @@ export async function loadIdentityInputs(tx, workspace) {
     "SELECT enabled,config FROM module_settings WHERE workspace_id=? AND module='slack'",
     [workspace],
   );
-  const userMap = JSON.parse(slack?.config ?? '{}').user_map;
+  const config = JSON.parse(slack?.config ?? '{}');
+  const map = (value) => (value && typeof value === 'object' ? value : {});
   return {
     workspace_id: workspace,
     members: await tx.all(
@@ -44,15 +64,19 @@ export async function loadIdentityInputs(tx, workspace) {
     sources: await listSourcePeople(tx, workspace),
     slack: {
       enabled: slack?.enabled !== 0,
-      userMap: userMap && typeof userMap === 'object' ? userMap : {},
+      userMap: map(config.user_map),
+      sourceMap: map(config.source_person_map),
     },
   };
 }
-/** Each administrator-saved Slack mapping (Slack user ID → member) with the reason it is, or is
- * not, identity evidence. Slack source profiles use `<team>:<user>` source IDs; a user ID found
- * under more than one team is ambiguous and never binds. */
-function slackMappingEntries({ enabled, userMap }, members, sources) {
+/** Each administrator-saved Slack mapping (Slack user ID → member, or → imported person) with the
+ * reason it is, or is not, identity evidence. Slack source profiles use `<team>:<user>` source
+ * IDs; a user ID found under more than one team is ambiguous and never binds. */
+function slackMappingEntries({ enabled, userMap, sourceMap }, members, sources) {
   const memberIds = new Set(members.map((member) => member.id));
+  const importedIds = new Set(
+    sources.filter((source) => source.provider !== 'slack').map((source) => source.id),
+  );
   /** @type {Map<string, string[]>} */
   const profiles = new Map();
   for (const source of sources)
@@ -62,19 +86,39 @@ function slackMappingEntries({ enabled, userMap }, members, sources) {
       if (known) known.push(source.id);
       else profiles.set(user, [source.id]);
     }
-  return Object.entries(userMap ?? {})
-    .sort(([a], [b]) => (a < b ? -1 : 1))
-    .map(([slackUserId, memberId]) => {
+  const entries = [
+    ...Object.entries(userMap ?? {}).map(([slackUserId, memberId]) => ({
+      via: 'slack_user_map',
+      slackUserId,
+      target: { member_id: memberId },
+      unknown: !memberIds.has(memberId) && 'unknown_member',
+    })),
+    ...Object.entries(sourceMap ?? {}).map(([slackUserId, personId]) => ({
+      via: 'slack_source_person_map',
+      slackUserId,
+      target: { person_id: personId },
+      unknown: !importedIds.has(personId) && 'unknown_person',
+    })),
+  ];
+  return entries
+    .sort((a, b) =>
+      a.slackUserId === b.slackUserId
+        ? a.via.localeCompare(b.via)
+        : a.slackUserId < b.slackUserId
+          ? -1
+          : 1,
+    )
+    .map(({ via, slackUserId, target, unknown }) => {
       const matches = profiles.get(slackUserId) ?? [];
       return {
-        via: 'slack_user_map',
+        via,
         slack_user_id: slackUserId,
-        member_id: memberId,
+        ...target,
         source_person_id: matches.length === 1 ? matches[0] : null,
         status: !enabled
           ? 'module_disabled'
-          : !memberIds.has(memberId)
-            ? 'unknown_member'
+          : unknown
+            ? unknown
             : matches.length === 0
               ? 'no_source_profile'
               : matches.length > 1
@@ -83,12 +127,17 @@ function slackMappingEntries({ enabled, userMap }, members, sources) {
       };
     });
 }
-/** Verified member ↔ source pairs, the only ones the projection may apply.
+/** Verified member or imported person ↔ Slack profile pairs, the only ones the projection may
+ * apply; each carries exactly one of `member_id` and `person_id`.
  * @param {ReturnType<typeof slackMappingEntries>} entries */
 const appliedBindings = (entries) =>
   entries
     .filter((entry) => entry.status === 'applied')
-    .map(({ member_id, source_person_id, via }) => ({ member_id, source_person_id, via }));
+    .map(({ member_id, person_id, source_person_id, via }) =>
+      member_id === undefined
+        ? { person_id, source_person_id, via }
+        : { member_id, source_person_id, via },
+    );
 /** tx → workspace → Promise<directory> */
 const directories = new WeakMap();
 /** The projection the client builds from the catalog, for server-rendered names and alias

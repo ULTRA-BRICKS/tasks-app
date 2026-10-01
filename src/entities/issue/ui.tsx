@@ -58,6 +58,9 @@ export function PriorityIcon({ value }: { value: number }) {
     />
   );
 }
+/** The assignee's canonical person (docs/SLACK-PROFILES.md): the same name and photo as the
+ * assignee control. */
+export type IssueAssigneePerson = { name: string; avatar_url: string | null };
 export interface IssueRowProps {
   issue: Issue;
   status?: Status;
@@ -153,6 +156,7 @@ export function IssueRow({
 export function IssueCard({
   issue,
   onOpen,
+  assignee,
   actions,
   assigneeControl,
   peekAssignee,
@@ -164,6 +168,9 @@ export function IssueCard({
   assigneeControl?: ReactNode;
   /** As on `IssueRow`: the assignee in the task preview while one is set. */
   peekAssignee?: ReactNode;
+  /** Name and photo of the assignee's canonical person for the avatar shown without an
+   * assignee control, such as on a dragged card; the issue's `assignee_name` without it. */
+  assignee?: IssueAssigneePerson | null;
 }) {
   return (
     <PressPreview
@@ -197,7 +204,9 @@ export function IssueCard({
           </span>
         </button>
         <span className="card-assignee">
-          {assigneeControl ?? <Avatar name={issue.assignee_name} />}
+          {assigneeControl ?? (
+            <Avatar name={assignee?.name ?? issue.assignee_name} src={assignee?.avatar_url} />
+          )}
         </span>
       </div>
     </PressPreview>

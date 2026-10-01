@@ -46,11 +46,15 @@ function index(directory: PersonDirectory): DirectoryIndex {
     suggestions: PersonOption[] = [];
   for (const person of directory) {
     const kind = optionDescription(person);
+    // Earlier names and every non-Slack alias email stay searchable after a Slack name takes over
+    // (UB-34).
+    const keywords = [...person.names.filter((name) => name !== person.name), ...person.emails];
     const option: PersonOption = {
       value: person.id,
       label: person.name,
       avatar_url: person.avatar_url,
       ...(kind ? { description: kind } : {}),
+      ...(keywords.length ? { keywords } : {}),
     };
     options.push(option);
     // Assignee suggestions (UB-43, docs/ROW-ASSIGNEE.md): the email tells people apart unless a
@@ -59,7 +63,9 @@ function index(directory: PersonDirectory): DirectoryIndex {
     suggestions.push({
       ...option,
       ...(description ? { description } : {}),
-      keywords: person.email ? [...person.names, person.email] : person.names,
+      keywords: [
+        ...new Set([...person.names, ...(person.email ? [person.email] : []), ...person.emails]),
+      ],
     });
   }
   const editable = [{ value: 'none', label: 'Unassigned' }, ...suggestions];

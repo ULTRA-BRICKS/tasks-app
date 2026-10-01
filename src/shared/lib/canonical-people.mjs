@@ -1,11 +1,14 @@
 /** Presentation-only identity projection (docs/PEOPLE-IDENTITY.md). It never mutates accounts,
  * source IDs, historical authors or permissions; every original ID stays an alias.
  * @typedef {{id:string,name:string,email?:string|null,avatar_url?:string|null,provider?:string,source_id?:string,bot?:boolean|null}} Profile
- * @typedef {{member_id:string,source_person_id:string,via?:string}} Binding
+ * @typedef {{member_id:string,person_id?:undefined,source_person_id:string,via?:string}} MemberBinding
+ * @typedef {{person_id:string,member_id?:undefined,source_person_id:string,via?:string}} PersonBinding
+ * @typedef {MemberBinding|PersonBinding} Binding A Slack profile (`source_person_id`) bound to a
+ * Tasks member, or to an imported profile of another provider (docs/SLACK-PROFILES.md).
  * @typedef {'same_provider_email'|'ambiguous_email'|'conflicting_binding'|'bot_binding'|'unresolved_binding'} ConflictKind
  * @typedef {{id:string,name:string,provider:string,email:string|null,avatar_url:string|null}} ConflictProfile
  * @typedef {{kind:ConflictKind,email:string|null,providers:string[],profiles:ConflictProfile[]}} IdentityConflict
- * @typedef {{id:string,name:string,email:string|null,avatar_url:string|null,aliases:string[],names:string[],providers:string[],bot:boolean,needs_review:boolean}} CanonicalPerson
+ * @typedef {{id:string,name:string,email:string|null,avatar_url:string|null,aliases:string[],names:string[],emails:string[],providers:string[],bot:boolean,needs_review:boolean}} CanonicalPerson
  * @typedef {{people:CanonicalPerson[],conflicts:IdentityConflict[]}} IdentityResolution
  */
 /** Trim and lower-case only: dots and `+tags` can be different mailboxes.
@@ -67,29 +70,53 @@ export function resolveIdentities(members = [], sources = [], bindings = []) {
     [...new Set(indices.map((i) => all[i].provider).filter((p) => p !== 'tasks'))].sort((a, b) =>
       a.localeCompare(b),
     );
-  // 1. Explicit verified bindings first; a source bound to two members binds to neither.
+  // 1. Explicit verified bindings first; a source bound to two targets binds to neither. A member
+  // binding needs a Tasks member; a person binding needs an imported profile of another provider.
   /** @type {Map<number, Set<number>>} */
   const boundTo = new Map();
   for (const binding of bindings) {
-    const member = index.get(binding.member_id),
+    const target = index.get(binding.member_id ?? binding.person_id ?? ''),
       source = index.get(binding.source_person_id);
-    const known = [member, source].filter((i) => i !== undefined);
+    const known = [target, source].filter((i) => i !== undefined);
     if (
-      member === undefined ||
+      target === undefined ||
       source === undefined ||
-      all[member].provider !== 'tasks' ||
-      all[source].provider === 'tasks'
+      all[source].provider === 'tasks' ||
+      (binding.member_id !== undefined
+        ? all[target].provider !== 'tasks'
+        : ['tasks', all[source].provider].includes(all[target].provider))
     )
       report('unresolved_binding', known, null, sourceProviders(known));
-    else if (all[member].bot || all[source].bot)
-      report('bot_binding', [member, source], null, sourceProviders([source]));
-    else boundTo.set(source, (boundTo.get(source) ?? new Set()).add(member));
+    else if (all[target].bot || all[source].bot)
+      report('bot_binding', [target, source], null, sourceProviders([target, source]));
+    else boundTo.set(source, (boundTo.get(source) ?? new Set()).add(target));
   }
+  /** Sources bound to exactly one target, per target and source provider.
+   * @type {Map<number, Map<string, number[]>>} */
+  const byTarget = new Map();
   for (const [source, targets] of boundTo) {
-    if (targets.size > 1)
+    if (targets.size > 1) {
       report('conflicting_binding', [...targets, source], null, sourceProviders([source]));
-    else union(source, [...targets][0]);
+      continue;
+    }
+    const target = /** @type {number} */ ([...targets][0]);
+    const providers = byTarget.get(target) ?? new Map();
+    byTarget.set(target, providers);
+    const provider = all[source].provider;
+    providers.set(provider, [...(providers.get(provider) ?? []), source]);
   }
+  // Two profiles of one provider bound to one target would give it two names and photos (two
+  // Slack user IDs mapped to one member): none of those bindings apply.
+  for (const [target, providers] of byTarget)
+    for (const boundSources of providers.values())
+      if (boundSources.length > 1)
+        report(
+          'conflicting_binding',
+          [target, ...boundSources],
+          null,
+          sourceProviders(boundSources),
+        );
+      else union(boundSources[0], target);
   // 2. Email groups are judged against binding-only identities, so input order never matters.
   const bound = all.map((_, i) => find(i));
   /** @type {Map<number, Set<string>>} */
@@ -186,7 +213,11 @@ export function resolveIdentities(members = [], sources = [], bindings = []) {
   });
   const people = [...groups]
     .map(([root, group]) => {
-      const identity = group.find((person) => person.provider === 'tasks') ?? group[0];
+      // A member, else the imported profile a Slack profile was bound to, names the identity.
+      const identity =
+        group.find((person) => person.provider === 'tasks') ??
+        group.find((person) => person.provider !== 'slack') ??
+        group[0];
       const slack = group.find((person) => person.provider === 'slack');
       return {
         id: identity.id,
@@ -199,6 +230,14 @@ export function resolveIdentities(members = [], sources = [], bindings = []) {
           null,
         aliases: group.map((person) => person.id),
         names: [...new Set(group.map((person) => person.name))],
+        // The Slack sync stores no email (docs/SLACK-PROFILES.md); one on a Slack alias is no search term.
+        emails: [
+          ...new Set(
+            group.flatMap((person) =>
+              person.provider === 'slack' ? [] : (normalizeEmail(person.email) ?? []),
+            ),
+          ),
+        ],
         providers: [...new Set(group.map((person) => person.provider))],
         bot: identity.bot,
         needs_review: review.get(root) ?? false,
