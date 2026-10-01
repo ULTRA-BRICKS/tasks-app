@@ -43,17 +43,22 @@ export function useMobileChrome(mainRef: RefObject<HTMLElement | null>): MobileC
     let previousY = 0;
     let accumulated = 0;
     let frame = 0;
+    let measurementFrame = 0;
     /** Publishes the header height for CSS and returns the unrounded height for scroll deltas. */
     const measureHeader = () => {
       const height = header?.getBoundingClientRect().height ?? 0;
       root.style.setProperty('--page-header-height', `${Math.ceil(height)}px`);
       return height;
     };
-    // The header animates after compaction even when nothing scrolls (the board region is never
-    // scroll-anchored), so each resize also refreshes the baseline the dock direction relies on.
+    // Deferring the root CSS write avoids Chromium's “ResizeObserver loop completed with
+    // undelivered notifications”; scroll-state scheduling remains on its original frame.
     const sizeObserver = new ResizeObserver(() => {
-      measureHeader();
       if (!frame) frame = requestAnimationFrame(onScrollFrame);
+      cancelAnimationFrame(measurementFrame);
+      measurementFrame = requestAnimationFrame(() => {
+        measurementFrame = 0;
+        measureHeader();
+      });
     });
     // A toolbar can appear after a loading state inside a persistent route wrapper, so watch the
     // whole subtree; the connected-header check keeps each mutation batch O(1). A changed header
@@ -148,6 +153,7 @@ export function useMobileChrome(mainRef: RefObject<HTMLElement | null>): MobileC
     phone.addEventListener('change', onPhoneChange);
     return () => {
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(measurementFrame);
       sizeObserver.disconnect();
       headerObserver.disconnect();
       root.style.removeProperty('--page-header-height');
