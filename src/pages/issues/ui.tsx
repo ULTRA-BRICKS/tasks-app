@@ -35,6 +35,7 @@ import {
   ActionMenu,
 } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
+import { TaskSearchInput } from './search-input';
 export function IssuesPage({ reference }: { reference?: string } = {}) {
   const { issueId: routeIssueId } = useParams(),
     issueId = reference ?? routeIssueId,
@@ -142,7 +143,8 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
   });
   function setFilter(key: string, value: string) {
     const next = new URLSearchParams(params);
-    if (!value || value === 'all') next.delete(key);
+    // `all` clears the Picker filters; it is an ordinary word in the free-text search.
+    if (!value || (value === 'all' && key !== 'q')) next.delete(key);
     else next.set(key, value);
     if (key === 'team_id') {
       next.delete('status_id');
@@ -248,11 +250,9 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
         </Button>
         <div className="inline-search">
           <Search size={13} />
-          <Input
-            aria-label="Search tasks"
-            placeholder="Search tasks…"
+          <TaskSearchInput
             value={params.get('q') ?? ''}
-            onChange={(e) => setFilter('q', e.target.value)}
+            onCommit={(text) => setFilter('q', text)}
           />
         </div>
         <div className="view-toolbar-end">
