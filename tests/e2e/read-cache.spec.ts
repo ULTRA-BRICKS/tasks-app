@@ -226,7 +226,11 @@ test('newer unsent drafts win over the saved copy and a rejected edit never reac
   );
   const target = before?.endsWith(': Unassigned') ? 'Sam Rivera' : 'Unassigned';
   await assignee.click();
-  await page.getByRole('option', { name: target, exact: true }).click();
+  await page
+    .getByRole('listbox')
+    .getByRole('option')
+    .filter({ has: page.getByText(target, { exact: true }) })
+    .click();
   await expect(row.getByRole('alert')).toContainText('Synthetic rejected assignment');
   await expect(assignee).toHaveAttribute('aria-label', before!);
   await page.goto('/tasks/' + task.id);
