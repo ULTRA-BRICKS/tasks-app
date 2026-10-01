@@ -62,6 +62,9 @@ test('keyboard list navigation, opening and return do not capture editor input',
   await page.locator('.issue-detail-toolbar').click({ position: { x: 190, y: 18 } });
   await page.keyboard.press('Escape');
   await expect(page).toHaveURL(/\/tasks$/);
+  // The URL changes before React commits the list. WorkspaceKeyboard clears a pending `g` chord
+  // in an effect of that commit, so a `g` typed in between is lost and `p` goes nowhere.
+  await expect(page.locator('.issue-list .issue-open').first()).toBeVisible();
   await page.keyboard.press('g');
   await page.keyboard.press('p');
   await expect(page).toHaveURL(/\/projects$/);
