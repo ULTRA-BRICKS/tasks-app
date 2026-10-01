@@ -22,15 +22,10 @@ import { ErrorState, Button } from '@/shared/ui';
 import { errorMessage } from '@/shared/api/client';
 /** The page's assignee control for one card (features/issue-edit IssueAssignee). */
 type AssigneeControl = (issue: Issue) => ReactNode;
-/** A board card whose assignee photo comes from the shared person projection. */
-function BoardCard(props: Omit<ComponentProps<typeof IssueCard>, 'assigneeAvatarUrl'>) {
+/** A board card whose assignee name and photo come from the shared person projection. */
+function BoardCard(props: Omit<ComponentProps<typeof IssueCard>, 'assignee'>) {
   const { data: catalog } = useCatalog();
-  return (
-    <IssueCard
-      {...props}
-      assigneeAvatarUrl={selectedPerson(catalog, props.issue.assignee_id)?.avatar_url}
-    />
-  );
+  return <IssueCard {...props} assignee={selectedPerson(catalog, props.issue.assignee_id)} />;
 }
 function Draggable({
   issue,

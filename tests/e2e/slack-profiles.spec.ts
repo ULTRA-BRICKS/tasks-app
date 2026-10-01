@@ -28,7 +28,7 @@ async function configuredIntegrations(page: Page) {
   });
 }
 
-test('Slack names and photos show in task rows, pickers, the board, People and person cards; a broken photo falls back to initials', async ({
+test('Slack names and photos show in task rows, previews, pickers, the board, People and person cards; a broken photo falls back to initials', async ({
   page,
 }) => {
   await slackProfileFixture(page);
@@ -42,6 +42,19 @@ test('Slack names and photos show in task rows, pickers, the board, People and p
       .locator('.avatar'),
     'JC',
   );
+  // The task preview's assignee shows the same name and photo as the row.
+  await page
+    .locator('.peek-anchor')
+    .filter({ has: page.getByRole('combobox', { name: /: Alex M\.$/ }) })
+    .first()
+    .getByRole('button', { name: /^Preview TKT-/ })
+    .click();
+  const preview = page.getByRole('dialog', { name: 'Task preview', exact: true });
+  const assignee = preview.locator('.peek-chip').filter({ has: page.locator('.avatar') });
+  await expect(assignee).toHaveText('Alex M.');
+  await expectPhoto(assignee.locator('.avatar'), photos.alex);
+  await page.keyboard.press('Escape');
+  await expect(preview).toBeHidden();
   // Pickers show Slack names and photos, and still find people by earlier names and emails.
   await alexRow.click();
   const search = page.getByRole('combobox', { name: 'Search people' });
@@ -69,6 +82,19 @@ test('Slack names and photos show in task rows, pickers, the board, People and p
       .first(),
     photos.alex,
   );
+  // A dragged card has no assignee control; it keeps the Slack name and photo.
+  await page
+    .locator('.draggable-card')
+    .filter({ has: page.getByRole('combobox', { name: /: Alex M\.$/ }) })
+    .first()
+    .getByRole('button', { name: /^Move TKT-/ })
+    .focus();
+  await page.keyboard.press('Space');
+  const dragged = page.locator('.drag-preview .avatar');
+  await expect(dragged).toHaveAttribute('aria-label', 'Alex M.');
+  await expectPhoto(dragged, photos.alex);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.drag-preview')).toHaveCount(0);
   await page.getByRole('button', { name: 'List view', exact: true }).click();
   // Activity names the person from the projection; the card shows the Slack photo.
   await page.locator('.issue-open').first().click();

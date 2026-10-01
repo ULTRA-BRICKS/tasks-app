@@ -1,4 +1,9 @@
-import { canonicalPersonValue, peopleDirectory, personOptions } from '@/shared/lib/people';
+import {
+  canonicalPersonValue,
+  peopleDirectory,
+  personInDirectory,
+  personOptions,
+} from '@/shared/lib/people';
 import { IssueAssignee, useTaskActions } from '@/features/issue-edit';
 import { useLiveFeed } from '@/shared/lib/use-live-feed';
 import { useState, useMemo } from 'react';
@@ -490,6 +495,9 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
                               disabled={!me || readOnly}
                             />
                           }
+                          // The rendered row's assignee: a paced live update must not pair
+                          // this row's name with the next version's person.
+                          assignee={personInDirectory(directory, i.assignee_id)}
                           canSelect={!readOnly}
                           selected={selected.has(i.id)}
                           onSelect={() =>

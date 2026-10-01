@@ -58,6 +58,9 @@ export function PriorityIcon({ value }: { value: number }) {
     />
   );
 }
+/** The assignee's canonical person (docs/SLACK-PROFILES.md): the same name and photo as the
+ * assignee control. Without it, the issue's `assignee_name` and initials. */
+export type IssueAssigneePerson = { name: string; avatar_url: string | null };
 export interface IssueRowProps {
   issue: Issue;
   status?: Status;
@@ -69,6 +72,8 @@ export interface IssueRowProps {
   canSelect?: boolean;
   updating?: boolean;
   assigneeControl?: ReactNode;
+  /** For the preview and the avatar shown without an assignee control. */
+  assignee?: IssueAssigneePerson | null;
 }
 export function IssueRow({
   issue,
@@ -80,6 +85,7 @@ export function IssueRow({
   canSelect = true,
   updating = false,
   assigneeControl,
+  assignee,
 }: IssueRowProps) {
   return (
     <PressPreview
@@ -87,7 +93,7 @@ export function IssueRow({
       dialogLabel="Task preview"
       heading={issue.key}
       menuLabel={`Actions for ${issue.key}`}
-      content={<IssuePeek issue={issue} />}
+      content={<IssuePeek issue={issue} assignee={assignee} />}
       actions={actions}
     >
       <div
@@ -142,7 +148,9 @@ export function IssueRow({
         >
           {issue.due_date ? formatDate(issue.due_date) : ''}
         </span>
-        {assigneeControl ?? <Avatar name={issue.assignee_name} />}
+        {assigneeControl ?? (
+          <Avatar name={assignee?.name ?? issue.assignee_name} src={assignee?.avatar_url} />
+        )}
       </div>
     </PressPreview>
   );
@@ -150,7 +158,7 @@ export function IssueRow({
 export function IssueCard({
   issue,
   onOpen,
-  assigneeAvatarUrl,
+  assignee,
   actions,
   assigneeControl,
 }: {
@@ -159,9 +167,8 @@ export function IssueCard({
   actions: MenuAction[];
   /** Rendered beside the open button: a combobox cannot nest inside a button. */
   assigneeControl?: ReactNode;
-  /** Photo of the assignee's canonical person (docs/SLACK-PROFILES.md) for the avatar shown
-   * without an assignee control; initials without it. */
-  assigneeAvatarUrl?: string | null;
+  /** Same as IssueRowProps.assignee. */
+  assignee?: IssueAssigneePerson | null;
 }) {
   return (
     <PressPreview
@@ -169,7 +176,7 @@ export function IssueCard({
       dialogLabel="Task preview"
       heading={issue.key}
       menuLabel={`Actions for ${issue.key}`}
-      content={<IssuePeek issue={issue} />}
+      content={<IssuePeek issue={issue} assignee={assignee} />}
       actions={actions}
     >
       <div className="issue-card">
@@ -195,7 +202,9 @@ export function IssueCard({
           </span>
         </button>
         <span className="card-assignee">
-          {assigneeControl ?? <Avatar name={issue.assignee_name} src={assigneeAvatarUrl} />}
+          {assigneeControl ?? (
+            <Avatar name={assignee?.name ?? issue.assignee_name} src={assignee?.avatar_url} />
+          )}
         </span>
       </div>
     </PressPreview>
@@ -203,8 +212,9 @@ export function IssueCard({
 }
 
 /** Content first: title, compact properties, the whole description and attachments. */
-function IssuePeek({ issue }: { issue: Issue }) {
+function IssuePeek({ issue, assignee }: { issue: Issue; assignee?: IssueAssigneePerson | null }) {
   const details = useIssue(issue.id);
+  const assigneeName = assignee?.name ?? issue.assignee_name;
   return (
     <>
       <h2 data-selectable>{issue.title}</h2>
@@ -218,8 +228,8 @@ function IssuePeek({ issue }: { issue: Issue }) {
           {priorities[issue.priority]?.label}
         </span>
         <span className="peek-chip">
-          <Avatar name={issue.assignee_name} />
-          {issue.assignee_name || 'Unassigned'}
+          <Avatar name={assigneeName} src={assignee?.avatar_url} />
+          {assigneeName || 'Unassigned'}
         </span>
         {issue.labels.map((l) => (
           <span className="label-pill" key={l.id}>
