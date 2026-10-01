@@ -1,6 +1,7 @@
 /** Presentation-only identity projection (docs/PEOPLE-IDENTITY.md). It never mutates accounts,
  * source IDs, historical authors or permissions; every original ID stays an alias.
  * @typedef {{id:string,name:string,email?:string|null,avatar_url?:string|null,provider?:string,source_id?:string,bot?:boolean|null}} Profile
+ * @typedef {{name?:string|null,email?:string|null}} NameFields
  * @typedef {{member_id:string,source_person_id:string,via?:string}} Binding
  * @typedef {'same_provider_email'|'ambiguous_email'|'conflicting_binding'|'bot_binding'|'unresolved_binding'} ConflictKind
  * @typedef {{id:string,name:string,provider:string,email:string|null,avatar_url:string|null}} ConflictProfile
@@ -11,6 +12,19 @@
 /** Trim and lower-case only: dots and `+tags` can be different mailboxes.
  * @param {string|null|undefined} email @returns {string|null} */
 export const normalizeEmail = (email) => email?.trim().toLowerCase() || null;
+/** Provider avatar URLs cross a trust boundary. Persist only canonical, bounded HTTPS URLs. */
+export function safeAvatarUrl(value) {
+  if (typeof value !== 'string' || value.length > 2048) return null;
+  try {
+    const url = new URL(value);
+    const canonical = url.href;
+    return url.protocol === 'https:' && !url.username && !url.password && canonical.length <= 2048
+      ? canonical
+      : null;
+  } catch {
+    return null;
+  }
+}
 /** Linear gives OAuth applications (for example Codex, Cursor) and its own system user
  * addresses on these reserved domains; no human mailbox lives there. */
 const LINEAR_APP_EMAIL = /@(?:oauthapp\.linear\.app|linear\.linear\.app)$/;
@@ -23,6 +37,63 @@ export function isBotProfile(profile) {
   return (
     profile.provider === 'linear' && LINEAR_APP_EMAIL.test(normalizeEmail(profile.email) ?? '')
   );
+}
+/** `local@domain`: a stored name of this shape is an address, not a name (Linear stores the
+ * address as the name of a user who never entered one). */
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+$/;
+/** @param {string|null|undefined} name @returns {string|null} */
+const realName = (name) => {
+  const trimmed = name?.trim();
+  return trimmed && !EMAIL_SHAPE.test(trimmed) ? trimmed : null;
+};
+/** Last resort: the local part without `+tag`, split on `.`, `_`, `-`, each word capitalised.
+ * @param {string|null|undefined} address @returns {string|null} */
+function nameFromAddress(address) {
+  const trimmed = address?.trim();
+  if (!trimmed || !EMAIL_SHAPE.test(trimmed)) return null;
+  const words = trimmed
+    .split('@')[0]
+    .split('+')[0]
+    .split(/[._-]+/)
+    .filter(Boolean);
+  return words.map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase()).join(' ') || null;
+}
+/** The name chain of docs/PEOPLE-IDENTITY.md (UB-95): real names, then the identity email,
+ * email-shaped names, and other profile emails. A raw email never fills a name slot.
+ * @param {NameFields[]} names profiles in real-name precedence order
+ * @param {NameFields[]} [addresses] identity first, then profiles in address precedence order
+ * @returns {string} */
+function presentedName(names, addresses = names) {
+  for (const profile of names) {
+    const name = realName(profile.name);
+    if (name) return name;
+  }
+  const [identity, ...others] = addresses;
+  const identityName = nameFromAddress(identity?.email);
+  if (identityName) return identityName;
+  for (const profile of addresses) {
+    const name = nameFromAddress(profile.name);
+    if (name) return name;
+  }
+  for (const profile of others) {
+    const name = nameFromAddress(profile.email);
+    if (name) return name;
+  }
+  return 'Unknown person';
+}
+/** The presented name of one stored record the projection does not know (a former member).
+ * @param {string|null|undefined} name @param {string|null|undefined} [email] @returns {string} */
+export const storedPersonName = (name, email) => presentedName([{ name, email }]);
+const PROVIDER_RANK = ['tasks', 'slack', 'linear'];
+/** Fixed order for "any other linked profile": Tasks, Slack, Linear, others; then by ID.
+ * @param {Profile} a @param {Profile} b */
+function byProviderRank(a, b) {
+  const rank = (/** @type {Profile} */ p) => {
+    const i = PROVIDER_RANK.indexOf(p.provider ?? '');
+    return i < 0 ? PROVIDER_RANK.length : i;
+  };
+  const provider = rank(a) - rank(b);
+  return provider || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 }
 /** @param {Profile[]} members @param {Profile[]} sources @param {Binding[]} bindings
  * @returns {IdentityResolution} */
@@ -55,7 +126,7 @@ export function resolveIdentities(members = [], sources = [], bindings = []) {
       providers,
       profiles: indices.map((i) => ({
         id: all[i].id,
-        name: all[i].name,
+        name: presentedName([all[i]]),
         provider: all[i].provider,
         email: all[i].email ?? null,
         avatar_url: all[i].avatar_url ?? null,
@@ -188,17 +259,21 @@ export function resolveIdentities(members = [], sources = [], bindings = []) {
     .map(([root, group]) => {
       const identity = group.find((person) => person.provider === 'tasks') ?? group[0];
       const slack = group.find((person) => person.provider === 'slack');
+      const others = group.filter((person) => person !== identity).sort(byProviderRank);
       return {
         id: identity.id,
-        name: slack?.name?.trim() || identity.name,
+        name: presentedName(slack ? [slack, identity, ...others] : [identity, ...others], [
+          identity,
+          ...others,
+        ]),
         email: identity.email ?? null,
         avatar_url:
           slack?.avatar_url ??
           identity.avatar_url ??
-          group.find((person) => person.avatar_url)?.avatar_url ??
+          others.find((person) => person.avatar_url)?.avatar_url ??
           null,
         aliases: group.map((person) => person.id),
-        names: [...new Set(group.map((person) => person.name))],
+        names: [...new Set(group.map((person) => presentedName([person])))],
         providers: [...new Set(group.map((person) => person.provider))],
         bot: identity.bot,
         needs_review: review.get(root) ?? false,

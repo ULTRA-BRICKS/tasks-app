@@ -150,3 +150,35 @@ export function teamSourceFixture(teamKey) {
   for (const issue of source.data.issues) issue.identifier = teamKey + '-' + issue.number;
   return source;
 }
+/** Browser People fixture: Casey matches the seeded Tasks member, while team and Niko stay unique
+ * across projects.
+ * @param {string} teamKey
+ * @returns {{
+ *   source: {ids: {org: string, issue: string}, data: Record<string, unknown[]>, manifest: {counts: Record<string, number>}},
+ *   niko: {id: string, email: string},
+ *   casey: {id: string, email: string, avatarUrl: string},
+ * }}
+ */
+export function peopleNamesSourceFixture(teamKey) {
+  const source = teamSourceFixture(teamKey);
+  const niko = source.data.users[0];
+  niko.name = niko.email = `niko+${teamKey.toLowerCase()}@example.test`;
+  const casey = {
+    ...niko,
+    id: crypto.randomUUID(),
+    name: 'casey.brooks@example.test',
+    email: 'casey.brooks@example.test',
+    avatarUrl: 'https://avatars.example.test/casey-brooks.png',
+  };
+  source.data.users.push(casey);
+  source.manifest.counts.users = source.data.users.length;
+  source.data.issues[0].assignee = { id: casey.id };
+  source.data.issueHistory[0].history.nodes.push({
+    id: crypto.randomUUID(),
+    createdAt: '2024-03-01T00:00:00Z',
+    actorId: niko.id,
+    fromAssigneeId: null,
+    toAssigneeId: niko.id,
+  });
+  return { source, niko, casey };
+}

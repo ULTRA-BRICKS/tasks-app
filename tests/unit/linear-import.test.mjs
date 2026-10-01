@@ -315,6 +315,59 @@ test('PLAN rejects source identities without the non-null email required by Line
   }
 });
 
+test('imported Linear profiles keep an HTTPS avatarUrl and store no other address', async () => {
+  const f = await fixture();
+  try {
+    const source = sourceFixture();
+    const author = source.data.users[0];
+    author.avatarUrl = 'https://public.linear.app/avatars/source-author.png';
+    const maximumAvatarUrl =
+      'https://example.test/' + 'a'.repeat(2048 - 'https://example.test/'.length);
+    const expandingAvatarUrl = 'https://example.test/' + 'é'.repeat(1000);
+    const profile = (name, email, avatarUrl) => ({
+      ...author,
+      id: crypto.randomUUID(),
+      name,
+      email,
+      avatarUrl,
+    });
+    source.data.users.push(
+      profile('Plain web', 'plain@example.test', 'http://example.test/plain.png'),
+      profile(
+        'Credentials',
+        'credentials@example.test',
+        'https://user:password@example.test/a.png',
+      ),
+      profile('Maximum', 'maximum@example.test', maximumAvatarUrl),
+      profile('Expanding', 'expanding@example.test', expandingAvatarUrl),
+      profile('Script', 'script@example.test', 'javascript:alert(1)'),
+      profile('Long', 'long@example.test', 'https://example.test/' + 'a'.repeat(2048)),
+      profile('None', 'none@example.test', undefined),
+    );
+    source.manifest.counts.users = source.data.users.length;
+    const run = await stage(f, source);
+    const plan = await f.request('POST', `/api/v1/imports/linear/${run}/plan`);
+    expect(plan.status).toBe(200);
+    const applied = await f.request('POST', `/api/v1/imports/linear/${run}/apply`, {
+      plan_hash: plan.data.plan_hash,
+    });
+    expect(applied.status).toBe(200);
+    const people = (await f.request('GET', '/api/v1/catalog')).data.source_people;
+    expect(Object.fromEntries(people.map((person) => [person.email, person.avatar_url]))).toEqual({
+      'source-only@example.test': author.avatarUrl,
+      'plain@example.test': null,
+      'credentials@example.test': null,
+      'maximum@example.test': maximumAvatarUrl,
+      'expanding@example.test': null,
+      'script@example.test': null,
+      'long@example.test': null,
+      'none@example.test': null,
+    });
+  } finally {
+    await f.close();
+  }
+});
+
 test('HTTP apply acquires the workspace lock after projection, before native writes', async () => {
   const f = await fixture();
   try {

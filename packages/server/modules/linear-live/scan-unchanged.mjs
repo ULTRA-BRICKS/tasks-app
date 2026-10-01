@@ -2,6 +2,7 @@ import { AppError } from '../../core/errors.mjs';
 import { contextFor, normalizedNative, sourceMapping } from './context.mjs';
 import { readEntityState } from './store.mjs';
 import { sameField } from './merge-fields.mjs';
+import { normalizedSource } from './model.mjs';
 // A skip is read-only: never advance a baseline, acknowledge a change, or infer deletion here.
 export async function scanRecordIsUnchanged(tx, config, collection, record, sourceId, side) {
   const mapping = await sourceMapping(tx, config, collection, sourceId);
@@ -47,6 +48,17 @@ export async function scanRecordIsUnchanged(tx, config, collection, record, sour
     const baseline = state?.baseNative ?? context.source,
       fields = Object.keys(context.source);
     if (!fields.length || fields.some((field) => !Object.hasOwn(baseline, field))) return false;
+    // An imported snapshot never carried Linear's avatarUrl, so its baseline cannot prove a photo
+    // unchanged: compare the scanned profile itself (docs/PEOPLE-IDENTITY.md, UB-95).
+    if (side === 'source' && collection === 'users') {
+      const sourceBaseline = state?.baseSource ?? context.source;
+      if (fields.some((field) => !Object.hasOwn(sourceBaseline, field))) return false;
+      const scanned = normalizedSource(collection, record, () => null);
+      const sourceUnchanged = fields.every((field) =>
+        sameField(field, scanned[field], sourceBaseline[field]),
+      );
+      if (!sourceUnchanged) return false;
+    }
     const native = normalizedNative(collection, context.native, fields);
     return fields.every((field) => sameField(field, native[field], baseline[field]));
   } catch (error) {

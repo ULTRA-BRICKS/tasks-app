@@ -1,10 +1,12 @@
 import { test, expect } from 'bun:test';
 import { fixture } from './helpers.mjs';
 import {
+  identityDirectory,
   identityInventory,
   loadIdentityInputs,
 } from '../../packages/server/core/source-people.mjs';
 import { canonicalPeople } from '../../src/shared/lib/canonical-people.mjs';
+import { presentActivity } from '../../packages/server/modules/tickets/activity.mjs';
 const ids = {
   member: '00000000-0000-4000-8000-000000000291',
   linear: '00000000-0000-4000-8000-000000000292',
@@ -137,6 +139,90 @@ test('server names and assignee filters use the canonical person across aliases'
     expect(posted.status).toBe(201);
     expect(posted.data.author_name).toBe(name);
     expect(memberTask.assignee_id).toBe(f.init.user_id);
+  } finally {
+    await f.close();
+  }
+});
+test('server names never show an address and the catalog returns member photos', async () => {
+  const f = await fixture();
+  try {
+    // Niko shape: a Linear-only person whose Linear name is his address.
+    const niko = '00000000-0000-4000-8000-000000000951';
+    await f.db.transaction(async (tx) => {
+      await tx.exec(
+        "INSERT INTO source_people(id,workspace_id,provider,source_id,name,email) VALUES(?,?,'linear','linear-niko',?,?)",
+        [niko, f.init.workspace_id, 'niko@example.test', 'niko@example.test'],
+      );
+      await tx.exec('UPDATE users SET avatar_url=? WHERE id=?', [
+        'https://example.test/owner.png',
+        f.init.user_id,
+      ]);
+    });
+    const initialCatalog = (await f.request('GET', '/api/v1/catalog')).data;
+    expect(initialCatalog.people.find((person) => person.id === f.init.user_id)?.avatar_url).toBe(
+      'https://example.test/owner.png',
+    );
+    const task = (await f.create({ title: 'Assigned to Niko', assignee_id: niko })).data;
+    await f.db.transaction(async (tx) => {
+      await tx.exec(
+        "INSERT INTO comments(id,workspace_id,issue_id,author_id,author_source_id,body,created_at,updated_at) VALUES('00000000-0000-4000-8000-000000000953',?,?,?,?,'From Linear','2026-09-29T00:00:00.000Z','2026-09-29T00:00:00.000Z')",
+        [f.init.workspace_id, task.id, f.init.user_id, niko],
+      );
+      await tx.exec(
+        "INSERT INTO activity(id,workspace_id,issue_id,actor_id,actor_source_id,action,data,created_at) VALUES('00000000-0000-4000-8000-000000000955',?,?,?,?,'linear_imported_change',?,'2026-09-29T00:00:02.000Z')",
+        [
+          f.init.workspace_id,
+          task.id,
+          f.init.user_id,
+          niko,
+          JSON.stringify({ fromAssigneeId: null, toAssigneeId: 'linear-niko' }),
+        ],
+      );
+    });
+    const details = (await f.request('GET', '/api/v1/issues/' + task.id)).data;
+    expect(details.assignee_name).toBe('Niko');
+    expect(details).not.toHaveProperty('assignee_email');
+    const listed = (await f.request('GET', '/api/v1/issues')).data.data;
+    const listedNiko = listed.find((issue) => issue.id === task.id);
+    expect(listedNiko?.assignee_name).toBe('Niko');
+    expect(listedNiko).not.toHaveProperty('assignee_email');
+    const author = (body) => details.comments.find((c) => c.body === body)?.author_name;
+    expect(author('From Linear')).toBe('Niko');
+    expect(details.comments.find((c) => c.body === 'From Linear')).not.toHaveProperty(
+      'author_email',
+    );
+    const imported = details.activity.find((a) => a.action === 'linear_imported_change');
+    expect(imported?.actor_name).toBe('Niko');
+    expect(imported).not.toHaveProperty('actor_email');
+    expect(imported?.changes).toEqual([
+      { kind: 'value', field: 'assignee', label: 'Assignee', from: 'Unassigned', to: 'Niko' },
+    ]);
+    const catalog = (await f.request('GET', '/api/v1/catalog')).data;
+    // Stored source data is untouched: the catalog still carries Linear's own name.
+    expect(catalog.source_people.find((person) => person.id === niko)?.name).toBe(
+      'niko@example.test',
+    );
+  } finally {
+    await f.close();
+  }
+});
+test('native activity derives a source name added after its identity directory is cached', async () => {
+  const f = await fixture();
+  try {
+    const niko = '00000000-0000-4000-8000-000000000959';
+    const activity = await f.db.transaction(async (tx) => {
+      await identityDirectory(tx, f.init.workspace_id);
+      await tx.exec(
+        "INSERT INTO source_people(id,workspace_id,provider,source_id,name,email) VALUES(?,?,'linear','late-niko',?,?)",
+        [niko, f.init.workspace_id, ' ', 'niko@example.test'],
+      );
+      return presentActivity(tx, f.init.workspace_id, 'not-needed', [
+        { action: 'updated', data: JSON.stringify({ assignee_id: { from: null, to: niko } }) },
+      ]);
+    });
+    expect(activity[0]?.changes).toEqual([
+      { kind: 'value', field: 'assignee', label: 'Assignee', from: 'Unassigned', to: 'Niko' },
+    ]);
   } finally {
     await f.close();
   }

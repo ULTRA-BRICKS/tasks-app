@@ -1,4 +1,5 @@
 import { assert } from '../../core/errors.mjs';
+import { safeAvatarUrl } from '../../../../src/shared/lib/canonical-people.mjs';
 
 export const TABLES = Object.freeze({
   issues: 'issues',
@@ -97,7 +98,7 @@ export function normalizedSource(collection, s, resolve) {
     };
   if (collection === 'issueLabels') return { name: s.name, color: s.color };
   if (collection === 'users')
-    return { name: s.name, email: s.email ?? null, avatar_url: s.avatarUrl ?? null };
+    return { name: s.name, email: s.email ?? null, avatar_url: safeAvatarUrl(s.avatarUrl) };
   if (collection === 'projects') {
     assert(
       ['backlog', 'planned', 'started', 'paused', 'completed', 'canceled'].includes(s.status?.type),

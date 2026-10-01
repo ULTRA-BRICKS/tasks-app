@@ -234,7 +234,11 @@ export async function readSourcePage(
         .join(',') +
       '}}';
   }
-  const query = `query SyncPage($after:String){${definition.many}(first:${limit},after:$after,includeArchived:true${filter}){nodes{id updatedAt archivedAt${collection === 'issues' ? ' identifier' : ''}}pageInfo{hasNextPage endCursor}}}`;
+  // Fields a stored baseline cannot prove unchanged from updatedAt alone ride on the page: the
+  // derived issue identifier, and the user profile an import snapshot may lack (UB-95).
+  const pageExtras = { issues: ' identifier', users: ' name email avatarUrl' };
+  const extra = Object.hasOwn(pageExtras, collection) ? pageExtras[collection] : '';
+  const query = `query SyncPage($after:String){${definition.many}(first:${limit},after:$after,includeArchived:true${filter}){nodes{id updatedAt archivedAt${extra}}pageInfo{hasNextPage endCursor}}}`;
   const result = (await requestLinear(env, query, { after: cursor }, options))[definition.many];
   assert(
     result && Array.isArray(result.nodes) && typeof result.pageInfo?.hasNextPage === 'boolean',

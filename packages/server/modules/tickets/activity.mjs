@@ -1,5 +1,6 @@
 import { uuid, targetId } from '../../../imports/linear-source.mjs';
 import { identityDirectory } from '../../core/source-people.mjs';
+import { storedPersonName } from '../../../../src/shared/lib/canonical-people.mjs';
 
 // Linear history suffix, display label, source collection, empty value, presented field.
 const fields = [
@@ -106,13 +107,15 @@ export function describeImportedChange(
     if (before === after || (before === null && after === null)) continue;
     const render = (value) => {
       if (value === null) return empty;
-      if (collection)
-        return (
-          // A Linear user shown by its canonical Tasks name when the projection knows it.
-          (collection === 'users' && person(object(value) ? value.id : value)) ||
-          (object(value) ? text(value.name) : '') ||
-          resolve(collection, object(value) ? value.id : value)
-        );
+      if (collection) {
+        const id = object(value) ? value.id : value,
+          named = object(value) ? text(value.name) : '';
+        // A Linear user shown by its canonical Tasks name when the projection knows it, and
+        // never by an address (UB-95).
+        if (collection === 'users')
+          return person(id) || (named && storedPersonName(named)) || resolve(collection, id);
+        return named || resolve(collection, id);
+      }
       return scalar(field, value);
     };
     changes.push({ kind: 'value', field, label, from: render(before), to: render(after) });
@@ -192,6 +195,11 @@ function references(events) {
   return groups;
 }
 function sourceName(collection, record) {
+  const name = text(record.name);
+  const email = text(record.email, 254);
+  if (collection === 'users' && (name || email))
+    // Linear stores the address as the name of a user who never entered one (UB-95).
+    return storedPersonName(name || text(record.displayName), email || null);
   const label =
     collection === 'issues'
       ? record.identifier
@@ -233,8 +241,8 @@ const nativeTables = {
   statuses: ['Unavailable status', 'SELECT id,name FROM statuses WHERE workspace_id=? AND id IN'],
   people: [
     'Unavailable person',
-    'SELECT u.id,u.name FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.workspace_id=? AND u.id IN',
-    'SELECT id,name FROM source_people WHERE workspace_id=? AND id IN',
+    'SELECT u.id,u.name,u.email FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.workspace_id=? AND u.id IN',
+    'SELECT id,name,email FROM source_people WHERE workspace_id=? AND id IN',
   ],
   teams: ['Unavailable team', 'SELECT id,name FROM teams WHERE workspace_id=? AND id IN'],
   projects: ['Unavailable project', 'SELECT id,name FROM projects WHERE workspace_id=? AND id IN'],
@@ -270,10 +278,10 @@ async function nativeNames(tx, workspace, events) {
   // A stored person ID (member, Linear or Slack alias) shows its canonical name from the identity
   // projection, as elsewhere on the server; IDs it does not know fall back to their stored names.
   const people = groups.get('people');
+  const directory = people ? await identityDirectory(tx, workspace) : null;
   if (people) {
-    const directory = await identityDirectory(tx, workspace);
     for (const id of people) {
-      const canonical = text(directory.byAlias.get(id)?.name);
+      const canonical = text(directory?.byAlias.get(id)?.name);
       if (!canonical) continue;
       found.set('people:' + id, canonical);
       people.delete(id);
@@ -289,8 +297,13 @@ async function nativeNames(tx, workspace, events) {
           workspace,
           ...batch,
         ]))
-          if (!found.has(table + ':' + row.id))
-            found.set(table + ':' + row.id, text(row.name) || missing);
+          if (!found.has(table + ':' + row.id)) {
+            const name =
+              table === 'people'
+                ? directory?.nameOf(row.id, text(row.name), text(row.email) || null)
+                : text(row.name);
+            found.set(table + ':' + row.id, name || missing);
+          }
     }
   }
   return (table, value) => found.get(table + ':' + value) ?? nativeTables[table][0];

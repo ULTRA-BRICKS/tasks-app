@@ -1,4 +1,5 @@
 import { collections, digest, targetId, uuid } from './linear-source.mjs';
+import { safeAvatarUrl } from '../../src/shared/lib/canonical-people.mjs';
 const stateKinds = new Set([
   'triage',
   'backlog',
@@ -66,7 +67,7 @@ export function projectSnapshot(snapshot, actor, { labelTargets = {} } = {}) {
       source_id: user.id,
       name: text(user.name ?? user.displayName ?? 'Unknown source author', 'person', 200),
       email: text(user.email, 'source person email required by Linear GraphQL', 254),
-      avatar_url: null,
+      avatar_url: safeAvatarUrl(user.avatarUrl),
       created_at: timestamp(user.createdAt, 'source person'),
     });
   for (const team of data.teams) {

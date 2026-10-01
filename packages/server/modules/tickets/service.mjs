@@ -9,7 +9,7 @@ import { assertModule } from '../../core/modules.mjs';
 export async function getIssue(tx, actor, key, { includeDeleted = false } = {}) {
   requirePermission(actor, 'read');
   const issue = await tx.one(
-    `SELECT i.*,s.name AS status_name,s.category AS status_category,s.color AS status_color,COALESCE(u.name,sp.name) AS assignee_name,p.name AS project_name,t.key AS team_key FROM issues i JOIN statuses s ON s.id=i.status_id LEFT JOIN users u ON u.id=i.assignee_id LEFT JOIN source_people sp ON sp.id=i.assignee_source_id AND sp.workspace_id=i.workspace_id LEFT JOIN projects p ON p.id=i.project_id JOIN teams t ON t.id=i.team_id WHERE i.workspace_id=? AND (i.id=? OR i.key=?) ${includeDeleted ? '' : 'AND i.deleted_at IS NULL'}`,
+    `SELECT i.*,s.name AS status_name,s.category AS status_category,s.color AS status_color,COALESCE(u.name,sp.name) AS assignee_name,COALESCE(u.email,sp.email) AS assignee_email,p.name AS project_name,t.key AS team_key FROM issues i JOIN statuses s ON s.id=i.status_id LEFT JOIN users u ON u.id=i.assignee_id LEFT JOIN source_people sp ON sp.id=i.assignee_source_id AND sp.workspace_id=i.workspace_id LEFT JOIN projects p ON p.id=i.project_id JOIN teams t ON t.id=i.team_id WHERE i.workspace_id=? AND (i.id=? OR i.key=?) ${includeDeleted ? '' : 'AND i.deleted_at IS NULL'}`,
     [actor.workspace_id, key, key],
   );
   if (!issue) throw missing('Task', 'Issue');
@@ -20,9 +20,12 @@ export async function getIssue(tx, actor, key, { includeDeleted = false } = {}) 
   issue.label_ids = issue.labels.map((l) => l.id);
   issue.assignee_id ??= issue.assignee_source_id;
   // Stored-name SQL stays the fallback for former members; current people use the shared projection.
-  issue.assignee_name =
-    (await identityDirectory(tx, actor.workspace_id)).byAlias.get(issue.assignee_id)?.name ??
-    issue.assignee_name;
+  issue.assignee_name = (await identityDirectory(tx, actor.workspace_id)).nameOf(
+    issue.assignee_id,
+    issue.assignee_name,
+    issue.assignee_email,
+  );
+  delete issue.assignee_email;
   issue.creator_id = issue.creator_source_id ?? issue.creator_id;
   return issue;
 }
@@ -496,7 +499,7 @@ export async function listIssues(
     args.push(c.created_at, c.created_at, c.id);
   }
   const rows = await tx.all(
-    `SELECT i.*,s.name AS status_name,s.category AS status_category,s.color AS status_color,COALESCE(u.name,sp.name) AS assignee_name,p.name AS project_name FROM issues i JOIN statuses s ON s.id=i.status_id LEFT JOIN users u ON u.id=i.assignee_id LEFT JOIN source_people sp ON sp.id=i.assignee_source_id AND sp.workspace_id=i.workspace_id LEFT JOIN projects p ON p.id=i.project_id WHERE ${where.join(' AND ')} ORDER BY i.created_at DESC,i.id DESC LIMIT ?`,
+    `SELECT i.*,s.name AS status_name,s.category AS status_category,s.color AS status_color,COALESCE(u.name,sp.name) AS assignee_name,COALESCE(u.email,sp.email) AS assignee_email,p.name AS project_name FROM issues i JOIN statuses s ON s.id=i.status_id LEFT JOIN users u ON u.id=i.assignee_id LEFT JOIN source_people sp ON sp.id=i.assignee_source_id AND sp.workspace_id=i.workspace_id LEFT JOIN projects p ON p.id=i.project_id WHERE ${where.join(' AND ')} ORDER BY i.created_at DESC,i.id DESC LIMIT ?`,
     [...args, limit + 1],
   );
   const hasMore = rows.length > limit,
@@ -508,10 +511,11 @@ export async function listIssues(
         [actor.workspace_id, ...data.map((i) => i.id)],
       )
     : [];
-  const people = (await identityDirectory(tx, actor.workspace_id)).byAlias;
+  const people = await identityDirectory(tx, actor.workspace_id);
   for (const row of data) {
     row.assignee_id ??= row.assignee_source_id;
-    row.assignee_name = people.get(row.assignee_id)?.name ?? row.assignee_name;
+    row.assignee_name = people.nameOf(row.assignee_id, row.assignee_name, row.assignee_email);
+    delete row.assignee_email;
     row.creator_id = row.creator_source_id ?? row.creator_id;
     row.labels = labels.filter((l) => l.issue_id === row.id);
     row.label_ids = row.labels.map((l) => l.id);
@@ -597,27 +601,33 @@ export async function addComment(tx, actor, key, body) {
     [actor.workspace_id, issue.id, actor.id],
   );
   await recordActivity(tx, actor, issue, 'commented', { comment_id: comment.id });
-  const people = (await identityDirectory(tx, actor.workspace_id)).byAlias;
-  return { ...comment, author_name: people.get(actor.id)?.name ?? actor.name };
+  const people = await identityDirectory(tx, actor.workspace_id);
+  return { ...comment, author_name: people.nameOf(actor.id, actor.name) };
 }
 export async function issueDetails(tx, actor, key) {
   const issue = await getIssue(tx, actor, key);
   // The SQL names below are the fallback for IDs the projection does not know (former members).
   const comments = await tx.all(
-    'SELECT c.*,COALESCE(sp.name,u.name) AS author_name FROM comments c JOIN users u ON u.id=c.author_id LEFT JOIN source_people sp ON sp.id=c.author_source_id AND sp.workspace_id=c.workspace_id WHERE c.workspace_id=? AND c.issue_id=? ORDER BY c.created_at,c.id',
+    'SELECT c.*,COALESCE(sp.name,u.name) AS author_name,COALESCE(sp.email,u.email) AS author_email FROM comments c JOIN users u ON u.id=c.author_id LEFT JOIN source_people sp ON sp.id=c.author_source_id AND sp.workspace_id=c.workspace_id WHERE c.workspace_id=? AND c.issue_id=? ORDER BY c.created_at,c.id',
     [actor.workspace_id, issue.id],
   );
   const activity = await tx.all(
-    "SELECT a.*,CASE WHEN a.action='linear_imported_change' THEN COALESCE(sp.name,'Linear automation') ELSE u.name END AS actor_name FROM activity a JOIN users u ON u.id=a.actor_id LEFT JOIN source_people sp ON sp.id=a.actor_source_id AND sp.workspace_id=a.workspace_id WHERE a.workspace_id=? AND a.issue_id=? ORDER BY a.created_at DESC,a.id DESC LIMIT 200",
+    "SELECT a.*,CASE WHEN a.action='linear_imported_change' THEN COALESCE(sp.name,'Linear automation') ELSE u.name END AS actor_name,COALESCE(sp.email,u.email) AS actor_email FROM activity a JOIN users u ON u.id=a.actor_id LEFT JOIN source_people sp ON sp.id=a.actor_source_id AND sp.workspace_id=a.workspace_id WHERE a.workspace_id=? AND a.issue_id=? ORDER BY a.created_at DESC,a.id DESC LIMIT 200",
     [actor.workspace_id, issue.id],
   );
-  const people = (await identityDirectory(tx, actor.workspace_id)).byAlias;
-  for (const comment of comments)
-    comment.author_name =
-      people.get(comment.author_source_id ?? comment.author_id)?.name ?? comment.author_name;
+  const people = await identityDirectory(tx, actor.workspace_id);
+  for (const comment of comments) {
+    comment.author_name = people.nameOf(
+      comment.author_source_id ?? comment.author_id,
+      comment.author_name,
+      comment.author_email,
+    );
+    delete comment.author_email;
+  }
   for (const row of activity) {
     const person = row.action === 'linear_imported_change' ? row.actor_source_id : row.actor_id;
-    if (person) row.actor_name = people.get(person)?.name ?? row.actor_name;
+    if (person) row.actor_name = people.nameOf(person, row.actor_name, row.actor_email);
+    delete row.actor_email;
   }
   const relations = await tx.all(
     'SELECT r.*,s.key AS source_key,t.key AS target_key,s.title AS source_title,t.title AS target_title FROM relations r JOIN issues s ON s.id=r.source_id JOIN issues t ON t.id=r.target_id WHERE r.workspace_id=? AND (r.source_id=? OR r.target_id=?)',

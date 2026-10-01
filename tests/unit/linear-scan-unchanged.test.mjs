@@ -184,3 +184,86 @@ test('source archive or derived identifier changes remain discoverable without a
     await f.close();
   }
 });
+
+test('a Linear profile photo missing from the import snapshot is pulled once, then the scan settles', async () => {
+  const { enqueueSyncJob } = await import('../../packages/server/modules/linear-live/store.mjs');
+  const { reconcileScanJob } = await import('../../packages/server/modules/linear-live/scans.mjs');
+  const { reconcileEntityJob } =
+    await import('../../packages/server/modules/linear-live/engine.mjs');
+  const { f, source, actor, env, config } = await configured();
+  try {
+    // The imported snapshot has no avatarUrl and Linear's updatedAt has not moved since (UB-95).
+    const original = source.data.users[0];
+    const live = {
+      id: original.id,
+      createdAt: original.createdAt,
+      updatedAt: original.updatedAt,
+      archivedAt: null,
+      name: original.name,
+      displayName: 'source',
+      email: original.email,
+      avatarUrl: ' https://public.linear.app/avatars/source-author.png\n',
+      active: true,
+    };
+    const pages = [];
+    const fetcher = async (_url, options) => {
+      const { query } = JSON.parse(options.body);
+      if (query.includes('SyncOrganization'))
+        return Response.json({ data: { organization: { id: source.ids.org } } });
+      if (query.includes('SyncPage')) {
+        pages.push(query);
+        // The page carries only the fields the scan asks for.
+        const fields = ['id', 'updatedAt', 'archivedAt', 'name', 'email', 'avatarUrl'].filter(
+          (field) => new RegExp('\\b' + field + '\\b').test(query),
+        );
+        const node = Object.fromEntries(fields.map((field) => [field, live[field]]));
+        return Response.json({
+          data: { users: { nodes: [node], pageInfo: { hasNextPage: false, endCursor: null } } },
+        });
+      }
+      if (query.includes('SyncEntity')) return Response.json({ data: { user: live } });
+      throw Error('Unexpected provider call');
+    };
+    const scan = async (pass) => {
+      const job = await f.db.transaction((tx) =>
+        enqueueSyncJob(
+          tx,
+          actor.workspace_id,
+          { kind: 'scan', side: 'source', collection: 'users', pass, cursor: null },
+          'scan-users:' + pass,
+        ),
+      );
+      return reconcileScanJob(f.db, env, job.id, config.generation, { fetcher });
+    };
+    expect(await scan('2026-10-01T00:00:00.000Z')).toMatchObject({
+      status: 'scanned',
+      queued: 1,
+    });
+    const entity = await f.db.transaction((tx) =>
+      tx.one(
+        "SELECT id FROM outbox WHERE provider='linear' AND event='entity' AND status='pending'",
+      ),
+    );
+    await reconcileEntityJob(f.db, env, entity.id, config.generation, { fetcher });
+    const stored = await f.db.transaction((tx) =>
+      tx.one(
+        'SELECT name,email,avatar_url FROM source_people WHERE workspace_id=? AND source_id=?',
+        [actor.workspace_id, original.id],
+      ),
+    );
+    expect(stored).toEqual({
+      name: original.name,
+      email: original.email,
+      avatar_url: 'https://public.linear.app/avatars/source-author.png',
+    });
+    // Converged: the next pass queues nothing for this profile.
+    expect(await scan('2026-10-01T01:00:00.000Z')).toMatchObject({
+      status: 'scanned',
+      queued: 0,
+      unchanged: 1,
+    });
+    expect(pages).toHaveLength(2);
+  } finally {
+    await f.close();
+  }
+});

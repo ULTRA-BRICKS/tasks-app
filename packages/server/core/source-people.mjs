@@ -3,6 +3,7 @@ import {
   isBotProfile,
   normalizeEmail,
   resolveIdentities,
+  storedPersonName,
 } from '../../../src/shared/lib/canonical-people.mjs';
 /** Imported people are attribution rows. This function never inserts accounts/memberships. */
 export async function resolvePerson(tx, actor, value) {
@@ -38,7 +39,7 @@ export async function loadIdentityInputs(tx, workspace) {
   return {
     workspace_id: workspace,
     members: await tx.all(
-      'SELECT u.id,u.name,u.email,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.workspace_id=? ORDER BY u.name',
+      'SELECT u.id,u.name,u.email,u.avatar_url,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.workspace_id=? ORDER BY u.name',
       [workspace],
     ),
     sources: await listSourcePeople(tx, workspace),
@@ -93,8 +94,10 @@ const appliedBindings = (entries) =>
 const directories = new WeakMap();
 /** The projection the client builds from the catalog, for server-rendered names and alias
  * filters: `byAlias` maps every stored person ID, `bySource` maps `<provider>:<source_id>`;
- * `inputs` and `bindings` are the rows the catalog returns. Loaded once per transaction; IDs
- * added later in the same transaction fall back to their stored names. */
+ * `nameOf(id, stored, email)` is the canonical name, or for an ID the projection does not know
+ * (a former member) a name derived from its stored name and email (docs/PEOPLE-IDENTITY.md,
+ * UB-95); `inputs` and `bindings` are the rows the catalog returns. Loaded once per transaction;
+ * IDs added later in the same transaction fall back to their stored profiles. */
 export function identityDirectory(tx, workspace) {
   const cache = directories.get(tx) ?? new Map();
   directories.set(tx, cache);
@@ -113,6 +116,13 @@ export function identityDirectory(tx, workspace) {
           inputs,
           bindings,
           byAlias,
+          /** @param {string|null|undefined} id @param {string|null|undefined} stored
+           * @param {string|null|undefined} [email] @returns {string|null} */
+          nameOf: (id, stored, email) => {
+            const canonical = byAlias.get(id ?? '')?.name;
+            if (canonical) return canonical;
+            return stored == null && email == null ? null : storedPersonName(stored, email);
+          },
           bySource: new Map(
             inputs.sources.map((source) => [
               source.provider + ':' + source.source_id,

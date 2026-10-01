@@ -236,3 +236,124 @@ test('Linear OAuth-app and system addresses are bots and keep their own entries'
     isBotProfile({ id: 'm', name: 'Member', email: app.email, provider: 'tasks', bot: true }),
   ).toBe(false);
 });
+// UB-95 shapes from the 30 September inventory, with synthetic addresses.
+const emailShaped = /[^\s@]+@[^\s@]+/;
+test('an email-shaped or empty name falls back to a name derived from the address', () => {
+  const niko = {
+    id: 'niko',
+    name: 'niko@example.test',
+    email: 'niko@example.test',
+    provider: 'linear',
+  };
+  const dotted = {
+    id: 'irine',
+    name: ' ',
+    email: 'irine.latsoshvili+work@example.test',
+    provider: 'linear',
+  };
+  const noEmail = { id: 'nameless', name: 'x_y@example.test', email: null, provider: 'linear' };
+  const titleCase = {
+    id: 'title-case',
+    name: 'MIXED.CASE+work@example.test',
+    email: null,
+    provider: 'linear',
+  };
+  const bare = { id: 'bare', name: '', email: null, provider: 'linear' };
+  const people = canonicalPeople([], [niko, dotted, noEmail, titleCase, bare]);
+  expect(Object.fromEntries(people.map((person) => [person.id, person.name]))).toEqual({
+    niko: 'Niko',
+    irine: 'Irine Latsoshvili',
+    nameless: 'X Y',
+    'title-case': 'Mixed Case',
+    bare: 'Unknown person',
+  });
+  for (const person of people) {
+    expect(person.name).not.toMatch(emailShaped);
+    for (const name of person.names) expect(name).not.toMatch(emailShaped);
+  }
+  // The address stays the email, not the name.
+  expect(people.find((person) => person.id === 'niko')?.email).toBe('niko@example.test');
+});
+test('a real name from any linked profile wins over an address, and photos merge (Danny shape)', () => {
+  const danny = { id: 'danny', name: 'Danny', email: 'danny@example.test' };
+  const dannyInLinear = {
+    id: 'danny-linear',
+    name: 'danny@example.test',
+    email: 'danny@example.test',
+    provider: 'linear',
+    avatar_url: 'https://public.linear.app/danny.png',
+  };
+  // The member name wins; the only photo comes from the Linear alias.
+  expect(canonicalPeople([danny], [dannyInLinear])).toMatchObject([
+    { id: 'danny', name: 'Danny', avatar_url: dannyInLinear.avatar_url, names: ['Danny'] },
+  ]);
+  // A member whose account name is an address takes the Linear full name before another
+  // provider's, whatever the input order.
+  const invited = { id: 'member', name: 'saba@example.test', email: 'saba@example.test' };
+  const saba = {
+    id: 'saba-linear',
+    name: 'Saba Chitaishvili',
+    email: 'saba@example.test',
+    provider: 'linear',
+  };
+  const github = { id: 'a-github', name: 'sabac', email: 'saba@example.test', provider: 'github' };
+  for (const sources of [
+    [saba, github],
+    [github, saba],
+  ])
+    expect(canonicalPeople([invited], sources)[0]).toMatchObject({
+      id: 'member',
+      name: 'Saba Chitaishvili',
+    });
+  // An email-shaped Slack name does not override a real account name.
+  const slackAddress = {
+    id: 'slack-danny',
+    name: 'danny@example.test',
+    email: 'danny@example.test',
+    provider: 'slack',
+    source_id: 'T1:U9',
+    avatar_url: 'https://avatars.slack-edge.com/danny.png',
+  };
+  expect(canonicalPeople([danny], [dannyInLinear, slackAddress])[0]).toMatchObject({
+    name: 'Danny',
+    avatar_url: slackAddress.avatar_url,
+  });
+});
+test('address fallback tries email-shaped names before linked-profile emails', () => {
+  const member = { id: 'member', name: '', email: null };
+  const slack = {
+    id: 'slack',
+    name: '',
+    email: 'beth@example.test',
+    provider: 'slack',
+    source_id: 'T1:U1',
+  };
+  const linear = {
+    id: 'linear',
+    name: 'anna@example.test',
+    email: 'beth@example.test',
+    provider: 'linear',
+  };
+  expect(
+    canonicalPeople(
+      [member],
+      [slack, linear],
+      [{ member_id: member.id, source_person_id: slack.id }],
+    ),
+  ).toMatchObject([{ id: member.id, name: 'Anna' }]);
+});
+test('profiles held apart for review are named without their addresses', () => {
+  const { conflicts } = resolveIdentities(
+    [],
+    [
+      { id: 'a', name: 'tekla@example.test', email: 'tekla@example.test', provider: 'linear' },
+      { id: 'b', name: 'Tekla', email: 'tekla@example.test', provider: 'linear' },
+    ],
+  );
+  expect(conflicts).toHaveLength(1);
+  expect(conflicts[0].profiles.map((profile) => profile.name).sort()).toEqual(['Tekla', 'Tekla']);
+  expect(conflicts[0].profiles.map((profile) => profile.email)).toEqual([
+    'tekla@example.test',
+    'tekla@example.test',
+  ]);
+});
