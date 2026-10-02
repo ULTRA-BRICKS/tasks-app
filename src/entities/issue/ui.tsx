@@ -65,7 +65,8 @@ export interface IssueRowProps {
   /** The task's shared contextual actions (features/issue-edit useTaskActions). */
   actions: MenuAction[];
   selected?: boolean;
-  onSelect?: () => void;
+  /** `range`: Shift was held, so the page selects the visible range from its anchor. */
+  onSelect?: (range?: boolean) => void;
   canSelect?: boolean;
   updating?: boolean;
   assigneeControl?: ReactNode;
@@ -81,6 +82,7 @@ export function IssueRow({
   updating = false,
   assigneeControl,
 }: IssueRowProps) {
+  const select = canSelect ? onSelect : undefined;
   return (
     <PressPreview
       label={`Preview ${issue.key}`}
@@ -93,15 +95,19 @@ export function IssueRow({
       <div
         className={'issue-row' + (selected ? ' is-selected' : '')}
         data-testid="issue-row"
+        data-issue-id={issue.id}
         data-update-active={updating}
       >
-        {canSelect && onSelect ? (
+        {select ? (
           <label className="issue-selection">
             <input
               type="checkbox"
               className="issue-checkbox"
               checked={Boolean(selected)}
-              onChange={onSelect}
+              // React derives a checkbox's change from its click, which carries Shift.
+              onChange={(e) =>
+                select(e.nativeEvent instanceof MouseEvent && e.nativeEvent.shiftKey)
+              }
               aria-label={`Select ${issue.key}`}
             />
           </label>
@@ -116,8 +122,15 @@ export function IssueRow({
           type="button"
           className="issue-open"
           aria-label={issue.key + ' ' + issue.title}
-          onClick={() => {
-            if (!window.getSelection()?.toString()) onOpen();
+          onMouseDown={(e) => {
+            // Shift+click selects a range; it must not also extend a native text selection.
+            if (e.shiftKey && select) e.preventDefault();
+          }}
+          onClick={(e) => {
+            if (e.shiftKey && select) {
+              e.currentTarget.focus();
+              select(true);
+            } else if (!window.getSelection()?.toString()) onOpen();
           }}
         >
           <StatusIcon

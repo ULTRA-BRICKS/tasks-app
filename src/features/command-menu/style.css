@@ -1,0 +1,7 @@
+/* Registry commands in the ⌘K menu: keycaps sit at the row's end; unavailable commands stay listed but muted. */
+.command-row .command-keycaps {
+  flex-shrink: 0;
+}
+.command-row[aria-disabled='true'] {
+  color: var(--color-muted);
+}

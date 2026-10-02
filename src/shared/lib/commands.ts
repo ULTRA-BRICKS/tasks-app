@@ -25,6 +25,15 @@ export type CommandDefinition = {
   readonly requires?: 'edit';
   /** Fixed commands keep their defaults; users cannot remap them. */
   readonly fixed?: boolean;
+  /**
+   * The focused row or menu handles these keys itself (Enter, Space peek, Shift+F10). They are
+   * listed and block conflicting bindings, but never enter the global keymap.
+   */
+  readonly target?: 'focused';
+  /** Left out of the command menu: it acts on keyboard focus or on the menu itself. */
+  readonly palette?: false;
+  /** Holding the key repeats the command; other commands ignore auto-repeat. */
+  readonly repeat?: boolean;
 };
 /** Per-device overrides keyed by command id; an empty list removes every shortcut. */
 export type KeyBindingOverrides = Readonly<Record<string, readonly string[]>>;
@@ -173,7 +182,8 @@ export function createKeymap(
   const single = new Map<string, CommandDefinition>(),
     sequence = new Map<string, CommandDefinition>(),
     prefixes = new Set<string>();
-  for (const command of commands)
+  // Focused-row commands are handled by the focused element, never by the global keymap.
+  for (const command of commands.filter((c) => c.target !== 'focused'))
     for (const text of effectiveBindings(command, overrides, platform)) {
       const steps = parseBinding(text)?.map(formatStep);
       if (!steps) continue;
@@ -183,6 +193,10 @@ export function createKeymap(
     }
   return { single, sequence, prefixes };
 }
+
+/** Commands the ⌘K menu offers, in catalog order. */
+export const paletteCommands = (commands: readonly CommandDefinition[]) =>
+  commands.filter((command) => command.palette !== false && command.target !== 'focused');
 
 /**
  * Resolves one key press. Inside text entry only modifier bindings of commands that allow it
@@ -416,6 +430,27 @@ export const spokenBinding = (binding: Binding, platform: Platform) =>
   nameSteps(binding, platform, spokenModifiers[platform], spokenKeys)
     .map((step) => step.join(' '))
     .join(' then ');
+
+const ariaModifiers: Record<Platform, Record<Modifier, string>> = {
+  mac: { mod: 'Meta', alt: 'Alt', shift: 'Shift' },
+  other: { mod: 'Control', alt: 'Alt', shift: 'Shift' },
+};
+/**
+ * The `aria-keyshortcuts` value for a control's bindings. ARIA cannot express a sequence
+ * (`G I`), so sequences are left out; undefined when nothing remains.
+ */
+export function ariaKeyShortcuts(
+  bindings: readonly string[],
+  platform: Platform,
+): string | undefined {
+  const values = bindings.flatMap((text) => {
+    const [combo, ...rest] = parseBinding(text) ?? [];
+    if (!combo || rest.length) return [];
+    const modifiers = (['mod', 'alt', 'shift'] as const).filter((m) => combo[m]);
+    return [[...modifiers.map((m) => ariaModifiers[platform][m]), combo.key].join('+')];
+  });
+  return values.length ? values.join(' ') : undefined;
+}
 
 export function commandAvailable(command: CommandDefinition, role: Role | undefined): boolean {
   return command.requires !== 'edit' || (role !== undefined && role !== 'viewer');

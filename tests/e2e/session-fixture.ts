@@ -1,5 +1,22 @@
 import { expect, type Page, type BrowserContext } from '@playwright/test';
+import { detectPlatform } from '../../src/shared/lib/commands';
 let session: Awaited<ReturnType<BrowserContext['cookies']>> | undefined;
+/**
+ * The page's command modifier (⌘ on a Mac, Ctrl elsewhere). The app reads the platform the
+ * browser reports, and device emulation reports its own (Desktop Chrome says Windows), so
+ * Playwright's host-based `ControlOrMeta` can press the wrong key.
+ */
+export async function commandModifier(page: Page): Promise<'Meta' | 'Control'> {
+  const reported = await page.evaluate(() => {
+    const nav: Navigator & { userAgentData?: { platform?: string } } = navigator;
+    return {
+      platform: nav.platform,
+      userAgent: nav.userAgent,
+      userAgentData: { platform: nav.userAgentData?.platform },
+    };
+  });
+  return detectPlatform(reported) === 'mac' ? 'Meta' : 'Control';
+}
 /** Reuse the synthetic fixture's login, without disabling the real authentication rate limiter. */
 export async function login(page: Page) {
   if (session) {

@@ -1,4 +1,5 @@
 import { test, expect, type Page, type BrowserContext } from '@playwright/test';
+import { commandModifier } from './session-fixture';
 let cookies: Awaited<ReturnType<BrowserContext['cookies']>> | undefined;
 async function login(page: Page) {
   if (cookies) {
@@ -42,7 +43,7 @@ test('create issue, edit Markdown, change status, filter list', async ({ page },
 });
 test('command menu opens and closes with focus restoration', async ({ page }) => {
   await login(page);
-  await page.keyboard.press('Control+k');
+  await page.keyboard.press(`${await commandModifier(page)}+k`);
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByLabel('Search commands and tasks').fill('projects');
   await page.keyboard.press('Escape');

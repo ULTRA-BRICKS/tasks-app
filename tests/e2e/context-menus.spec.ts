@@ -12,8 +12,15 @@ test('task right-click, Shift+F10 and the preview More menu list identical actio
   await row.click({ button: 'right' });
   const menu = page.getByRole('menu').first();
   await expect(menu).toBeVisible();
-  const labels = await menu.getByRole('menuitem').allTextContents();
-  expect(labels).toEqual(['Open task', 'Status', 'Assignee', 'Copy', 'Select task']);
+  const items = menu.getByRole('menuitem');
+  const names = ['Open task', 'Status', 'Assignee', 'Copy', 'Select task'];
+  await expect(items).toHaveCount(names.length);
+  for (const [index, name] of names.entries())
+    await expect(items.nth(index)).toHaveAccessibleName(name);
+  // Registry keycaps are shown beside the items and exposed as aria-keyshortcuts.
+  await expect(items.nth(0)).toHaveAttribute('aria-keyshortcuts', 'Enter');
+  await expect(items.nth(4)).toHaveAttribute('aria-keyshortcuts', 'X');
+  const labels = await items.allTextContents();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menu')).toHaveCount(0);
 

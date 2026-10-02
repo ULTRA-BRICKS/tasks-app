@@ -8,6 +8,8 @@
   margin: 0;
 }
 .shortcut-error {
+  grid-column: 1 / -1;
+  margin: 0;
   color: var(--color-danger);
 }
 .shortcut-status {
@@ -51,6 +53,10 @@
 .shortcut-actions {
   gap: var(--space-2);
   min-width: 14rem;
+}
+/* Keep the focused button clear of the sticky phone header and the bottom tab bar. */
+.shortcut-actions button {
+  scroll-margin-block: 96px;
 }
 .shortcut-muted {
   color: var(--color-muted);

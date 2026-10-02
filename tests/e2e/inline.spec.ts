@@ -1,4 +1,5 @@
 import { test, expect, type Page, type BrowserContext } from '@playwright/test';
+import { commandModifier } from './session-fixture';
 let savedCookies: Awaited<ReturnType<BrowserContext['cookies']>> | undefined;
 async function login(page: Page) {
   // One real sign-in per worker; production rate limits stay unchanged.
@@ -387,7 +388,7 @@ test('command menu works inside text editors without treating ordinary letters a
   await newIssue(page, 'Editor command menu');
   const title = page.getByRole('textbox', { name: 'Title', exact: true });
   await title.focus();
-  await page.keyboard.press('Control+k');
+  await page.keyboard.press(`${await commandModifier(page)}+k`);
   await expect(
     page.getByRole('combobox', { name: 'Search commands and tasks', exact: true }),
   ).toBeFocused();
@@ -543,7 +544,7 @@ test('extended Markdown Escape cancels and command menu works from the rich edit
   await expect(definition).toBeVisible();
   await expect(editor).not.toContainText('Unsaved text');
   await editor.focus();
-  await editor.press('Control+k');
+  await editor.press(`${await commandModifier(page)}+k`);
   await expect(
     page.getByRole('combobox', { name: 'Search commands and tasks', exact: true }),
   ).toBeFocused();

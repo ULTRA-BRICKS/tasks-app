@@ -1,6 +1,13 @@
 import { canonicalPersonValue, peopleDirectory, personOptions } from '@/shared/lib/people';
 import { IssueAssignee, useTaskActions } from '@/features/issue-edit';
+import { usePageCommands } from '@/features/keyboard';
 import { useLiveFeed } from '@/shared/lib/use-live-feed';
+import {
+  emptySelection,
+  extendSelection,
+  toggleSelection,
+  type RangeSelection,
+} from '@/shared/lib/selection-range';
 import { useState, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -47,15 +54,12 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
     { data: me } = useMe(),
     projects = useProjects(moduleEnabled(catalog, 'planning'));
   const selectionKey = location.pathname + '?' + params.toString();
-  const [selection, setSelection] = useState({ key: selectionKey, ids: new Set<string>() });
-  const selected = selection.key === selectionKey ? selection.ids : new Set<string>();
-  const setSelected = (value: Set<string> | ((old: Set<string>) => Set<string>)) =>
+  const [selection, setSelection] = useState({ key: selectionKey, range: emptySelection });
+  const selected = (selection.key === selectionKey ? selection.range : emptySelection).selected;
+  const updateSelection = (next: (range: RangeSelection) => RangeSelection) =>
     setSelection((previous) => ({
       key: selectionKey,
-      ids:
-        typeof value === 'function'
-          ? value(previous.key === selectionKey ? previous.ids : new Set())
-          : value,
+      range: next(previous.key === selectionKey ? previous.range : emptySelection),
     }));
   const [filterOpen, setFilterOpen] = useState(false),
     [createOpen, setCreateOpen] = useState(false),
@@ -114,6 +118,16 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
     catalog?.statuses.filter((s) => !filters.team_id || s.team_id === filters.team_id) ?? [];
   const readOnly = me?.role === 'viewer';
   const selectedRows = sourceRows.filter((i) => selected.has(i.id));
+  // The list in rendering order; collapsed groups are hidden, so ranges and J/K skip them.
+  const groups = statuses
+    .map((status) => ({ status, rows: issues.filter((i) => groupOf(i) === status.id) }))
+    .filter((group) => group.rows.length);
+  const visibleIds =
+    prefs.view === 'list'
+      ? groups
+          .filter((group) => !collapsed.has(group.status.id))
+          .flatMap((group) => group.rows.map((i) => i.id))
+      : [];
   const bulk = useMutation({
     mutationFn: (status: string) =>
       api<Issue[]>('/v1/issues/bulk', {
@@ -126,7 +140,7 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
         },
       }),
     onSuccess: () => {
-      setSelected(new Set());
+      updateSelection(() => emptySelection);
       void client.invalidateQueries({ queryKey: ['issues'] });
       void client.invalidateQueries({ queryKey: ['projects'] });
     },
@@ -159,6 +173,45 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
     });
     setCreateOpen(true);
   }
+  const focusedRow = () =>
+    document.activeElement?.closest<HTMLElement>('.issue-list [data-issue-id]')?.dataset.issueId;
+  /** J/K move focus through visible rows; with Shift they extend the selection from the focus. */
+  const moveFocus = (step: 1 | -1, extend: boolean) => {
+    const from = focusedRow();
+    const index = from ? visibleIds.indexOf(from) : -1;
+    const target =
+      visibleIds[
+        index < 0
+          ? step > 0
+            ? 0
+            : visibleIds.length - 1
+          : Math.min(visibleIds.length - 1, Math.max(0, index + step))
+      ];
+    if (!target) return;
+    const row = document.querySelector<HTMLElement>(
+      `.issue-list [data-issue-id="${CSS.escape(target)}"] .issue-open`,
+    );
+    row?.focus();
+    row?.scrollIntoView({ block: 'nearest' });
+    if (extend) updateSelection((current) => extendSelection(current, target, visibleIds, from));
+  };
+  usePageCommands({
+    // Without visible rows (a task page, the board) the list keys stay unhandled and unprevented.
+    handlers:
+      issueId || !visibleIds.length
+        ? {}
+        : {
+            'list.next': () => moveFocus(1, false),
+            'list.previous': () => moveFocus(-1, false),
+            'list.extend-next': () => moveFocus(1, true),
+            'list.extend-previous': () => moveFocus(-1, true),
+            'selection.toggle': () => {
+              const id = focusedRow();
+              if (id) updateSelection((current) => toggleSelection(current, id));
+            },
+          },
+    selection: { count: selected.size, clear: () => updateSelection(() => emptySelection) },
+  });
   if (issueId)
     return (
       <IssueDetails
@@ -226,7 +279,12 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
               })),
               {
                 label: 'Select loaded tasks',
-                onSelect: () => setSelected(new Set(issues.map((i) => i.id))),
+                onSelect: () =>
+                  updateSelection(() => ({
+                    selected: new Set(issues.map((i) => i.id)),
+                    anchor: null,
+                    base: null,
+                  })),
                 disabled: readOnly || !issues.length,
               },
             ]}
@@ -348,7 +406,7 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
       {selected.size > 0 && (
         <div className="bulk-toolbar">
           <strong>{selected.size} selected</strong>
-          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+          <Button size="sm" variant="ghost" onClick={() => updateSelection(() => emptySelection)}>
             Clear
           </Button>
           {new Set(selectedRows.map((i) => i.team_id)).size === 1 ? (
@@ -439,74 +497,67 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
           />
         ) : (
           <div className="issue-list">
-            {statuses
-              .filter((s) => issues.some((i) => groupOf(i) === s.id))
-              .map((s) => (
-                <section className="issue-group" key={s.id}>
-                  <header className="group-heading">
-                    <button
-                      type="button"
-                      aria-expanded={!collapsed.has(s.id)}
-                      onClick={() =>
-                        setCollapsed((old) => {
-                          const next = new Set(old);
-                          if (next.has(s.id)) next.delete(s.id);
-                          else next.add(s.id);
-                          return next;
-                        })
-                      }
-                    >
-                      {collapsed.has(s.id) ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
-                      <StatusIcon category={s.category} color={s.color} />
-                      <h2>{s.name}</h2>
-                      <span className="muted">
-                        {issues.filter((i) => groupOf(i) === s.id).length}
-                      </span>
-                    </button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Create ${s.name} task`}
-                      onClick={() => create(s)}
-                      disabled={readOnly}
-                    >
-                      <Plus size={14} />
-                    </Button>
-                  </header>
-                  {!collapsed.has(s.id) &&
-                    issues
-                      .filter((i) => groupOf(i) === s.id)
-                      .map((i) => (
-                        <TaskListRow
-                          key={i.id}
-                          issue={i}
-                          current={sourceRowsById.get(i.id) ?? i}
-                          status={s}
-                          updating={feed.active === i.id}
-                          assigneeControl={
-                            <IssueAssignee
-                              issue={sourceRowsById.get(i.id) ?? i}
-                              people={directory}
-                              disabled={!me || readOnly}
-                            />
-                          }
-                          canSelect={!readOnly}
-                          selected={selected.has(i.id)}
-                          onSelect={() =>
-                            setSelected((old) => {
-                              const next = new Set(old);
-                              if (next.has(i.id)) next.delete(i.id);
-                              else next.add(i.id);
-                              return next;
-                            })
-                          }
-                          onOpen={() =>
-                            navigate('/tasks/' + i.id + (params.toString() ? '?' + params : ''))
-                          }
+            {groups.map(({ status: s, rows }) => (
+              <section className="issue-group" key={s.id}>
+                <header className="group-heading">
+                  <button
+                    type="button"
+                    aria-expanded={!collapsed.has(s.id)}
+                    onClick={() =>
+                      setCollapsed((old) => {
+                        const next = new Set(old);
+                        if (next.has(s.id)) next.delete(s.id);
+                        else next.add(s.id);
+                        return next;
+                      })
+                    }
+                  >
+                    {collapsed.has(s.id) ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                    <StatusIcon category={s.category} color={s.color} />
+                    <h2>{s.name}</h2>
+                    <span className="muted">{rows.length}</span>
+                  </button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Create ${s.name} task`}
+                    onClick={() => create(s)}
+                    disabled={readOnly}
+                  >
+                    <Plus size={14} />
+                  </Button>
+                </header>
+                {!collapsed.has(s.id) &&
+                  rows.map((i) => (
+                    <TaskListRow
+                      key={i.id}
+                      issue={i}
+                      current={sourceRowsById.get(i.id) ?? i}
+                      status={s}
+                      updating={feed.active === i.id}
+                      assigneeControl={
+                        <IssueAssignee
+                          issue={sourceRowsById.get(i.id) ?? i}
+                          people={directory}
+                          disabled={!me || readOnly}
                         />
-                      ))}
-                </section>
-              ))}
+                      }
+                      canSelect={!readOnly}
+                      selected={selected.has(i.id)}
+                      onSelect={(range) =>
+                        updateSelection((current) =>
+                          range
+                            ? extendSelection(current, i.id, visibleIds)
+                            : toggleSelection(current, i.id),
+                        )
+                      }
+                      onOpen={() =>
+                        navigate('/tasks/' + i.id + (params.toString() ? '?' + params : ''))
+                      }
+                    />
+                  ))}
+              </section>
+            ))}
           </div>
         )}
         {query.hasNextPage && (

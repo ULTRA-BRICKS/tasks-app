@@ -1,17 +1,57 @@
 /* oxlint-disable jsx-a11y/prefer-tag-over-role -- Editable combobox with a virtual-focus ARIA listbox, not a native select. */
+import './style.css';
 import { useEffect, useRef, useState } from 'react';
-import { Search, Plus, Inbox, Layers, Settings, ArrowRight } from 'lucide-react';
+import {
+  ArrowRight,
+  Calendar,
+  FolderKanban,
+  Inbox,
+  Keyboard,
+  Layers,
+  Plus,
+  Redo2,
+  Search,
+  Settings,
+  Undo2,
+  User,
+  type LucideIcon,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import type { Role } from '@tickets/contracts';
 import { useIssues } from '@/entities/issue';
-import { Modal, Input } from '@/shared/ui';
+import { workspaceCommands } from '@/shared/lib/command-catalog';
+import { commandAvailable, paletteCommands } from '@/shared/lib/commands';
+import { CommandKeycaps, Input, Modal } from '@/shared/ui';
+
+const icons: Record<string, LucideIcon> = {
+  'help.open': Keyboard,
+  'task.create': Plus,
+  'nav.tasks': Layers,
+  'nav.my-tasks': User,
+  'nav.projects': FolderKanban,
+  'nav.cycles': Calendar,
+  'nav.inbox': Inbox,
+  'nav.settings': Settings,
+  'edit.undo': Undo2,
+  'edit.redo': Redo2,
+};
+const menuCommands = paletteCommands(workspaceCommands);
+
+/**
+ * ⌘K / Ctrl K: the registry's commands (with their keycaps) followed by matching tasks. A
+ * command runs through `onRun`, the same path as its key; commands the role cannot use are
+ * listed but disabled.
+ */
 export function CommandMenu({
   open,
   onOpenChange,
-  onCreate,
+  onRun,
+  role,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreate: () => void;
+  onRun: (commandId: string) => void;
+  role: Role | undefined;
 }) {
   const [query, setQuery] = useState(''),
     [index, setIndex] = useState(0),
@@ -28,20 +68,25 @@ export function CommandMenu({
     .toLowerCase()
     .replace(/\bissues\b/g, 'tasks')
     .replace(/\bissue\b/g, 'task');
-  const commands = [
-    { id: 'create', label: 'Create new task', icon: Plus, action: onCreate },
-    { id: 'issues', label: 'Go to all tasks', icon: Layers, action: () => navigate('/tasks') },
-    { id: 'inbox', label: 'Go to inbox', icon: Inbox, action: () => navigate('/inbox') },
-    { id: 'settings', label: 'Open settings', icon: Settings, action: () => navigate('/settings') },
-  ].filter((c) => c.label.toLowerCase().includes(commandQuery));
   const results = [
-    ...commands,
+    ...menuCommands
+      .filter((command) => command.title.toLowerCase().includes(commandQuery.trim()))
+      .map((command) => ({
+        id: command.id,
+        label: command.title,
+        icon: icons[command.id] ?? ArrowRight,
+        command: command.id,
+        disabled: !commandAvailable(command, role),
+        action: () => onRun(command.id),
+      })),
     ...(query.trim()
       ? (issues.data?.pages[0]?.data.slice(0, 8).map((i) => ({
           id: i.id,
           label: `${i.key}  ${i.title}`,
           icon: ArrowRight,
-          action: () => navigate('/tasks/' + i.id),
+          command: undefined,
+          disabled: false,
+          action: () => void navigate('/tasks/' + i.id),
         })) ?? [])
       : []),
   ];
@@ -52,7 +97,7 @@ export function CommandMenu({
   }, [index]);
   const choose = (n: number) => {
     const row = results[n];
-    if (row) {
+    if (row && !row.disabled) {
       onOpenChange(false);
       setQuery('');
       row.action();
@@ -111,6 +156,7 @@ export function CommandMenu({
               }
             }}
             aria-selected={index === i}
+            aria-disabled={r.disabled || undefined}
             id={'command-' + r.id}
             key={r.id}
             data-command-index={i}
@@ -119,8 +165,8 @@ export function CommandMenu({
             onClick={() => choose(i)}
           >
             <r.icon size={16} />
-            <span>{r.label}</span>
-            <span className="muted">↵</span>
+            <span className="command-label">{r.label}</span>
+            {r.command ? <CommandKeycaps command={r.command} /> : <span className="muted">↵</span>}
           </div>
         ))}
         {!results.length && <p className="muted">No matching commands or tasks.</p>}

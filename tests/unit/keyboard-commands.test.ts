@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  ariaKeyShortcuts,
   checkBinding,
   commandAvailable,
   createKeymap,
@@ -12,6 +13,7 @@ import {
   keycapLabels,
   matchShortcut,
   normalizeBinding,
+  paletteCommands,
   parseBinding,
   reservedReason,
   spokenBinding,
@@ -302,10 +304,54 @@ describe('catalog', () => {
         for (const text of c.keys[platform]) {
           const binding = parseBinding(text);
           expect(binding).not.toBeNull();
-          if (binding) expect(reservedReason(binding, platform)).toBeNull();
+          // Focused-row commands document keys the focused control owns (Enter, Space).
+          if (binding && c.target !== 'focused')
+            expect(reservedReason(binding, platform)).toBeNull();
           expect(binding && formatBinding(binding)).toBe(text);
         }
     }
+  });
+});
+
+describe('focused', () => {
+  test('focused-row keys are listed and fixed, and never enter the global keymap', () => {
+    const listed = [
+      ['task.open', 'Enter'],
+      ['task.peek', 'Space'],
+      ['menu.context', 'Shift+F10'],
+    ] as const;
+    for (const [id, binding] of listed) {
+      expect(command(id)).toMatchObject({
+        target: 'focused',
+        fixed: true,
+        keys: { mac: [binding], other: [binding] },
+      });
+      for (const platform of ['mac', 'other'] as const)
+        expect(createKeymap(workspaceCommands, {}, platform).single.has(binding)).toBe(false);
+    }
+  });
+  test('no other command can take a focused-row key', () => {
+    expect(checkBinding(workspaceCommands, {}, 'other', 'nav.inbox', 'Shift+F10')).toEqual({
+      kind: 'conflict',
+      commandId: 'menu.context',
+    });
+  });
+});
+
+describe('palette', () => {
+  test('the palette offers the commands that act without keyboard focus, in catalog order', () => {
+    expect(paletteCommands(workspaceCommands).map((c) => c.id)).toEqual([
+      'help.open',
+      'task.create',
+      'nav.tasks',
+      'nav.my-tasks',
+      'nav.projects',
+      'nav.cycles',
+      'nav.inbox',
+      'nav.settings',
+      'edit.undo',
+      'edit.redo',
+    ]);
   });
 });
 
@@ -336,6 +382,15 @@ describe('display', () => {
     expect(caps('?', 'mac')).toEqual({ caps: [['?']], spoken: 'Question mark' });
     expect(caps('Escape', 'mac')).toEqual({ caps: [['Esc']], spoken: 'Escape' });
   });
+  test('aria-keyshortcuts names each platform’s real keys and leaves out sequences', () => {
+    expect(ariaKeyShortcuts(['Mod+Shift+Z'], 'mac')).toBe('Meta+Shift+Z');
+    expect(ariaKeyShortcuts(['Mod+Y', 'Mod+Shift+Z'], 'other')).toBe('Control+Y Control+Shift+Z');
+    expect(ariaKeyShortcuts(['Enter'], 'mac')).toBe('Enter');
+    expect(ariaKeyShortcuts(['Shift+F10'], 'other')).toBe('Shift+F10');
+    expect(ariaKeyShortcuts(['G I', 'X'], 'mac')).toBe('X');
+    expect(ariaKeyShortcuts(['G I'], 'mac')).toBeUndefined();
+    expect(ariaKeyShortcuts([], 'mac')).toBeUndefined();
+  });
   test('platform detection prefers client hints and recognises Apple devices', () => {
     expect(detectPlatform({ platform: 'MacIntel' })).toBe('mac');
     expect(detectPlatform({ userAgentData: { platform: 'macOS' }, platform: 'Win32' })).toBe('mac');
@@ -357,6 +412,11 @@ describe('permissions', () => {
     expect(commandAvailable(command('edit.redo'), 'owner')).toBe(true);
     expect(commandAvailable(command('palette.open'), 'viewer')).toBe(true);
     expect(commandAvailable(command('nav.inbox'), undefined)).toBe(true);
+    // Selecting exists for bulk edits, which viewers cannot make.
+    expect(commandAvailable(command('selection.toggle'), 'viewer')).toBe(false);
+    expect(commandAvailable(command('list.extend-next'), 'viewer')).toBe(false);
+    expect(commandAvailable(command('list.extend-previous'), 'member')).toBe(true);
+    expect(commandAvailable(command('list.next'), 'viewer')).toBe(true);
   });
 });
 

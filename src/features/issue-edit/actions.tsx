@@ -34,6 +34,7 @@ export function useTaskActions(
     {
       id: 'open',
       label: 'Open task',
+      command: 'task.open',
       onSelect: onOpen,
       toolbar: { label: 'Open', icon: <ArrowUpRight size={17} /> },
     },
@@ -71,6 +72,7 @@ export function useTaskActions(
           {
             id: 'select',
             label: selected ? 'Deselect task' : 'Select task',
+            command: 'selection.toggle',
             onSelect,
             separatorBefore: true,
           },

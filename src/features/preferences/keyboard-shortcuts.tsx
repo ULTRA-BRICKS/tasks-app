@@ -36,7 +36,7 @@ export function KeyboardShortcutSettings() {
     resetKeyBinding = usePreferences((s) => s.resetKeyBinding),
     resetKeyBindings = usePreferences((s) => s.resetKeyBindings);
   const [recording, setRecording] = useState<string | null>(null),
-    [error, setError] = useState(''),
+    [error, setError] = useState<{ commandId: string; text: string } | null>(null),
     [status, setStatus] = useState('');
   const groups = [...new Set(workspaceCommands.map((c) => c.group))];
   // Reset and Remove can leave the row; focus returns to the row's Change button.
@@ -47,7 +47,7 @@ export function KeyboardShortcutSettings() {
   };
   const cancel = (command: CommandDefinition) => {
     setRecording(null);
-    setError('');
+    setError(null);
     setStatus(`${command.title}: shortcut unchanged.`);
   };
 
@@ -55,7 +55,7 @@ export function KeyboardShortcutSettings() {
     // Safari does not focus buttons on click; keys must reach the recorder.
     event.currentTarget.focus();
     setRecording(command.id);
-    setError('');
+    setError(null);
     setStatus('');
   };
   const record = (event: KeyboardEvent<HTMLButtonElement>, command: CommandDefinition) => {
@@ -75,12 +75,12 @@ export function KeyboardShortcutSettings() {
     const text = formatBinding([combo]);
     const problem = checkBinding(workspaceCommands, keyBindings, platform, command.id, text);
     if (problem) {
-      setError(problemText(problem, combo));
+      setError({ commandId: command.id, text: problemText(problem, combo) });
       return;
     }
     setKeyBinding(command.id, [text]);
     setRecording(null);
-    setError('');
+    setError(null);
     setStatus(`${command.title}: ${spokenBinding([combo], platform)}.`);
   };
 
@@ -89,8 +89,9 @@ export function KeyboardShortcutSettings() {
       <p id="shortcut-recorder-help" className="settings-description">
         Shortcuts are saved on this device. Choose Change and press the new keys; Escape cancels.
       </p>
-      <p className="shortcut-error" role="alert">
-        {error}
+      {/* The live region announces; the same text is shown under the row being edited. */}
+      <p className="sr-only" role="alert">
+        {error?.text}
       </p>
       <output className="shortcut-status">{status}</output>
       {groups.map((group) => {
@@ -174,6 +175,11 @@ export function KeyboardShortcutSettings() {
                           </>
                         )}
                       </span>
+                      {error?.commandId === command.id && (
+                        <p className="shortcut-error" aria-hidden="true">
+                          {error.text}
+                        </p>
+                      )}
                     </li>
                   );
                 })}

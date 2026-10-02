@@ -1,6 +1,8 @@
 import { Fragment, type ReactNode, type RefObject } from 'react';
 import { Menu } from '@base-ui/react/menu';
 import { Check, ChevronRight } from 'lucide-react';
+import { ariaKeyShortcuts, devicePlatform } from '../lib/commands';
+import { CommandKeycaps, useCommandBindings } from './keycap';
 import type { Option } from './select';
 /** A single choice among options, such as a task's status or assignee. */
 export type MenuChoice = {
@@ -21,6 +23,8 @@ export type MenuAction = {
   choice?: MenuChoice;
   /** Promotes the action into the preview's compact toolbar with a short label and an icon. */
   toolbar?: { label: string; icon: ReactNode };
+  /** Registry command (src/shared/lib/command-catalog.ts) whose keys this item shows. */
+  command?: string;
 };
 export function MenuItems({
   items,
@@ -69,17 +73,33 @@ export function MenuItems({
           </Menu.Portal>
         </Menu.SubmenuRoot>
       ) : (
-        <Menu.Item
-          label={item.label}
-          className={'page-menu-item' + (item.danger ? ' action-danger' : '')}
-          disabled={disabled || item.disabled}
-          onClick={() => run(item)}
-        >
-          {item.label}
-        </Menu.Item>
+        <ActionItem item={item} run={run} disabled={disabled || item.disabled} />
       )}
     </Fragment>
   ));
+}
+function ActionItem({
+  item,
+  run,
+  disabled,
+}: {
+  item: MenuAction;
+  run: (item: MenuAction) => void;
+  disabled?: boolean;
+}) {
+  const bindings = useCommandBindings(item.command ?? '');
+  return (
+    <Menu.Item
+      label={item.label}
+      className={'page-menu-item' + (item.danger ? ' action-danger' : '')}
+      disabled={disabled}
+      aria-keyshortcuts={ariaKeyShortcuts(bindings, devicePlatform)}
+      onClick={() => run(item)}
+    >
+      {item.label}
+      {item.command && <CommandKeycaps command={item.command} decorative />}
+    </Menu.Item>
+  );
 }
 function ChoiceItems({
   choice,

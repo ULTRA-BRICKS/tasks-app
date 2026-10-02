@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, within, waitFor } from 'storybook/test';
 import { ActionMenu } from './action-menu';
+import { KeyBindingsProvider } from './keycap';
 const meta = {
   title: 'Design system/Capsule actions',
   parameters: { layout: 'padded' },
@@ -117,5 +118,37 @@ export const FailedAction: Story = {
     await expect(await page.findByRole('alert')).toHaveTextContent('could not be confirmed');
     await userEvent.click(page.getByRole('button', { name: 'Dismiss action error' }));
     await waitFor(() => expect(page.queryByRole('alert')).not.toBeInTheDocument());
+  },
+};
+export const CommandKeys: Story = {
+  render: () => (
+    // The user's per-device override must reach the menu, not the catalog default.
+    <KeyBindingsProvider value={{ 'selection.toggle': ['Shift+X'] }}>
+      <ActionMenu
+        label="Task actions with keys"
+        items={[
+          { label: 'Open task', command: 'task.open', onSelect: () => {} },
+          { label: 'Rename', onSelect: () => {} },
+          { label: 'Select task', command: 'selection.toggle', onSelect: () => {} },
+        ]}
+      />
+    </KeyBindingsProvider>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement),
+      page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(canvas.getByRole('button', { name: 'Task actions with keys' }));
+    const open = await page.findByRole('menuitem', { name: 'Open task' });
+    await expect(open).toHaveAttribute('aria-keyshortcuts', 'Enter');
+    await expect(open).toHaveTextContent('Open taskEnter');
+    await expect(page.getByRole('menuitem', { name: 'Select task' })).toHaveAttribute(
+      'aria-keyshortcuts',
+      'Shift+X',
+    );
+    await expect(page.getByRole('menuitem', { name: 'Rename' })).not.toHaveAttribute(
+      'aria-keyshortcuts',
+    );
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(page.queryByRole('menu')).not.toBeInTheDocument());
   },
 };

@@ -16,9 +16,10 @@ import {
   Layers,
   Palette,
   Plus,
+  Keyboard,
 } from 'lucide-react';
 import { useCatalog, useMe, PersonChip } from '@/entities/workspace';
-import { usePreferences } from '@/features/preferences';
+import { KeyboardShortcutSettings, usePreferences } from '@/features/preferences';
 import {
   Button,
   Input,
@@ -124,6 +125,7 @@ export function SettingsPage() {
   });
   const tabs = [
     { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'keyboard', label: 'Keyboard', icon: Keyboard },
     { id: 'members', label: 'People', icon: Users },
     { id: 'workflow', label: 'Workflow', icon: Layers },
     { id: 'tokens', label: 'API & CLI', icon: KeyRound },
@@ -172,6 +174,12 @@ export function SettingsPage() {
         </nav>
         <div className="settings-content">
           {tab === 'security' && admin && <WorkspacePolicySettings />}
+          {tab === 'keyboard' && (
+            <>
+              <h2>Keyboard shortcuts</h2>
+              <KeyboardShortcutSettings />
+            </>
+          )}
           {tab === 'appearance' && (
             <>
               <h2>Make room for focus.</h2>

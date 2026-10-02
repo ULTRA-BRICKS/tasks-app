@@ -1,0 +1,48 @@
+/* ⌘/ shortcut sheet: registry groups in two columns on wide screens, one on phones. */
+.dialog-popup.shortcut-sheet {
+  width: min(760px, 100%);
+}
+.shortcut-sheet-groups {
+  display: grid;
+  /* `min()` lets the single column shrink below 300px on the narrowest phones. */
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: var(--space-20) var(--space-32);
+  margin-top: var(--space-8);
+}
+.shortcut-sheet-groups h3 {
+  margin: 0 0 var(--space-8);
+  color: var(--color-muted);
+  font-size: var(--font-size-12);
+  font-weight: 500;
+}
+.shortcut-sheet-groups ul {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.shortcut-sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  min-height: 30px;
+  padding-block: var(--space-4);
+  color: var(--color-text);
+  font-size: var(--font-size-13);
+}
+.shortcut-sheet-row .command-keycaps {
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+.shortcut-sheet-none {
+  color: var(--color-muted);
+  font-size: var(--font-size-12);
+}
+.shortcut-sheet-customize {
+  align-self: flex-start;
+  margin-top: var(--space-20);
+  color: var(--color-accent);
+  font-size: var(--font-size-13);
+}

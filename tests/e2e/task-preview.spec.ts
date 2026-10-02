@@ -322,10 +322,10 @@ test.describe('desktop', () => {
     await expect(title).toBeFocused();
     await page.keyboard.press('?');
     const help = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
-    await expect(help.getByText('Peek into the focused task', { exact: true })).toBeVisible();
-    await expect(help.getByText('Space', { exact: true })).toBeVisible();
-    await expect(help.getByText('Actions for the focused item', { exact: true })).toBeVisible();
-    await expect(help.getByText('Shift F10', { exact: true })).toBeVisible();
+    const row = (title: string) =>
+      help.getByRole('listitem').filter({ has: page.getByText(title, { exact: true }) });
+    await expect(row('Peek into the focused task').locator('.sr-only')).toHaveText('Space');
+    await expect(row('Actions for the focused item').locator('.sr-only')).toHaveText('Shift F10');
   });
 
   test('the preview shows the task it was opened from; toolbar arrows wrap and Arrow Down opens a picker', async ({

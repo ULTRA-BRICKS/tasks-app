@@ -41,7 +41,7 @@ The PDF has no iOS long-press peek screen, so there is no reference geometry for
 
 **Board cards (UB-43, UB-77).** A board card is a wrapper, not a button: the open button fills it and the assignee control sits beside it at the footer's end, where the avatar was, because a combobox cannot nest inside a button. The board takes the page's `assigneeControl` (the list rows' `IssueAssignee`, with the same viewer permission), so a person card added to that control reaches rows and cards alike. A touch hold on the control opens the preview at Assign through `data-hold-action` on its wrapper; a mouse press opens the control itself. Test: task-preview `a board card holds its open button and assignee control side by side`.
 
-**Space (P7).** Space on a focused task peeks, and the shortcut help lists "Space — Peek into the focused task" and "Shift+F10 — Actions for the focused item". The UB-36 shortcut registry is not merged; when it lands, these two entries move into it.
+**Space (P7).** Space on a focused task peeks, and the shortcut help lists "Space — Peek into the focused task" and "Shift+F10 — Actions for the focused item". Both entries now come from the UB-36 command registry (docs/KEYBOARD-COMMANDS.md) as focused-row commands.
 
 ## Requirement → test map
 

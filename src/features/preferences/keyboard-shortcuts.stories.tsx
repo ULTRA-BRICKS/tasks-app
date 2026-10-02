@@ -64,6 +64,8 @@ export const RecordValidateAndReset: Story = {
     await expect(canvas.getByRole('alert')).toHaveTextContent(
       'X is already used by “Select focused task”.',
     );
+    // The refusal also appears under the row being edited, where a phone user is looking.
+    await expect(row('Go to settings').getByText(/X is already used/)).toBeVisible();
     await userEvent.keyboard(mac ? '{Meta>}w{/Meta}' : '{Control>}w{/Control}');
     await expect(canvas.getByRole('alert')).toHaveTextContent(
       `${mac ? 'Command' : 'Control'} W is reserved: it closes the browser tab.`,

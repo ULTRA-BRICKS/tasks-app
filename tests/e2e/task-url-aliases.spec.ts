@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { login } from './session-fixture';
+import { commandModifier, login } from './session-fixture';
 import { teamSourceFixture } from '../unit/linear-import-fixture.mjs';
 test('UUID, code, optional slug and legacy paths open the same task without changing identity', async ({
   page,
@@ -102,10 +102,10 @@ test('old issue terminology still finds the renamed action in the command menu',
   page,
 }) => {
   await login(page);
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+k' : 'Control+k');
+  await page.keyboard.press(`${await commandModifier(page)}+k`);
   const menu = page.getByRole('dialog', { name: 'Command menu', exact: true });
   await menu.getByRole('combobox').fill('issue');
-  await expect(menu.getByRole('option').filter({ hasText: 'Create new task' })).toHaveCount(1);
+  await expect(menu.getByRole('option').filter({ hasText: 'Create task' })).toHaveCount(1);
 });
 
 test('saving and commenting from a code-slug URL refresh the same immutable task', async ({

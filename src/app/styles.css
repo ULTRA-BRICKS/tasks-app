@@ -3191,18 +3191,6 @@ kbd {
 .document-title {
   margin-bottom: var(--document-title-gap);
 }
-.shortcut-reference {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--space-12) var(--space-24);
-}
-.shortcut-reference dt {
-  color: var(--color-text);
-}
-.shortcut-reference dd {
-  color: var(--color-muted);
-  margin: 0;
-}
 
 /* Reference-led touch surfaces; document text keeps the platform selection gesture. */
 [data-selectable],

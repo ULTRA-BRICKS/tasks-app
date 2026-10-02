@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { commandModifier } from './session-fixture';
 
 let cookies: Awaited<ReturnType<import('@playwright/test').BrowserContext['cookies']>> | undefined;
 test.beforeEach(async ({ page }) => {
@@ -248,7 +249,7 @@ test('native preview dialog blocks workspace commands until dismissed', async ({
   const dialog = page.getByRole('dialog', { name: 'Task preview' });
   await expect(dialog).toBeVisible();
   await page.keyboard.press('c');
-  await page.keyboard.press('Control+k');
+  await page.keyboard.press(`${await commandModifier(page)}+k`);
   await expect(page).toHaveURL(/\/tasks$/);
   await expect(dialog).toHaveCount(1);
   await expect(page.getByRole('dialog')).toHaveCount(1);

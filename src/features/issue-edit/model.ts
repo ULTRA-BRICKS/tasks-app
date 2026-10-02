@@ -8,12 +8,21 @@ import {
 } from '@tanstack/react-query';
 import type { Issue, IssuePatch, Page, IssueDetail } from '@tickets/contracts';
 import { api } from '@/shared/api/client';
+import { recordIssueChange } from './history-model';
 export function useIssueUpdate() {
   const client = useQueryClient();
   return useMutation({
     mutationKey: ['issue-write'],
     scope: { id: 'issue-writes' },
-    mutationFn: ({ issue, patch }: { issue: Issue; patch: Omit<IssuePatch, 'version'> }) =>
+    mutationFn: ({
+      issue,
+      patch,
+    }: {
+      issue: Issue;
+      patch: Omit<IssuePatch, 'version'>;
+      /** Undo/redo steps are not recorded again (docs/KEYBOARD-COMMANDS.md). */
+      record?: boolean;
+    }) =>
       api<Issue>(`/v1/issues/${issue.id}`, {
         method: 'PATCH',
         json: { ...patch, version: issue.version },
@@ -43,7 +52,8 @@ export function useIssueUpdate() {
         );
       });
     },
-    onSuccess: (updated) => {
+    onSuccess: (updated, { issue, patch, record = true }) => {
+      if (record) recordIssueChange(issue, patch);
       client.setQueryData<IssueDetail>(['issue', updated.id], (old) =>
         old ? mergeVersioned(old, updated) : old,
       );

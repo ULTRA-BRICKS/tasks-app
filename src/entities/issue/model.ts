@@ -1,5 +1,5 @@
 import { feedRefreshInterval } from '@/shared/lib/feed-refresh';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { queryOptions, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type {
   Issue,
   IssueDetail,
@@ -31,12 +31,14 @@ export function useIssues(
     getNextPageParam: (page) => page.next_cursor ?? undefined,
   });
 }
-export const useIssue = (id: string | undefined) =>
-  useQuery({
+/** One task's detail query; shared by the page and by callers that need a fresh server read. */
+export const issueQuery = (id: string) =>
+  queryOptions({
     queryKey: ['issue', id],
-    queryFn: ({ signal }) => api<IssueDetail>('/v1/issues/' + encodeURIComponent(id!), { signal }),
-    enabled: Boolean(id),
+    queryFn: ({ signal }) => api<IssueDetail>('/v1/issues/' + encodeURIComponent(id), { signal }),
   });
+export const useIssue = (id: string | undefined) =>
+  useQuery({ ...issueQuery(id ?? ''), enabled: Boolean(id) });
 /** Explicit historical lookup; bare codes keep resolving through useIssue to their current holder. */
 export const usePreCanonicalCode = (code: string | null) =>
   useQuery({

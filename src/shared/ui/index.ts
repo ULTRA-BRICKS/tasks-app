@@ -21,4 +21,10 @@ export { ActionMenu, ContextRow, type MenuAction, type MenuChoice } from './acti
 
 export { ImportedFilesProvider, ImportedSourceLink } from './imported-files';
 
-export { Keycaps } from './keycap';
+export {
+  CommandKeycaps,
+  Keycaps,
+  KeyBindingsProvider,
+  useCommandBindings,
+  useKeyBindings,
+} from './keycap';

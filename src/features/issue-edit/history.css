@@ -1,0 +1,28 @@
+/* Undo/redo results: a quiet toast above the content; empty regions stay mounted for live announcements. */
+.history-notices {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--space-24) + env(safe-area-inset-bottom));
+  z-index: 70;
+  display: grid;
+  gap: var(--space-8);
+  width: min(440px, calc(100vw - var(--space-32)));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.history-notice {
+  margin: 0;
+  padding: var(--space-10) var(--space-16);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-elevated);
+  color: var(--color-text);
+  font-size: var(--font-size-13);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.3);
+}
+.history-notice:empty {
+  display: none;
+}
+.history-notice-alert {
+  border-color: var(--color-danger);
+}
