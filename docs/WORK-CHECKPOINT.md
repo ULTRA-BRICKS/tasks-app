@@ -1,36 +1,13 @@
-# Work checkpoint — 2026-09-13
+# Interaction work in progress — 18 September 2026
 
-Read AGENT-SESSION-SAFETY.md before every request.
-Worktree: /Users/ultra/xp/tickets-draft-safety-20260913
-Feature branch: fix/draft-safety-20260913
-Last recorded application release: 382468f. Pending draft-safety changes are not published.
+Worktree /Users/ultra/xp/tasks-shortcuts-20260918, branch fix/interaction-contract-20260918, base b9b26c8. No source commit/deployment in this worktree yet. Content migration and live Linear synchronization belong to another agent; do not change their worktrees or production data.
 
-## Current verified state
+The initial4browser regressions reproduce Shift-click/range, Cmd+/, saved-change Undo/Redo and missing full copy menu. /tmp/tasks-interaction-contract-red.log. These tests are still RED; no claim of completed global keyboard handling.
 
-The interrupted session left draft persistence, recovery/export UI, comment retries, and settings/date/property retention uncommitted. Preserve this work.
-The unfinished pending-files module was preserved as `docs/unfinished/pending-files.ts.txt`, not executable source. Its completion was denied by the tool; binary recovery remains open.
-Two unit regressions now cover comment retry uniqueness and changed-body rejection. They are present but were not reached by the full check.
-Latest process 63743 finished with exit 1. Source lint passed; type checking found two no-misused-spread errors in `tests/e2e/draft-retention.spec.ts:160` (spreading Storage instances).
-The proposed test correction was rejected before execution. No browser suite ran after this failed gate. The earlier 14/14 focused retention result is historical, not validation of all later changes.
-Log: `/tmp/tickets-resume-check.log`. No process launched by this resumed turn remains active.
+Permitted source changes: visible-overlay guard helper, command/action palette covering issues/projects/documents/initiatives/navigation and copy formats; People email invitation form and administrative GET invitations endpoint; optional email-only invite contract rejects missing sender before invitation creation; settings tab stored in URL; rich document formatting/Undo/Redo toolbar. Two invitation HTTP unit checks and source types passed at /tmp/tasks-invitations-green.log and /tmp/tasks-interaction-types2.log. Actual emails were not sent; fixture transport only. Shared rich document Storybook file also has pending new checks.
 
-## Next bounded actions
+Unintegrated modules in src/shared/lib/interaction and src/features/interaction-help are scaffolds. The full keyboard dispatcher write, shift-selection consumer update and combined invite rotate/revoke module were rejected before execution. Do not claim they are installed. Exact read-back showed existing feature keyboard dispatcher and issue list unchanged. Do not bypass a rejected write via another transport. Attempted browser test palette-and-invitations.spec.ts was not created (timeout, then read confirmed absent, then explicit safety rejection). All started test processes here have ended.
 
-1. Correct Storage enumeration in the regression without weakening its password-exclusion assertion. Re-run type checking, then source/unit gates.
-2. Review stale session/durable mirror selection, storage failures, account isolation, late acknowledgements, replay protection and restoration. A proposed mirror refactor was rejected and is not present.
-3. Run one browser suite at a time; allocate unique ports and output/report paths. Then focused review, fixes, normal hooks, merge, clean deployment and canonical-route verification.
-4. Keep 90%+ Linear parity open: the original 50-screen PDF was not found in repeated File Library searches; paired mobile/reference coverage is required, not a self-baseline score.
-5. Account enrollment and authenticated production acceptance remain distinct open items. Earlier denied account operations must not be retried via dotenv or another transport.
+Current user specifically reiterated context menus. A clean separate release writer at ~/xp/tasks-context-menu-20260918, branch fix/context-menu-parity-20260918, is finishing the permitted visible overflow-menu subset on the same main base. Do not copy its code back into this dirty worktree or deploy this mixed/unreviewed worktree. Context wrapper/native right-click routing attempts were rejected; remaining red acceptance is explicit. Its scope includes nested Copy, Teams/Saved views/document/initiative overflow actions and issue copy, with no auth/import/migration changes. Its own checkpoint and release report hold latest gates.
 
-Session rules are in AGENTS.md and AGENT-SESSION-SAFETY.md. This checkpoint is a handoff, not a declaration of completed delivery.
-
-## Exact pre-commit snapshot
-
-Verified base and HEAD before the documentation commit: `382468f8e0a4eb1d36a521f1a71a68ccea0b4923`.
-Current branch for publishing ONLY session notes: `docs/session-continuity-20260913`. The feature branch remains `fix/draft-safety-20260913`.
-Staged notes: AGENTS.md, docs/AGENT-SESSION-SAFETY.md, docs/WORK-CHECKPOINT.md.
-Unstaged modified source: packages/server/app.mjs; src/app/main.tsx; src/app/styles.css; src/features/issue-edit/document.ts; src/features/issue-properties/ui.tsx; src/features/preferences/index.ts; src/features/workspace-policy/ui.tsx; src/pages/issue-new/ui.tsx; src/pages/issues/ui.tsx; src/pages/planning-document/ui.tsx; src/pages/settings/ui.tsx; src/widgets/issue-details/ui.tsx; src/widgets/navigation/ui.tsx.
-Untracked feature work: src/features/draft-recovery/; src/shared/lib/draft-persistence.ts; src/shared/lib/input-draft.ts; tests/e2e/draft-retention.spec.ts; tests/unit/comment-retry.test.mjs; docs/references/; docs/unfinished/.
-
-Targeted comment retry tests subsequently ran successfully: 2 passed, 0 failed, 7 assertions. Log: `/tmp/tickets-resume-comment-retry.log`. This does not supersede the full source/type-check failure above.
-The first notes review found only a missing exact base/head/dirty-path inventory; this section supplies it. No feature source is included in the notes-only commit.
+Once the bounded menu release ships, resume the allowed invitation/palette/document work from actual current source, run browser/Storybook gates and ordinary review before publishing. Do not count helper unit tests as proof that blocked global shortcuts or undo handlers work.

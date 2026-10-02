@@ -126,6 +126,16 @@ function SupportedDescription({
 
   return (
     <div className="document-editor">
+      {!readOnly && <div className="document-format-toolbar" role="toolbar" aria-label="Document formatting">
+        <button type="button" aria-label="Bold text" title="Bold (⌘/Ctrl+B)" onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBold().run()}><strong>B</strong></button>
+        <button type="button" aria-label="Italic text" title="Italic (⌘/Ctrl+I)" onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleItalic().run()}><em>I</em></button>
+        <button type="button" aria-label="Heading" onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({level:2}).run()}>H2</button>
+        <button type="button" aria-label="Bullet list" onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBulletList().run()}>• List</button>
+        <button type="button" aria-label="Task list" onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleTaskList().run()}>☐ Tasks</button>
+        <button type="button" aria-label="Code block" onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().toggleCodeBlock().run()}>Code</button>
+        <button type="button" aria-label="Undo text" title="Undo text (⌘/Ctrl+Z)" onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().undo().run()}>↶</button>
+        <button type="button" aria-label="Redo text" title="Redo text (⌘/Ctrl+Shift+Z)" onMouseDown={e => e.preventDefault()} onClick={() => editor?.chain().focus().redo().run()}>↷</button>
+      </div>}
       <EditorContent editor={editor} />
     </div>
   );

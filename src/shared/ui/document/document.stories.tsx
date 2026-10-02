@@ -69,3 +69,21 @@ export const ReadOnly: Story = {
     await expect(body).toHaveAttribute('contenteditable', 'false');
   },
 };
+export const TextUndoRedo: Story = {
+  render: () => <Example source="Keep this paragraph." />,
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement), body = await c.findByRole('textbox', { name: 'Description' });
+    await c.findByRole('toolbar', { name: 'Document formatting' });
+    await userEvent.click(body); await userEvent.keyboard('{End}'); await userEvent.type(body, ' additional text');
+    await expect(body).toHaveTextContent('additional text');
+    await userEvent.click(c.getByRole('button', { name: 'Undo text', exact: true }));
+    await waitFor(() => expect(body).not.toHaveTextContent('additional text'));
+    await expect(body).toHaveTextContent('Keep this paragraph.');
+    await userEvent.click(c.getByRole('button', { name: 'Redo text', exact: true }));
+    await waitFor(() => expect(body).toHaveTextContent('additional text'));
+    await expect(c.getByLabelText('Commit count')).toHaveTextContent('0');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(body).toHaveTextContent('Keep this paragraph.'));
+    await expect(c.getByLabelText('Commit count')).toHaveTextContent('0');
+  },
+};

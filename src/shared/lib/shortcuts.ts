@@ -1,9 +1,22 @@
 export function isTextEntry(target: EventTarget | null): boolean {
-  if (!(target instanceof Element)) return false;
-  return Boolean(
-    target.closest(
-      'textarea,select,input:not([type="checkbox"]):not([type="radio"]),[contenteditable="true"],[role="textbox"],[role="combobox"]',
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        'textarea,select,input:not([type="checkbox"]):not([type="radio"]),[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="combobox"]',
+      ),
+    )
+  );
+}
+export function hasOpenOverlay(): boolean {
+  return [
+    ...document.querySelectorAll<HTMLElement>(
+      'dialog[open],[role="dialog"],[role="menu"],[role="listbox"]',
     ),
+  ].some(
+    (el) =>
+      !el.closest('[hidden],[inert],[aria-hidden="true"],[data-closed],dialog:not([open])') &&
+      el.getClientRects().length > 0,
   );
 }
 export function shortcutGuard(event: KeyboardEvent): boolean {
@@ -11,14 +24,13 @@ export function shortcutGuard(event: KeyboardEvent): boolean {
     event.defaultPrevented ||
     event.isComposing ||
     isTextEntry(event.target) ||
-    Boolean(
-      document.querySelector('dialog[open],[role="dialog"],[role="menu"],[role="listbox"]'),
-    ) ||
+    hasOpenOverlay() ||
     Boolean(window.getSelection()?.toString())
   );
 }
 export const navigationChords: Record<string, string> = {
-  i: '/issues',
+  i: '/inbox',
+  a: '/issues',
   m: '/my-issues',
   p: '/projects',
   c: '/cycles',

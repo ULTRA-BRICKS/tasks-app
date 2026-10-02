@@ -1,3 +1,4 @@
+import { listInvitations } from './modules/identity/invitation-list.mjs';
 import * as importFiles from './modules/linear-import/files.mjs';
 import * as knowledge from './modules/knowledge/service.mjs';
 import * as linearImport from './modules/linear-import/service.mjs';
@@ -463,8 +464,17 @@ export function createApp({
           }),
           201,
         );
+      } else if (path === '/api/v1/invitations' && method === 'GET') {
+        response = json(await run(true, (tx, actor) => listInvitations(tx, actor)));
       } else if (path === '/api/v1/invitations' && method === 'POST') {
         const input = await body(request, schemas.Invite);
+        if (input.delivery === 'email')
+          assert(
+            emailConfiguration(env).configured,
+            503,
+            'MAIL_NOT_CONFIGURED',
+            'Email invitations are unavailable until the workspace sender is configured.',
+          );
         response = json(
           await run(false, async (tx, a) => {
             const invitation = await identity.invite(tx, a, input);
