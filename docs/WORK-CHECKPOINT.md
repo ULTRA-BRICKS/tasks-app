@@ -1,36 +1,24 @@
-# Work checkpoint — 2026-09-13
+# Tasks current handoff — 18 September 2026
 
-Read AGENT-SESSION-SAFETY.md before every request.
-Worktree: /Users/ultra/xp/tickets-draft-safety-20260913
-Feature branch: fix/draft-safety-20260913
-Last recorded application release: 382468f. Pending draft-safety changes are not published.
+## DEPLOYED: input-aware density
 
-## Current verified state
+PR9 is merged. Density commit7a5e6d3 was reviewed with the normal staged hook; merged runtime source1d3ac4d21d64e9ba77d4ccd05fdbe436e567f436 retains readable-history513c294. Production dpl_13eyTKbM9JxkqEaeFt9jMsNSTxiV / tasks-ikw4gd0b3-inventorems-projects.vercel.app promoted successfully.
+Canonical tasks-ultrabricks.vercel.app assets match this exact build: index-CpdwexPM.js and index-BQ1SKH8w.css. ready200, passwordReset:true, anonymous issues401. Real public bundles were checked with synthetic intercepted private-API fixtures in Chromium/WebKit at393/680/1024/1440 widths:42px fine pointer,56px coarse;Compact36/48;visible1px separators;14px touch titles;no overflow;density persisted on reload. No live login, email, migration or content mutation.
+Source/build/type checks on merged runtime passed183unit. Original density candidate had68Chromium+68WebKit,18Storybook,6visual comparisons; no claim that hosted Forgejo CI ran (Pending at merge). Source and post-promotion receipts posted to PR9. Before/after images,8 native-coordinate overlays/diffs and exact geometry JSON stay outside Git at ~/xp/.tasks-work-evidence/density-sep18/. These are release regression evidence, NOT90%Linear parity.
 
-The interrupted session left draft persistence, recovery/export UI, comment retries, and settings/date/property retention uncommitted. Preserve this work.
-The unfinished pending-files module was preserved as `docs/unfinished/pending-files.ts.txt`, not executable source. Its completion was denied by the tool; binary recovery remains open.
-Two unit regressions now cover comment retry uniqueness and changed-body rejection. They are present but were not reached by the full check.
-Latest process 63743 finished with exit 1. Source lint passed; type checking found two no-misused-spread errors in `tests/e2e/draft-retention.spec.ts:160` (spreading Storage instances).
-The proposed test correction was rejected before execution. No browser suite ran after this failed gate. The earlier 14/14 focused retention result is historical, not validation of all later changes.
-Log: `/tmp/tickets-resume-check.log`. No process launched by this resumed turn remains active.
+## MERGED: deterministic Storybook menu lifecycle
 
-## Next bounded actions
+A fresh default test:ui run reproduced17/18 failure in Capsule actions/KeyboardAndSelection. Test now waits for actual semantic close and focus restoration before reopening, then awaits expanded state before Escape; no sleeps, disabled rules or extended timeout. Five normal sequential default runs each passed18/18.
+Ordinary3-role review completed with no findings. Commit0a87886/PR10 merged as mainb9b26c812f9c5bfaf559071d10682299cd4a2b42. Only a6-line story-test change differs from deployed runtime1d3ac4d; no extra runtime deployment needed.
+Current local branch is test/storybook-menu-lifecycle-20260918 in this SAME worktree; HEAD0a87886. Preserve untracked pending login helper/tests listed below. Original tasks-keyboard and migration worktrees untouched.
 
-1. Correct Storage enumeration in the regression without weakening its password-exclusion assertion. Re-run type checking, then source/unit gates.
-2. Review stale session/durable mirror selection, storage failures, account isolation, late acknowledgements, replay protection and restoration. A proposed mirror refactor was rejected and is not present.
-3. Run one browser suite at a time; allocate unique ports and output/report paths. Then focused review, fixes, normal hooks, merge, clean deployment and canonical-route verification.
-4. Keep 90%+ Linear parity open: the original 50-screen PDF was not found in repeated File Library searches; paired mobile/reference coverage is required, not a self-baseline score.
-5. Account enrollment and authenticated production acceptance remain distinct open items. Earlier denied account operations must not be retried via dotenv or another transport.
+## OPEN: reproduced Enter/autofill defect
 
-Session rules are in AGENTS.md and AGENT-SESSION-SAFETY.md. This checkpoint is a handoff, not a declaration of completed delivery.
+Added12browser checks; baseline6pass/6fail (three cases in both engines): silent DOM autofill submission, same-tick duplicate submission, autofilled email transfer to Forgot password. Ordinary manual Enter and required-field checks pass. Log /tmp/tasks-login-red-sep18.log. No actual production credentials/login were used.
+The proposed source integration was rejected before execution; read-back confirmed src/pages/auth/ui.tsx unchanged. Do not reroute that rejected operation or claim a green login fix. Untracked src/shared/lib/login-fields.ts and tests/unit/login-fields.test.ts have4pure unit passes, but helper is not wired into the app. tests/e2e/login-keyboard.spec.ts intentionally remains red and is not committed/deployed.
 
-## Exact pre-commit snapshot
+## Other acceptance / references
 
-Verified base and HEAD before the documentation commit: `382468f8e0a4eb1d36a521f1a71a68ccea0b4923`.
-Current branch for publishing ONLY session notes: `docs/session-continuity-20260913`. The feature branch remains `fix/draft-safety-20260913`.
-Staged notes: AGENTS.md, docs/AGENT-SESSION-SAFETY.md, docs/WORK-CHECKPOINT.md.
-Unstaged modified source: packages/server/app.mjs; src/app/main.tsx; src/app/styles.css; src/features/issue-edit/document.ts; src/features/issue-properties/ui.tsx; src/features/preferences/index.ts; src/features/workspace-policy/ui.tsx; src/pages/issue-new/ui.tsx; src/pages/issues/ui.tsx; src/pages/planning-document/ui.tsx; src/pages/settings/ui.tsx; src/widgets/issue-details/ui.tsx; src/widgets/navigation/ui.tsx.
-Untracked feature work: src/features/draft-recovery/; src/shared/lib/draft-persistence.ts; src/shared/lib/input-draft.ts; tests/e2e/draft-retention.spec.ts; tests/unit/comment-retry.test.mjs; docs/references/; docs/unfinished/.
-
-Targeted comment retry tests subsequently ran successfully: 2 passed, 0 failed, 7 assertions. Log: `/tmp/tickets-resume-comment-retry.log`. This does not supersede the full source/type-check failure above.
-The first notes review found only a missing exact base/head/dirty-path inventory; this section supplies it. No feature source is included in the notes-only commit.
+Private originals are in Library /ultra/Tasks UI references/{mobile,desktop,feedback}; desktop27PNGs and mobile50-page PDF. Representative source screenshots were re-inspected; external REFERENCE-AND-ACCEPTANCE-AUDIT.md records concrete mismatches (right-side searchable shortcut panel, actual G-I Inbox binding, keycaps, navigation customization, context menus). Full-reference90%parity, configurable shortcuts and complete team/saved-view context menus are not completed.
+Expanded draft branch remains separate. Its last review has incomplete security/correctness verdicts and a performance finding involving repeated acknowledgement when storage is unavailable; its last whole-browser run is not fully green. Do not merge it on older test counts. Content migration belongs to the other agent and was not repeated.
+All processes started in this continuation are complete. No automation/background job left running. Next bounded work is the unfinished login integration/review and keyboard/context-action acceptance, NOT another density redo or content import.
