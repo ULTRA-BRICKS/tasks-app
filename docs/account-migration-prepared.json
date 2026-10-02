@@ -1,0 +1,11 @@
+{
+  "migration_id": "c0aae2a5-e8b4-4e91-9ede-47e39008a52a",
+  "project_id": "autumn-brook-27632436",
+  "database_name": "tickets",
+  "temporary_branch_id": "br-royal-term-b13u3bwx",
+  "parent_branch_id": "br-sparkling-morning-b1bs7tl5",
+  "migration_sql": "SELECT 1 / CASE WHEN (SELECT MAX(version) FROM schema_migrations)=3 THEN 1 ELSE 0 END AS expected_schema_version;\nCREATE TABLE password_reset_tokens (hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), password_fingerprint TEXT NOT NULL, expires_at TEXT NOT NULL, used_at TEXT, created_at TEXT NOT NULL);\nCREATE INDEX reset_tokens_user ON password_reset_tokens(user_id, expires_at);\nCREATE TABLE account_email_jobs (id TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK(kind IN ('password_reset','password_changed','invitation')), user_id TEXT REFERENCES users(id), workspace_id TEXT REFERENCES workspaces(id), reset_hash TEXT REFERENCES password_reset_tokens(hash), payload TEXT, status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','sending','sent','failed','expired')), attempts INTEGER NOT NULL DEFAULT 0, available_at TEXT NOT NULL, lease_until TEXT, expires_at TEXT NOT NULL, provider_id TEXT, last_error TEXT, created_at TEXT NOT NULL);\nCREATE INDEX account_email_pending ON account_email_jobs(status, available_at);\nINSERT INTO schema_migrations(version,applied_at) VALUES(4,to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'));",
+  "status": "applied_to_production",
+  "requires_user_confirmation_to_complete": false,
+  "verification": "Native complete_database_migration applied migration4 to tickets/production and deleted the temporary branch. Final native read: schema4, zero reset proofs and zero email jobs."
+}

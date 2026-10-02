@@ -1,0 +1,17 @@
+{
+  "source": "Running application on a synthetic local fixture, no production login or mail",
+  "viewports": [
+    [
+      1440,
+      1000
+    ],
+    [
+      393,
+      852
+    ]
+  ],
+  "deviceScaleFactor": 1,
+  "browser": "Chromium",
+  "pageErrors": [],
+  "horizontalOverflow": false
+}

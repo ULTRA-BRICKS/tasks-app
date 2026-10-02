@@ -1,7 +1,9 @@
+import { draftPersistence } from '@/shared/lib/draft-persistence';
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Inbox,
+  FileText,
   Layers,
   Plus,
   Search,
@@ -42,11 +44,30 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
     prefs.setSidebarOpen(false);
   }
   async function logout() {
+    if (
+      me &&
+      draftPersistence.hasLocalCopies(me) &&
+      !window.confirm(
+        (draftPersistence.warnings(me).length
+          ? 'Some draft backups failed. Export before signing out; memory-only data may be lost. '
+          : '') +
+          'Sign out and keep your draft recovery copies on this device? They are not encrypted and remain readable to anyone with this browser profile. Only continue on your own device. To remove them, cancel and open Draft recovery to export, then remove local copies.',
+      )
+    )
+      return;
     await api('/auth/logout', { method: 'POST' });
     client.clear();
-    for (const key of Object.keys(sessionStorage))
-      if (['ticket-draft:', 'ticket-new:', 'plan-draft:'].some((prefix) => key.startsWith(prefix)))
-        sessionStorage.removeItem(key);
+    try {
+      for (const key of Object.keys(sessionStorage))
+        if (
+          ['ticket-draft:', 'ticket-new:', 'plan-draft:', 'input-draft:'].some((prefix) =>
+            key.startsWith(prefix),
+          )
+        )
+          sessionStorage.removeItem(key);
+    } catch {
+      /* The server session is already revoked; storage failure must not prevent sign-out. */
+    }
     window.location.assign('/login');
   }
   const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -170,6 +191,10 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
             )}
           </>
         )}
+        <NavLink onClick={close} to="/drafts" className={navClass}>
+          <FileText size={15} />
+          <span>Draft recovery</span>
+        </NavLink>
         <NavLink onClick={close} to="/archive" className={navClass}>
           <Archive size={15} />
           <span>Archive</span>

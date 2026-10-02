@@ -1,3 +1,4 @@
+import { draftPersistence, draftBelongsTo } from '@/shared/lib/draft-persistence';
 import { IssueProperties } from '@/features/issue-properties';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -19,11 +20,25 @@ function IssueDraftPage() {
     navigate = useNavigate(),
     location = useLocation();
   const client = useQueryClient();
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const incoming = (location.state?.defaults ?? {}) as Partial<IssueCreate>;
-  const key = issueDraftKey(me?.workspace_id ?? '', me?.id ?? '', incoming);
+  const restoredKey = location.state?.restoreKey as unknown;
+  const key =
+    me &&
+    typeof restoredKey === 'string' &&
+    restoredKey.startsWith('ticket-new:') &&
+    draftBelongsTo(restoredKey, me)
+      ? restoredKey
+      : issueDraftKey(me?.workspace_id ?? '', me?.id ?? '', incoming);
   const [draft, setDraft] = useState<Draft>(() => {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(key) ?? 'null') as Draft | null;
+      const saved = JSON.parse(draftPersistence.getItem(key) ?? 'null') as Draft | null;
       if (
         saved &&
         typeof saved.title === 'string' &&
@@ -53,22 +68,31 @@ function IssueDraftPage() {
     current.current = next;
     setDraft(next);
     try {
-      sessionStorage.setItem(key, JSON.stringify(next));
+      draftPersistence.setItem(key, JSON.stringify(next));
     } catch {
       setStorageError(true);
     }
   }
   const mutation = useMutation({
-    mutationFn: (attempt: NonNullable<Draft['attempt']>) =>
-      api<Issue>('/v1/issues', {
+    mutationFn: async (attempt: NonNullable<Draft['attempt']>) => {
+      const submittedCopy = draftPersistence.capture(key);
+      const issue = await api<Issue>('/v1/issues', {
         method: 'POST',
         json: attempt.input,
         headers: { 'idempotency-key': attempt.key },
-      }),
-    onSuccess: (issue) => {
+      });
+      return { issue, submittedCopy };
+    },
+    onSuccess: ({ issue, submittedCopy }) => {
       try {
-        sessionStorage.removeItem(key);
-      } catch {}
+        if (submittedCopy) draftPersistence.acknowledge(submittedCopy);
+      } catch {
+        if (mounted.current) setStorageError(true);
+      }
+      if (!mounted.current) {
+        void client.invalidateQueries({ queryKey: ['issues'] });
+        return;
+      }
       void client.invalidateQueries({ queryKey: ['issues'] });
       void client.invalidateQueries({ queryKey: ['projects'] });
       void navigate('/issues/' + issue.id, {

@@ -1,3 +1,4 @@
+import { DraftMonitor, DraftsPage } from '@/features/draft-recovery';
 import { PlanningDocumentPage } from '@/pages/planning-document';
 import { WorkspaceKeyboard } from '@/features/keyboard';
 import { NewIssuePage } from '@/pages/issue-new';
@@ -76,12 +77,13 @@ function Workspace() {
       </div>
     );
   return (
-    <div className="app-shell">
+    <div className="app-shell" key={me.data?.workspace_id + ':' + me.data?.id}>
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
       <Navigation onCreate={() => setCreateOpen(true)} onSearch={() => setSearchOpen(true)} />
       <main id="main-content" className="workspace-main">
+        <DraftMonitor />
         <Routes>
           <Route path="/" element={<Navigate to="/issues" replace />} />
           <Route path="/login" element={<Navigate to="/issues" replace />} />
@@ -95,6 +97,7 @@ function Workspace() {
           <Route path="/cycles" element={<PlanningPage kind="cycles" />} />
           <Route path="/projects/:id" element={<PlanningDocumentPage kind="projects" />} />
           <Route path="/cycles/:id" element={<PlanningDocumentPage kind="cycles" />} />
+          <Route path="/drafts" element={<DraftsPage />} />
           <Route path="/inbox" element={<InboxPage />} />
           <Route path="/settings" element={<SettingsPage />} />
 

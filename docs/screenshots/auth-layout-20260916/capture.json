@@ -1,0 +1,256 @@
+{
+  "capturedAt": "2026-09-16T10:55:01.495Z",
+  "source": "Production-built React UI. Anonymous-session and mail-unavailable HTTP responses are synthetic; no real account or email was used.",
+  "deviceScaleFactor": 1,
+  "pageErrors": [],
+  "results": [
+    {
+      "engine": "chromium",
+      "name": "login-mobile",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "layout": {
+        "x": 24,
+        "y": 192.703125,
+        "width": 345,
+        "height": 466.59375,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "chromium",
+      "name": "login-small",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "layout": {
+        "x": 24,
+        "y": 50.703125,
+        "width": 272,
+        "height": 466.59375,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "chromium",
+      "name": "login-short",
+      "viewport": {
+        "width": 393,
+        "height": 480
+      },
+      "layout": {
+        "x": 24,
+        "y": 24,
+        "width": 345,
+        "height": 466.59375,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "chromium",
+      "name": "login-desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "layout": {
+        "x": 528,
+        "y": 216.703125,
+        "width": 384,
+        "height": 466.59375,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "chromium",
+      "name": "forgot-mobile",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "layout": {
+        "x": 24,
+        "y": 247.609375,
+        "width": 345,
+        "height": 356.78125,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "chromium",
+      "name": "new-password",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "layout": {
+        "x": 24,
+        "y": 191.015625,
+        "width": 345,
+        "height": 469.96875,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "chromium",
+      "name": "invalid-link",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "layout": {
+        "x": 24,
+        "y": 284.203125,
+        "width": 345,
+        "height": 283.59375,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "chromium",
+      "name": "invite",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "layout": {
+        "x": 24,
+        "y": 303.703125,
+        "width": 345,
+        "height": 244.59375,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "webkit",
+      "name": "login-mobile",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "layout": {
+        "x": 24,
+        "y": 192.703125,
+        "width": 345,
+        "height": 466.59375,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "webkit",
+      "name": "login-small",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "layout": {
+        "x": 24,
+        "y": 50.703125,
+        "width": 272,
+        "height": 466.59375,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "webkit",
+      "name": "login-short",
+      "viewport": {
+        "width": 393,
+        "height": 480
+      },
+      "layout": {
+        "x": 24,
+        "y": 24,
+        "width": 337,
+        "height": 466.59375,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "webkit",
+      "name": "login-desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "layout": {
+        "x": 528,
+        "y": 216.703125,
+        "width": 384,
+        "height": 466.59375,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "webkit",
+      "name": "forgot-mobile",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "layout": {
+        "x": 24,
+        "y": 247.609375,
+        "width": 345,
+        "height": 356.78125,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "webkit",
+      "name": "new-password",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "layout": {
+        "x": 24,
+        "y": 191.015625,
+        "width": 345,
+        "height": 469.96875,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "webkit",
+      "name": "invalid-link",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "layout": {
+        "x": 24,
+        "y": 284.203125,
+        "width": 345,
+        "height": 283.59375,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "engine": "webkit",
+      "name": "invite",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "layout": {
+        "x": 24,
+        "y": 303.703125,
+        "width": 345,
+        "height": 244.59375,
+        "horizontalOverflow": false
+      }
+    }
+  ],
+  "verifiedSourceCommit": "3b8f02c39532a36d1c3caefb4d885b8a2291aff7",
+  "sourceFilesVerified": [
+    "src/pages/auth/shell.tsx",
+    "src/pages/auth/ui.tsx",
+    "src/pages/auth/password-reset.tsx",
+    "src/app/styles.css",
+    "tokens/tickets.tokens.json"
+  ]
+}
