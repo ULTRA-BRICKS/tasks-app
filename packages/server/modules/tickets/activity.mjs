@@ -199,6 +199,31 @@ export async function presentActivity(tx, workspace, issueId, rows, links = []) 
             );
       }
   }
+  // Fallback for issues that appeared after the import (no linear_import_records row): the
+  // live sync worker caches every hydrated issue/comment payload it applies in
+  // linear_sync_records. Restricted to 'issues' (the only referenced collection the sync
+  // worker ever hydrates standalone) so this never adds a query for collection types that
+  // can never have a sync-record row (workflowStates, users, teams, issueLabels, ...).
+  if (refs.has('issues')) {
+    const unresolvedIssues = [...refs.get('issues')].filter(
+      (sourceId) => !lookup.has('issues:' + sourceId),
+    );
+    const stillMissing = unresolvedIssues.length
+      ? new Map([['issues', unresolvedIssues]])
+      : new Map();
+    for (const [collection, ids] of stillMissing) {
+      const rows = await tx.all(
+        `SELECT source_id,payload FROM linear_sync_records WHERE workspace_id=? AND collection=? AND source_id IN (${ids.map(() => '?').join(',')})`,
+        [workspace, collection, ...ids],
+      );
+      for (const record of rows)
+        if (Object.hasOwn(unavailable, collection))
+          lookup.set(
+            collection + ':' + record.source_id,
+            sourceName(collection, payload(record.payload)),
+          );
+    }
+  }
   const resolve = (collection, key) =>
     lookup.get(collection + ':' + key) ?? unavailable[collection];
   return parsed.map((row) =>

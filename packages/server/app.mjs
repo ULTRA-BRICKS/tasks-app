@@ -23,6 +23,10 @@ import * as tickets from './modules/tickets/service.mjs';
 import * as planning from './modules/planning/service.mjs';
 import * as files from './modules/attachments/service.mjs';
 import * as integrations from './modules/integrations/service.mjs';
+import { receiveLinearWebhook } from './modules/linear-sync/webhook.mjs';
+import { runLinearSyncWorker } from './modules/linear-sync/worker.mjs';
+import { reconcileLinearWorkspace } from './modules/linear-sync/reconcile.mjs';
+import * as linearSync from './modules/linear-sync/service.mjs';
 import { readFile } from 'node:fs/promises';
 
 const json = (value, status = 200, headers = {}) =>
@@ -936,6 +940,52 @@ export function createApp({
                 ...result,
               })
             : json(result, 202);
+      } else if (path === '/api/webhooks/linear' && method === 'POST') {
+        const raw = await rawBody(request);
+        const result = await db.transaction((tx) =>
+          receiveLinearWebhook(tx, request.headers, raw, env),
+        );
+        response = json(result, 202);
+      } else if (path === '/api/internal/linear-sync' && method === 'GET') {
+        assert(
+          env.CRON_SECRET && constantEqual(bearer ?? '', env.CRON_SECRET),
+          401,
+          'UNAUTHENTICATED',
+          'Worker credential required',
+        );
+        const worker = await runLinearSyncWorker(db, env, { limit: 10 });
+        const reconcile = await reconcileLinearWorkspace(db, env, { budgetMs: 40000 }).catch(
+          (error) => ({
+            configured: false,
+            error: error.code ?? 'LINEAR_SYNC_NOT_CONFIGURED',
+          }),
+        );
+        response = json({ worker, reconcile });
+      } else if (path === '/api/v1/sync/linear/status' && method === 'GET')
+        response = json(await run(true, (tx, a) => linearSync.linearSyncStatus(tx, a)));
+      else if (path === '/api/v1/sync/linear/conflicts' && method === 'GET')
+        response = json(
+          await run(true, (tx, a) =>
+            linearSync.listLinearSyncConflicts(tx, a, {
+              resolved: url.searchParams.get('resolved') === 'true',
+            }),
+          ),
+        );
+      else if (
+        /^\/api\/v1\/sync\/linear\/conflicts\/[^/]+\/resolve$/.test(path) &&
+        method === 'POST'
+      ) {
+        const input = await body(request, schemas.LinearSyncConflictResolve);
+        response = json(
+          await run(false, (tx, a) =>
+            linearSync.resolveLinearSyncConflict(tx, a, path.split('/')[6], input.resolution),
+          ),
+        );
+      } else if (path === '/api/v1/sync/linear/retry' && method === 'POST') {
+        const input = await body(request, schemas.LinearSyncRetry);
+        response = json(
+          await run(false, (tx, a) => linearSync.retryLinearSyncEvent(tx, a, input.inbox_id)),
+        );
       } else if (path === '/api/internal/account-email' && method === 'GET') {
         assert(
           env.CRON_SECRET && constantEqual(bearer ?? '', env.CRON_SECRET),

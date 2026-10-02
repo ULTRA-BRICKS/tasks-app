@@ -296,6 +296,48 @@ const operations = [
     'Process a bounded batch using CRON_SECRET, not a personal API token',
     'worker',
   ],
+  [
+    '/webhooks/linear',
+    'post',
+    'webhook',
+    'Receive a signed Linear webhook delivery into the durable sync inbox',
+    'webhook',
+  ],
+  [
+    '/internal/linear-sync',
+    'get',
+    null,
+    'Run the Linear sync worker and reconciliation pass using CRON_SECRET',
+    'worker',
+  ],
+  [
+    '/v1/sync/linear/status',
+    'get',
+    null,
+    'Read Linear sync inbox counts, cursors and open conflicts',
+    'admin',
+  ],
+  [
+    '/v1/sync/linear/conflicts',
+    'get',
+    null,
+    'List open (or resolved) Linear sync field conflicts',
+    'admin',
+  ],
+  [
+    '/v1/sync/linear/conflicts/{id}/resolve',
+    'post',
+    'LinearSyncConflictResolve',
+    'Resolve a Linear sync field conflict by keeping local or applying remote',
+    'admin',
+  ],
+  [
+    '/v1/sync/linear/retry',
+    'post',
+    'LinearSyncRetry',
+    'Reset a failed or blocked Linear sync inbox event back to pending',
+    'admin',
+  ],
 ];
 export function generateOpenAPI() {
   const paths = {};

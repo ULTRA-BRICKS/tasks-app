@@ -56,6 +56,13 @@ export const MODULES = Object.freeze([
     depends: ['tickets'],
     description: 'Create from slash commands or messages; optional channel updates.',
   },
+  {
+    id: 'linear-sync',
+    name: 'Linear live sync',
+    depends: ['tickets'],
+    description:
+      'Ongoing one-way sync of issues and comments from a previously imported Linear workspace.',
+  },
 ]);
 export async function listModules(tx, workspace) {
   const rows = await tx.all(
