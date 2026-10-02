@@ -118,9 +118,16 @@ export async function recordActivity(tx, actor, issue, action, data = {}) {
     'SELECT user_id FROM subscriptions WHERE workspace_id=? AND issue_id=?',
     [actor.workspace_id, issue.id],
   );
-  const recipients = new Set(
-    [...subscriptions.map((s) => s.user_id), issue.assignee_id].filter(Boolean),
-  );
+  const recipients = new Set(subscriptions.map((s) => s.user_id));
+  // getIssue() may expose an imported source-person ID as assignee_id for presentation.
+  // Effects such as notifications must only target a real workspace membership.
+  if (issue.assignee_id) {
+    const assignee = await tx.one(
+      'SELECT user_id FROM memberships WHERE workspace_id=? AND user_id=?',
+      [actor.workspace_id, issue.assignee_id],
+    );
+    if (assignee) recipients.add(assignee.user_id);
+  }
   recipients.delete(actor.id);
   const notifications = await tx.one(
     "SELECT enabled FROM module_settings WHERE workspace_id=? AND module='notifications'",
