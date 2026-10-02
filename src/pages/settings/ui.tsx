@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router-dom';
 import { PeopleInvitations } from '@/features/people-invitations';
 import { selectedPerson } from '@/shared/lib/people';
 import { IdentityReview } from './identity-review';
+import { PeopleWithoutAccount } from './people-without-account';
 import { WorkspacePolicySettings } from '@/features/workspace-policy';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -211,34 +212,40 @@ export function SettingsPage() {
                 workspace.
               </p>
               <div className="member-list">
-                {catalog?.people.map((p) => (
-                  <div className="member-row" key={p.id}>
-                    <Avatar name={p.name} size="md" />
-                    <div>
-                      <strong>
-                        <PersonChip id={p.id} label={p.name} display="text" />
-                        {selectedPerson(catalog, p.id)?.needs_review && (
-                          <span className="review-badge">Needs review</span>
-                        )}
-                      </strong>
-                      <span>{p.email}</span>
+                {catalog?.people.map((p) => {
+                  // The canonical person (UB-95): merged photo and the name every surface shows.
+                  const person = selectedPerson(catalog, p.id),
+                    name = person?.name ?? p.name;
+                  return (
+                    <div className="member-row" key={p.id}>
+                      <Avatar name={name} src={person?.avatar_url} size="md" />
+                      <div>
+                        <strong>
+                          <PersonChip id={p.id} name={name} display="text" />
+                          {person?.needs_review && (
+                            <span className="review-badge">Needs review</span>
+                          )}
+                        </strong>
+                        <span>{p.email}</span>
+                      </div>
+                      <Combobox
+                        aria-label={`Role of ${name}`}
+                        value={p.role}
+                        options={['owner', 'admin', 'member', 'viewer'].map((v) => ({
+                          value: v,
+                          label: v,
+                        }))}
+                        onChange={(v) => {
+                          if (window.confirm(`Change ${name}'s role to ${v}?`))
+                            action.mutate({ type: 'role', id: p.id, value: v });
+                        }}
+                        disabled={!admin || action.isPending}
+                      />
                     </div>
-                    <Combobox
-                      aria-label={`Role of ${p.name}`}
-                      value={p.role}
-                      options={['owner', 'admin', 'member', 'viewer'].map((v) => ({
-                        value: v,
-                        label: v,
-                      }))}
-                      onChange={(v) => {
-                        if (window.confirm(`Change ${p.name}'s role to ${v}?`))
-                          action.mutate({ type: 'role', id: p.id, value: v });
-                      }}
-                      disabled={!admin || action.isPending}
-                    />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+              <PeopleWithoutAccount catalog={catalog} />
               <IdentityReview catalog={catalog} />
               {admin && <PeopleInvitations />}
             </>

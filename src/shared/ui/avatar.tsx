@@ -1,5 +1,11 @@
 import { useState } from 'react';
 import { cn } from '../lib/cn';
+/** One of eight hues for initials, the same for a name on every surface (docs/PEOPLE-IDENTITY.md). */
+function tone(name: string) {
+  let hash = 0;
+  for (const char of name) hash = (hash * 31 + (char.codePointAt(0) ?? 0)) >>> 0;
+  return hash % 8;
+}
 export function Avatar({
   name,
   src,
@@ -17,6 +23,7 @@ export function Avatar({
   return (
     <span
       className={cn('avatar', size === 'md' && 'avatar-md', !name && 'avatar-empty')}
+      data-tone={!image && name ? tone(name) : undefined}
       {...(decorative
         ? { 'aria-hidden': true }
         : { 'aria-label': name ?? 'Unassigned', title: name ?? 'Unassigned' })}

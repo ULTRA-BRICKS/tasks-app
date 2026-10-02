@@ -13,8 +13,10 @@ test('People settings mark a same-provider email conflict for review without wri
   await page.goto('/settings?tab=members');
   const sam = page.locator('.member-row').filter({ hasText: 'Sam Rivera' });
   await expect(sam.getByText('Needs review', { exact: true })).toBeVisible();
+  // Member rows show the canonical name: Jamie's bound Slack profile names him (UB-95).
+  await expect(page.locator('.member-row').filter({ hasText: 'Jamie C.' })).toHaveCount(1);
   await expect(
-    page.locator('.member-row').filter({ hasText: 'Jamie Chen' }).getByText('Needs review'),
+    page.locator('.member-row').filter({ hasText: 'Jamie C.' }).getByText('Needs review'),
   ).toHaveCount(0);
   const review = page.getByRole('region', { name: 'Identity review' });
   await expect(review).toBeVisible();

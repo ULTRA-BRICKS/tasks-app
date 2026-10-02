@@ -301,6 +301,37 @@ button {
   border: 1px dashed var(--color-border-strong);
   color: var(--color-subtle);
 }
+/* Initials without a photo: one of eight hues rotated from the accent token, stable per name
+   (docs/PEOPLE-IDENTITY.md, UB-95). Without relative colour syntax the accent tone above stays. */
+@supports (color: oklch(from red l c h)) {
+  .avatar[data-tone] {
+    --avatar-tone: oklch(from var(--color-accent) l c calc(h + var(--avatar-hue, 0)));
+    border-color: color-mix(in srgb, var(--avatar-tone) 34%, transparent);
+    background: color-mix(in srgb, var(--avatar-tone) 16%, var(--color-panel));
+    color: var(--avatar-tone);
+  }
+  .avatar[data-tone='1'] {
+    --avatar-hue: 45;
+  }
+  .avatar[data-tone='2'] {
+    --avatar-hue: 90;
+  }
+  .avatar[data-tone='3'] {
+    --avatar-hue: 135;
+  }
+  .avatar[data-tone='4'] {
+    --avatar-hue: 180;
+  }
+  .avatar[data-tone='5'] {
+    --avatar-hue: 225;
+  }
+  .avatar[data-tone='6'] {
+    --avatar-hue: 270;
+  }
+  .avatar[data-tone='7'] {
+    --avatar-hue: 315;
+  }
+}
 .dialog-backdrop {
   position: fixed;
   inset: 0;
