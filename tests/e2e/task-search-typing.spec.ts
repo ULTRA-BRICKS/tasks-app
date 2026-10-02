@@ -55,15 +55,14 @@ test('typing filters the list, replaces history and a reload restores the query'
 }) => {
   await openTasks(page);
   const rows = page.getByTestId('issue-row');
-  const total = await rows.count();
-  const first = (await rows.first().innerText()).split('\n').find((line) => line.length > 8)!;
-  const needle = first.slice(0, 12);
+  const listed = (await (await page.request.get('/api/v1/issues')).json()).data;
+  const needle: string = listed[0].title;
   await search(page).click();
   await search(page).pressSequentially(needle, { delay: 0 });
   await expect(search(page)).toHaveValue(needle);
   await expect.poll(() => urlQuery(page)).toBe(needle);
-  await expect.poll(() => rows.count()).toBeLessThanOrEqual(total);
-  await expect(rows.first()).toContainText(needle);
+  await expect(rows.filter({ hasText: needle }).first()).toBeVisible();
+  await expect.poll(() => rows.count()).toBeLessThan(listed.length);
   await page.reload();
   await expect(search(page)).toHaveValue(needle);
   expect(urlQuery(page)).toBe(needle);
@@ -104,31 +103,33 @@ test('the word all is a query, not "no filter"', async ({ page }) => {
   await expect(search(page)).toHaveValue('all');
   expect(urlQuery(page)).toBe('all');
 });
-test('IME composition is not truncated and the URL waits for the committed text', async ({
-  page,
-  browserName,
-}) => {
-  test.skip(browserName !== 'chromium', 'Playwright drives real IME composition only in Chromium');
-  await openTasks(page);
-  await search(page).click();
-  const session = await page.context().newCDPSession(page);
-  await session.send('Input.imeSetComposition', {
-    text: 'に',
-    selectionStart: 1,
-    selectionEnd: 1,
+test.describe('IME', () => {
+  // Skipped before any fixture starts: Playwright drives real IME composition only in Chromium.
+  test.skip(({ browserName }) => browserName !== 'chromium', 'No IME API for this engine');
+  test('IME composition is not truncated and the URL waits for the committed text', async ({
+    page,
+  }) => {
+    await openTasks(page);
+    await search(page).click();
+    const session = await page.context().newCDPSession(page);
+    await session.send('Input.imeSetComposition', {
+      text: 'に',
+      selectionStart: 1,
+      selectionEnd: 1,
+    });
+    await session.send('Input.imeSetComposition', {
+      text: 'にほ',
+      selectionStart: 2,
+      selectionEnd: 2,
+    });
+    await expect(search(page)).toHaveValue('にほ');
+    await page.waitForTimeout(600);
+    expect(urlQuery(page)).toBeNull();
+    await expect(search(page)).toHaveValue('にほ');
+    await session.send('Input.insertText', { text: '日本' });
+    await expect(search(page)).toHaveValue('日本');
+    await expect.poll(() => urlQuery(page)).toBe('日本');
+    await page.waitForTimeout(600);
+    await expect(search(page)).toHaveValue('日本');
   });
-  await session.send('Input.imeSetComposition', {
-    text: 'にほ',
-    selectionStart: 2,
-    selectionEnd: 2,
-  });
-  await expect(search(page)).toHaveValue('にほ');
-  await page.waitForTimeout(600);
-  expect(urlQuery(page)).toBeNull();
-  await expect(search(page)).toHaveValue('にほ');
-  await session.send('Input.insertText', { text: '日本' });
-  await expect(search(page)).toHaveValue('日本');
-  await expect.poll(() => urlQuery(page)).toBe('日本');
-  await page.waitForTimeout(600);
-  await expect(search(page)).toHaveValue('日本');
 });
