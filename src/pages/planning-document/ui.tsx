@@ -1,3 +1,4 @@
+import { draftPersistence } from '@/shared/lib/draft-persistence';
 import { mergeVersioned } from '@/shared/lib/versioned';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -86,13 +87,20 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
     { data: me } = useMe(),
     navigate = useNavigate(),
     client = useQueryClient();
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const noun = kind === 'projects' ? 'project' : 'cycle',
     readonly = me?.role === 'viewer';
   const storageKey = `plan-draft:${me?.workspace_id}:${me?.id}:${kind}:${existing?.id ?? 'new'}`;
   const initial = planDraft(existing, catalog?.teams[0]?.id ?? '');
   const [draft, setDraft] = useState<Draft>(() => {
     try {
-      const saved = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null') as Draft | null;
+      const saved = JSON.parse(draftPersistence.getItem(storageKey) ?? 'null') as Draft | null;
       if (
         saved &&
         typeof saved.name === 'string' &&
@@ -142,7 +150,7 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
     current.current = next;
     setDraft(next);
     try {
-      sessionStorage.setItem(storageKey, JSON.stringify(next));
+      draftPersistence.setItem(storageKey, JSON.stringify(next));
     } catch {
       setStorageError(true);
     }
@@ -198,6 +206,10 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
             json: existing ? { ...input, version: version.current } : input,
             ...(key ? { headers: { 'idempotency-key': key } } : {}),
           });
+          if (!mounted.current) {
+            void client.invalidateQueries({ queryKey: [kind] });
+            break;
+          }
           if (!latestServer.current || result.version >= latestServer.current.version)
             latestServer.current = result;
           // Never pair a refetched v3 with fields acknowledged by v2. After unlocking,
@@ -227,7 +239,7 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
           if (unchanged) unsaved.current = false;
           if (unchanged)
             try {
-              sessionStorage.removeItem(storageKey);
+              draftPersistence.removeItem(storageKey);
             } catch {
               setStorageError(true);
             }
@@ -288,7 +300,7 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
       attempt: undefined,
     });
     try {
-      sessionStorage.removeItem(storageKey);
+      draftPersistence.removeItem(storageKey);
     } catch {
       setStorageError(true);
     }
@@ -304,7 +316,7 @@ function PlanEditor({ kind, existing }: { kind: 'projects' | 'cycles'; existing?
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
       try {
-        if (sessionStorage.getItem(storageKey)) {
+        if (draftPersistence.getItem(storageKey)) {
           event.preventDefault();
           event.returnValue = '';
         }

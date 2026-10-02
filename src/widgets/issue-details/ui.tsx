@@ -1,3 +1,4 @@
+import { useInputDraft, inputDraftKey } from '@/shared/lib/input-draft';
 import { IssueProperties } from '@/features/issue-properties';
 import { useState, useRef } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
@@ -64,10 +65,18 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
   const document = useInlineDocument(issue, draftKey);
   const draft = document.draft,
     dirty = document.dirty;
-  const [comment, setComment] = useState(''),
-    [relationOpen, setRelationOpen] = useState(false),
-    [target, setTarget] = useState(''),
-    [relationType, setRelationType] = useState('blocks'),
+  const commentDraft = useInputDraft(inputDraftKey(me, 'comment:' + issue.id), '');
+  const relationDraft = useInputDraft(inputDraftKey(me, 'relation:' + issue.id), {
+    target: '',
+    type: 'blocks',
+  });
+  const comment = commentDraft.value,
+    setComment = commentDraft.set;
+  const target = relationDraft.value.target,
+    relationType = relationDraft.value.type;
+  const setTarget = (target: string) => relationDraft.set((v) => ({ ...v, target }));
+  const setRelationType = (type: string) => relationDraft.set((v) => ({ ...v, type }));
+  const [relationOpen, setRelationOpen] = useState(false),
     [subissue, setSubissue] = useState(false),
     [copied, setCopied] = useState(false),
     [localError, setLocalError] = useState<string | null>(null);
@@ -75,17 +84,32 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
     mutation = useIssueUpdate(),
     busy = useIssueWriteBusy(),
     readOnly = me?.role === 'viewer';
+  const propertyDraft = useInputDraft(inputDraftKey(me, 'properties:' + issue.id), {
+    patch: null as Omit<IssuePatch, 'version'> | null,
+    version: issue.version,
+  });
   const propertyLock = useRef(false);
   const [propertyPending, setPropertyPending] = useState(false);
   const propertiesDisabled = readOnly || busy || propertyPending;
-  async function update(patch: Omit<IssuePatch, 'version'>) {
+  async function update(patch: Omit<IssuePatch, 'version'>, reconcile = false) {
     if (propertiesDisabled || propertyLock.current) return;
+    patch = { ...(propertyDraft.value.patch ?? {}), ...patch };
+    const baseVersion = propertyDraft.value.patch ? propertyDraft.value.version : issue.version;
+    propertyDraft.set({ patch, version: reconcile ? issue.version : baseVersion });
+    if (!reconcile && baseVersion !== issue.version) {
+      setLocalError('The issue changed. Review retained properties before retrying.');
+      return;
+    }
+    const pendingProperties = propertyDraft.snapshot();
     propertyLock.current = true;
     setPropertyPending(true);
     setLocalError(null);
     try {
       const current = await document.flush();
-      if (current) await mutation.mutateAsync({ issue: current, patch });
+      if (current) {
+        await mutation.mutateAsync({ issue: current, patch });
+        propertyDraft.accept(pendingProperties);
+      } else setLocalError('Resolve the text save first. Your property changes are retained.');
     } catch (e) {
       setLocalError(errorMessage(e));
     } finally {
@@ -99,21 +123,29 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
   }
   const commentRevision = useRef(0);
   const action = useMutation({
-    mutationFn: async (input: { kind: string; data?: unknown; revision?: number }) => {
+    mutationFn: async (input: {
+      kind: string;
+      data?: unknown;
+      revision?: number;
+      draft?: { key: string; revision: string };
+      target?: string;
+      relationType?: string;
+    }) => {
       if (input.kind === 'comment')
         return api(`/v1/issues/${issue.id}/comments`, {
           method: 'POST',
           json: { body: input.data },
+          ...(input.draft?.revision ? { headers: { 'idempotency-key': input.draft.revision } } : {}),
         });
       if (input.kind === 'subscription')
         return api(`/v1/issues/${issue.id}/subscription`, {
           method: issue.subscribed ? 'DELETE' : 'POST',
         });
       if (input.kind === 'relation') {
-        const other = await api<Issue>('/v1/issues/' + encodeURIComponent(target));
+        const other = await api<Issue>('/v1/issues/' + encodeURIComponent(input.target ?? target));
         return api(`/v1/issues/${issue.id}/relations`, {
           method: 'POST',
-          json: { target_id: other.id, type: relationType },
+          json: { target_id: other.id, type: input.relationType ?? relationType },
         });
       }
       if (input.kind === 'unlink') return api('/v1/relations/' + input.data, { method: 'DELETE' });
@@ -123,12 +155,14 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
     onSuccess: (_result, variables) => {
       void client.invalidateQueries({ queryKey: ['issue', issue.id] });
       void client.invalidateQueries({ queryKey: ['notifications'] });
-      if (variables.kind === 'comment' && variables.revision === commentRevision.current)
-        setComment('');
-      if (variables.kind === 'relation') {
+      if (
+        variables.kind === 'comment' &&
+        variables.revision === commentRevision.current &&
+        variables.draft
+      )
+        commentDraft.accept(variables.draft);
+      if (variables.kind === 'relation' && variables.draft && relationDraft.accept(variables.draft))
         setRelationOpen(false);
-        setTarget('');
-      }
     },
   });
   async function attach(file: File) {
@@ -168,6 +202,9 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
   const [uploading, setUploading] = useState(false);
   return (
     <>
+      {(commentDraft.error || relationDraft.error || propertyDraft.error) && (
+        <ErrorState message="Draft storage is unavailable. Keep this page open and copy your unsent text before leaving." />
+      )}
       <header className="issue-detail-toolbar">
         <div className="breadcrumb">
           <Layers size={14} />
@@ -471,6 +508,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                       kind: 'comment',
                       data: comment,
                       revision: commentRevision.current,
+                      draft: commentDraft.snapshot(),
                     });
                 }}
               >
@@ -496,8 +534,37 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
           </section>
         </div>
         <aside className="detail-properties" aria-label="Issue properties">
+          {propertyDraft.value.patch && (
+            <div className="draft-banner">
+              Unsent property changes retained.
+              <Button
+                size="sm"
+                disabled={propertiesDisabled}
+                onClick={() => {
+                  if (
+                    propertyDraft.value.version !== issue.version &&
+                    !window.confirm('Apply retained properties to the changed issue?')
+                  )
+                    return;
+                  void update(propertyDraft.value.patch!, true);
+                }}
+              >
+                Retry properties
+              </Button>
+              <Button
+                size="sm"
+                disabled={propertiesDisabled}
+                onClick={() => {
+                  if (window.confirm('Discard only the unsent property changes?'))
+                    propertyDraft.accept(propertyDraft.snapshot());
+                }}
+              >
+                Discard properties
+              </Button>
+            </div>
+          )}
           <IssueProperties
-            value={issue}
+            value={{ ...issue, ...(propertyDraft.value.patch ?? {}) }}
             onChange={(patch) => void update(patch)}
             disabled={propertiesDisabled}
           />
@@ -549,7 +616,12 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            action.mutate({ kind: 'relation' });
+            action.mutate({
+              kind: 'relation',
+              target,
+              relationType,
+              draft: relationDraft.snapshot(),
+            });
           }}
           className="stack-form"
         >

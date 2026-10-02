@@ -1,3 +1,4 @@
+import { waitUntil } from '@vercel/functions';
 import { createDatabase } from '../packages/db/index.mjs';
 import { applicationOrigin } from '../packages/config/development.mjs';
 import { createApp } from '../packages/server/app.mjs';
@@ -9,7 +10,7 @@ async function initialize(environment) {
     throw new Error('Production configuration incomplete');
   const db = await createDatabase({ url: env.DATABASE_URL, production: true });
   try {
-    return withLinear(createApp({ db, env }), { db, env });
+    return withLinear(createApp({ db, env, defer: waitUntil }), { db, env });
   } catch (error) {
     await db.close();
     throw error;

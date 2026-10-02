@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 type Preferences = {
   view: 'list' | 'board';
   theme: 'dark' | 'light';
@@ -18,6 +18,30 @@ export const usePreferences = create<Preferences>()(
       setTheme: (theme) => set({ theme }),
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
     }),
-    { name: 'tickets-ui', partialize: (s) => ({ view: s.view, theme: s.theme }) },
+    {
+      name: 'tickets-ui',
+      partialize: (s) => ({ view: s.view, theme: s.theme }),
+      storage: createJSONStorage(() => ({
+        getItem: (key) => {
+          try {
+            return localStorage.getItem(key);
+          } catch {
+            return null;
+          }
+        },
+        setItem: (key, value) => {
+          try {
+            localStorage.setItem(key, value);
+          } catch {
+            /* Preferences remain in memory; navigation must not throw. */
+          }
+        },
+        removeItem: (key) => {
+          try {
+            localStorage.removeItem(key);
+          } catch {}
+        },
+      })),
+    },
   ),
 );

@@ -1,3 +1,4 @@
+import { draftPersistence } from '@/shared/lib/draft-persistence';
 import { mergeVersioned } from '@/shared/lib/versioned';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { IssueDetail } from '@tickets/contracts';
@@ -16,11 +17,18 @@ import { ApiError, errorMessage } from '@/shared/api/client';
 export function useInlineDocument(issue: IssueDetail, storageKey: string) {
   const [draft, setDraft] = useState(() => {
     try {
-      return restoreDocument(sessionStorage.getItem(storageKey), issue);
+      return restoreDocument(draftPersistence.getItem(storageKey), issue);
     } catch {
       return freshDraft(issue);
     }
   });
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const current = useRef(draft),
     latest = useRef(issue),
     running = useRef(false),
@@ -37,8 +45,9 @@ export function useInlineDocument(issue: IssueDetail, storageKey: string) {
       current.current = next;
       setDraft(next);
       try {
-        if (draftDirty(next)) sessionStorage.setItem(storageKey, JSON.stringify(next));
-        else sessionStorage.removeItem(storageKey);
+        if (!mounted.current) return;
+        if (draftDirty(next)) draftPersistence.setItem(storageKey, JSON.stringify(next));
+        else draftPersistence.removeItem(storageKey);
       } catch {
         setStorageError(true);
       }

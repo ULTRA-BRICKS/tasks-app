@@ -1,3 +1,5 @@
+import { useMe } from '@/entities/workspace';
+import { useInputDraft, inputDraftKey } from '@/shared/lib/input-draft';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { WorkspacePolicy } from '@tickets/contracts';
@@ -17,24 +19,33 @@ export function WorkspacePolicySettings() {
   ) : null;
 }
 function PolicyEditor({ initial }: { initial: WorkspacePolicy }) {
-  const [draft, setDraft] = useState(initial.allowed_email_domains.join('\n'));
-  const [version, setVersion] = useState(initial.version),
+  const { data: me } = useMe();
+  const policyDraft = useInputDraft(inputDraftKey(me, 'settings:email-policy'), {
+    text: initial.allowed_email_domains.join('\n'),
+    version: initial.version,
+  });
+  const draft = policyDraft.value.text;
+  const setDraft = (text: string) => policyDraft.set((v) => ({ ...v, text, version }));
+  const [version, setVersion] = useState(policyDraft.value.version),
     client = useQueryClient();
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (sent: ReturnType<typeof policyDraft.snapshot>) =>
       api<WorkspacePolicy>('/v1/workspace/policy', {
         method: 'PATCH',
         json: {
-          version,
-          allowed_email_domains: draft
+          version: sent.value.version,
+          allowed_email_domains: sent.value.text
             .split(/[\n,]+/)
             .map((s) => s.trim())
             .filter(Boolean),
         },
       }),
-    onSuccess: (policy) => {
+    onSuccess: (policy, sent) => {
       setVersion(policy.version);
-      setDraft(policy.allowed_email_domains.join('\n'));
+      policyDraft.accept(sent, {
+        text: policy.allowed_email_domains.join('\n'),
+        version: policy.version,
+      });
       client.setQueryData(['workspace-policy'], policy);
     },
   });
@@ -58,7 +69,7 @@ function PolicyEditor({ initial }: { initial: WorkspacePolicy }) {
         One domain per line. Empty allows any domain. Exact matches only: company.com does not allow
         sub.company.com. Checked when sending and accepting invitations.
       </p>
-      <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+      <Button onClick={() => mutation.mutate(policyDraft.snapshot())} disabled={mutation.isPending}>
         {mutation.isPending ? 'Saving…' : 'Save policy'}
       </Button>
       {mutation.isSuccess && <output className="section-hint">Policy saved</output>}
@@ -69,6 +80,7 @@ function PolicyEditor({ initial }: { initial: WorkspacePolicy }) {
           onClick={() =>
             void api<WorkspacePolicy>('/v1/workspace/policy').then((p) => {
               setVersion(p.version);
+              policyDraft.set((v) => ({ ...v, version: p.version }));
               mutation.reset();
             })
           }

@@ -44,3 +44,17 @@ Read `docs/OPERATIONS.md` for the exact existing Vercel project and explicit Neo
 Before every new user request, including «продолжай», read `docs/AGENT-SESSION-SAFETY.md` and `docs/WORK-CHECKPOINT.md`. They distinguish observed connector/test failures from unproven causes of `Thinking failed` and identify the current worktree and next incomplete gate.
 
 Use one writer and one active browser suite per worktree. Keep outputs bounded, persist verification/checkpoint evidence, honor tool denials without workarounds, and avoid rapid retries after throttling. Follow review → fix → verify → merge → deploy → canonical-service verification. Never treat an interrupted command, old green test run or readiness endpoint as completed acceptance.
+
+## Local containers
+
+For ad-hoc Postgres/Playwright containers used by visual regression tests (multi-arch
+x64-vs-arm64 screenshot comparisons), prefer Apple's native `container` CLI over Docker
+Desktop or Colima. It's already installed on this machine (Homebrew `container` +
+`mocker`), and the default `docker`/`docker compose` already route to it instead of a
+persistent Linux VM. Cross-architecture runs verified working: `container run --platform
+linux/amd64 --rosetta <image>` reports `x86_64` inside the container via Rosetta
+translation, and a plain native run reports `aarch64` — covering both variants the
+existing x64/arm64 visual-verification containers need. Port publishing (`-p`) and bind
+mounts (`-v`) also verified working. Do not point `DOCKER_HOST` at a Colima socket for
+these tests — that bypasses the native backend and spins up an unnecessary
+multi-gigabyte VM.

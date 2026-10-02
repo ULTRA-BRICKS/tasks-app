@@ -1,0 +1,30 @@
+import type { DraftOwner } from './draft-persistence';
+export type PendingFile = {
+  id: string; owner: DraftOwner; issueId: string; name: string; mime: string;
+  blob: Blob; createdAt: number; reservation?: { id: string; upload_url: string };
+};
+const memory = new Map<string, PendingFile>();
+let database: Promise<IDBDatabase> | undefined;
+function open() {
+  if (database) return database;
+  const pending = new Promise<IDBDatabase>((resolve, reject) => {
+    let settled = false;
+    const request = indexedDB.open('tickets-unsent-files-v1', 1);
+    const fail = (error: unknown) => { if (!settled) { settled = true; clearTimeout(timeout); reject(error); } };
+    const timeout = setTimeout(() => fail(new Error('Local file storage did not respond')), 3000);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains('files')) request.result.createObjectStore('files', { keyPath: 'id' });
+    };
+    request.onerror = () => fail(request.error);
+    request.onblocked = () => fail(new Error('Local file storage is blocked'));
+    request.onsuccess = () => {
+      if (settled) { request.result.close(); return; }
+      settled = true; clearTimeout(timeout);
+      request.result.onversionchange = () => { request.result.close(); database = undefined; };
+      resolve(request.result);
+    };
+  });
+  database = pending;
+  void pending.catch(() => { if (database === pending) database = undefined; });
+  return pending;
+}

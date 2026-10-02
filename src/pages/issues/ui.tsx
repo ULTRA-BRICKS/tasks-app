@@ -1,3 +1,4 @@
+import { useInputDraft, inputDraftKey } from '@/shared/lib/input-draft';
 import { useState, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -57,8 +58,10 @@ export function IssuesPage() {
     [createOpen, setCreateOpen] = useState(false),
     [defaults, setDefaults] = useState<Partial<IssueCreate>>({}),
     [collapsed, setCollapsed] = useState<Set<string>>(new Set()),
-    [saveOpen, setSaveOpen] = useState(false),
-    [viewName, setViewName] = useState('');
+    [saveOpen, setSaveOpen] = useState(false);
+  const viewDraft = useInputDraft(inputDraftKey(me, 'view:' + selectionKey), '');
+  const viewName = viewDraft.value,
+    setViewName = viewDraft.set;
   const title = location.pathname.startsWith('/my-issues')
     ? 'My issues'
     : location.pathname.startsWith('/epics')
@@ -114,12 +117,11 @@ export function IssuesPage() {
     },
   });
   const save = useMutation({
-    mutationFn: () =>
-      api('/v1/views', { method: 'POST', json: { name: viewName, filters, shared: true } }),
-    onSuccess: () => {
+    mutationFn: (sent: ReturnType<typeof viewDraft.snapshot>) =>
+      api('/v1/views', { method: 'POST', json: { name: sent.value, filters, shared: true } }),
+    onSuccess: (_result, sent) => {
       void client.invalidateQueries({ queryKey: ['views'] });
-      setSaveOpen(false);
-      setViewName('');
+      if (viewDraft.accept(sent)) setSaveOpen(false);
     },
   });
   function setFilter(key: string, value: string) {
@@ -451,7 +453,7 @@ export function IssuesPage() {
           className="stack-form"
           onSubmit={(e) => {
             e.preventDefault();
-            save.mutate();
+            save.mutate(viewDraft.snapshot());
           }}
         >
           <Input

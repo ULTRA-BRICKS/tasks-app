@@ -1,0 +1,17 @@
+{
+  "source": "Actual React application; isolated synthetic database, no real account or email",
+  "capturedAt": "2026-09-15T19:26:35.608Z",
+  "viewports": [
+    [
+      393,
+      852
+    ],
+    [
+      1440,
+      1000
+    ]
+  ],
+  "deviceScaleFactor": 1,
+  "browser": "Chromium",
+  "pageErrors": []
+}

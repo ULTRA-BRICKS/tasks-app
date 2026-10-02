@@ -1,3 +1,6 @@
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useInputDraft, inputDraftKey } from '@/shared/lib/input-draft';
 import { useState, type ReactNode } from 'react';
 import { Popover } from '@base-ui/react/popover';
 import {
@@ -12,6 +15,7 @@ import {
 import type { IssuePatch } from '@tickets/contracts';
 import {
   useCatalog,
+  useMe,
   useProjects,
   useCycles,
   useMilestones,
@@ -282,13 +286,26 @@ export function DateProperty({
   onChange: (value: string | null) => void;
   disabled: boolean;
 }) {
-  const [open, setOpen] = useState(false),
-    [draft, setDraft] = useState(value ?? '');
+  const { data: me } = useMe();
+  const location = useLocation();
+  const dateDraft = useInputDraft(
+    inputDraftKey(me, 'date:' + location.pathname + ':' + label),
+    value ?? '',
+  );
+  const [open, setOpen] = useState(false);
+  const draft = dateDraft.value,
+    setDraft = dateDraft.set;
+  useEffect(() => {
+    if (dateDraft.dirty && dateDraft.value === (value ?? ''))
+      dateDraft.accept(dateDraft.snapshot(), value ?? '');
+    else if (!dateDraft.dirty && dateDraft.value !== (value ?? ''))
+      dateDraft.replaceClean(value ?? '');
+  }, [value, dateDraft]);
   return (
     <Popover.Root
       open={open}
       onOpenChange={(next) => {
-        if (next) setDraft(value ?? '');
+        if (next && !dateDraft.dirty) dateDraft.replaceClean(value ?? '');
         setOpen(next);
       }}
     >
@@ -324,6 +341,7 @@ export function DateProperty({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
+                  setDraft('');
                   onChange(null);
                   setOpen(false);
                 }}

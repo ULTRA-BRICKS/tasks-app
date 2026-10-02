@@ -9,7 +9,15 @@ const db = await createDatabase({
   production: process.env.NODE_ENV === 'production',
 });
 if (!process.env.DATABASE_URL) await migrate(db);
-const app = withLinear(createApp({ db }), { db });
+const app = withLinear(
+  createApp({
+    db,
+    defer: (task) => {
+      void task.catch(() => console.error('Account mail task failed'));
+    },
+  }),
+  { db },
+);
 const server = Bun.serve({
   hostname: config.apiHost,
   port: config.apiPort,

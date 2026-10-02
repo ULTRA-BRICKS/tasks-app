@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Inbox,
+  FileText,
   Layers,
   Plus,
   Search,
@@ -45,7 +46,11 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
     await api('/auth/logout', { method: 'POST' });
     client.clear();
     for (const key of Object.keys(sessionStorage))
-      if (['ticket-draft:', 'ticket-new:', 'plan-draft:'].some((prefix) => key.startsWith(prefix)))
+      if (
+        ['ticket-draft:', 'ticket-new:', 'plan-draft:', 'input-draft:'].some((prefix) =>
+          key.startsWith(prefix),
+        )
+      )
         sessionStorage.removeItem(key);
     window.location.assign('/login');
   }
@@ -170,6 +175,10 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
             )}
           </>
         )}
+        <NavLink onClick={close} to="/drafts" className={navClass}>
+          <FileText size={15} />
+          <span>Draft recovery</span>
+        </NavLink>
         <NavLink onClick={close} to="/archive" className={navClass}>
           <Archive size={15} />
           <span>Archive</span>

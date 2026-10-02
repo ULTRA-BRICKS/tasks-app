@@ -41,3 +41,33 @@ HTTP 429 and Retry-After: https://developer.mozilla.org/en-US/docs/Web/HTTP/Refe
 OpenAI general troubleshooting describes several possible causes, not a diagnosis of this incident: https://help.openai.com/en/articles/7996703-troubleshooting-chatgpt-error-messages
 
 Browser storage limits: https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria . Never clear browser site data as routine troubleshooting while unsent drafts remain only there; export first.
+
+## Repeated interruption rechecked on 2026-09-13
+
+The last pre-interruption command was not lost: PR #5 is merged, the feature worktree is on `fix/draft-safety-20260913`, and HEAD is `3354882436d5da3d28c53a8f272bf3cdcf58a083`. Its unfinished feature changes survived. No matching verification process was active at preflight. Therefore the visible conversation failure must not be reported as a failed merge or lost source work.
+
+The user's broader incident register also exists at `/Users/ultra/work/hyper-canvas-draft-worktrees/SESSION-FAILURES.md`; read it when available, then this repository's checkpoint. That register documents separate confirmed failures: an oversized Codex input, a review waiting for EOF, and huge summaries contaminated by nested historical reports. Those are evidence from a different workflow, not proof of the cause of this Tickets interruption.
+
+Additional continuation safeguards:
+- Do not generate another incident report instead of resuming the already identified failing gate.
+- Use this one existing worktree. One verification command at a time; a read-only review must not launch browser suites.
+- After a bounded gate, report its exact result and update the checkpoint. At most one focused review cycle at a time; do not broaden a test correction into another whole-product rewrite.
+- Inspect the size of a review summary before reading it. Read only the current run's top-level result; never parse nested role headers across a raw transcript.
+- Avoid storing or returning browser storage contents in a regression: return boolean assertions about synthetic fixtures instead. The current test correction does this without weakening password-exclusion coverage.
+- A document cannot guarantee that ChatGPT never interrupts. It can prevent repeating known execution mistakes and make continuation deterministic.
+
+### New report-format observation in the bounded continuation
+
+The one focused review exited 0 after 213 seconds, but `--json -o /tmp/tickets-resume-bounded-review.json` produced a Markdown report containing raw reviewer transcripts: 787,157 bytes / 12,976 lines, not JSON. The extension and requested format are therefore not evidence of a compact machine-readable result. Only its three verified unique top-level role summaries were read; nested stderr was not dumped. Review completion did not mean approval: the role summaries contain unresolved storage-selection/performance findings, now listed in WORK-CHECKPOINT.md. This directly confirms the need for size/format validation before reading reports; it does not establish the internal cause of ChatGPT interruptions.
+
+## Permission diagnostic from the latest continuation
+
+Read-only inspection through Plugin Management returned a custom Remote Desktop Commander setting of `Allow all actions`; the global default is `Allow low-risk actions`. The subsequent journal-write denial therefore cannot be explained simply as missing app-level write permission. No settings were changed. Do not repeatedly ask the user to allow writes or reconnect as though either were a proven remedy. The tool does not expose a specific cause or a one-action approval mechanism for this denial.
+
+The successfully written pure version helper and its seven tests remain available; the interrupted journal file was preserved outside executable source. Full source verification passed 162 unit tests, but the helper is not integrated and the two application-level recovery bugs remain open. Repeating already successful tests is not progress on the denied integration.
+
+## 15 September: distinguish quota exclusion from an unavailable executable
+
+Connection was online and the pending StatusPicker gate is now green:18 Storybook checks and118 browser scenarios pass. The retained hidden Select options are intentional; tests must verify semantic closure and focus, not unconditional DOM removal. No rules were disabled.
+The normal review command still launched zero reviewers. Read-only inspection of the same availability/usage functions established backend_available=true, but Codex weekly consumption100%; the usage card reported reset2026-09-19T09:54:33Z. The generic “unavailable, reason unknown” error is misleading in this case. Do not repeat installation/authentication fixes or reconnect the Mac to solve it. Do not override quota snapshots, change accounts or bypass review hooks.
+All verification finished and its current tree is recorded in WORK-CHECKPOINT.md. The next gate is an actually completed review under normal quota, not more repeats of already green test suites.

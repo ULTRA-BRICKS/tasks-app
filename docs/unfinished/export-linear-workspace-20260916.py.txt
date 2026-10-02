@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+"""Read-only Linear snapshot via the user's authenticated `linear api` CLI.
+Never prints tokens or record bodies; output belongs outside the source repository.
+"""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import time
+from datetime import datetime, timezone
+
+ROOT_TYPES = {
+    'teams': 'Team', 'users': 'User', 'workflowStates': 'WorkflowState',
+    'issueLabels': 'IssueLabel', 'projectStatuses': 'ProjectStatus',
+    'initiatives': 'Initiative', 'projects': 'Project', 'projectMilestones': 'ProjectMilestone',
+    'cycles': 'Cycle', 'issues': 'Issue', 'comments': 'Comment', 'documents': 'Document',
+    'attachments': 'Attachment', 'issueRelations': 'IssueRelation',
+    'projectRelations': 'ProjectRelation', 'initiativeRelations': 'InitiativeRelation',
+    'projectUpdates': 'ProjectUpdate', 'initiativeUpdates': 'InitiativeUpdate',
+}
+COMMON = 'id createdAt updatedAt archivedAt name title description body content url identifier key number color icon sortOrder'.split()
+EXTRA = {
+    'teams': 'visibility timezone cyclesEnabled issueEstimationType issueEstimationAllowZero retiredAt issueCount',
+    'users': 'displayName email active guest app admin owner isAssignable',
+    'workflowStates': 'type position', 'issueLabels': 'isGroup retiredAt', 'projectStatuses': 'type position indefinite',
+    'issues': 'labelIds previousIdentifiers priority priorityLabel estimate dueDate completedAt startedAt canceledAt trashed autoArchivedAt slaStartedAt slaBreachesAt slaType',

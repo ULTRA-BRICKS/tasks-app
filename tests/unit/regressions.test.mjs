@@ -18,8 +18,12 @@ test('numbered migrations include avatar metadata and reject an unknown newer sc
   const f = await fixture();
   try {
     const current = await migrate(f.db);
-    assert.equal(current.version, 3);
+    assert.equal(current.version, 4);
     assert.equal(current.applied, false);
+    await f.db.transaction((tx) =>
+      tx.all('SELECT hash,user_id,expires_at,used_at FROM password_reset_tokens'),
+    );
+    await f.db.transaction((tx) => tx.all('SELECT id,status,payload FROM account_email_jobs'));
     // Exercise the migrated column directly on both supported database dialects.
     const row = await f.db.transaction((tx) => tx.one('SELECT avatar_url FROM users LIMIT 1'));
     assert(row && Object.hasOwn(row, 'avatar_url'));

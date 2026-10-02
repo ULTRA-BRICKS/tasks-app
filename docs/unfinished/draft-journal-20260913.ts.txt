@@ -1,0 +1,55 @@
+import { advanceClock, followsClock, sameClock, type DraftClock } from './draft-version';
+export type DraftOwner = { workspace_id: string; id: string };
+export type RecoveryDraft = { key: string; value: string | null; updatedAt: number; writer: string; path: string; clock?: DraftClock };
+type Entry = RecoveryDraft & { format: 2; clock: DraftClock };
+export type DraftStore = Pick<Storage, 'length' | 'key' | 'getItem' | 'setItem'>;
+export const recoveryPrefix = 'tickets-recovery-v1:';
+export function draftBelongsTo(key: string, owner: DraftOwner) {
+  if (!owner.id || !owner.workspace_id) return false;
+  const parts = key.split(':').map(s => { try { return decodeURIComponent(s); } catch { return ''; } });
+  return parts[0] === 'ticket-draft' ? parts[1] === owner.id && parts[2] === owner.workspace_id :
+    ['ticket-new', 'plan-draft', 'input-draft'].includes(parts[0]) && parts[1] === owner.workspace_id && parts[2] === owner.id;
+}
+function decode(raw: string | null): Entry | null {
+  try {
+    const r = JSON.parse(raw ?? 'null') as Entry | null;
+    if (!r || typeof r.key !== 'string' || typeof r.writer !== 'string' || typeof r.path !== 'string' ||
+      !Number.isFinite(r.updatedAt) || Math.abs(r.updatedAt) > 8640000000000000 ||
+      (r.value !== null && typeof r.value !== 'string')) return null;
+    if (r.format !== 2) return { ...r, format: 2, clock: { [r.writer]: 1 } };
+    if (!r.clock || typeof r.clock !== 'object' || Array.isArray(r.clock) || !Object.hasOwn(r.clock, r.writer)) return null;
+    if (!Object.entries(r.clock).every(([actor, n]) => /^[a-zA-Z0-9_-]+$/.test(actor) && Number.isSafeInteger(n) && n > 0)) return null;
+    return r;
+  } catch { return null; }
+}
+const physical = (item: RecoveryDraft) => recoveryPrefix + encodeURIComponent(item.key) + ':' + item.writer;
+const ordered = (a: Entry, b: Entry) => b.updatedAt - a.updatedAt || a.writer.localeCompare(b.writer);
+export function createDraftJournal(options: {
+  session: () => DraftStore; durable: () => DraftStore; writer: string;
+  now?: () => number; path?: () => string;
+}) {
+  const current = new Map<string, Entry | null>();
+  const byKey = new Map<string, Map<string, Entry>>();
+  const frontiers = new Map<string, Entry[]>();
+  const ownerLists = new Map<string, Entry[]>();
+  const problems = new Map<string, string>();
+  const listeners = new Set<() => void>();
+  const counters = new Map<string, number>();
+  let hydrated = false, revision = 0, queued = false;
+  function changed() {
+    revision++; ownerLists.clear();
+    if (queued) return;
+    queued = true; queueMicrotask(() => { queued = false; for (const listener of listeners) listener(); });
+  }
+  function index(item: Entry) {
+    const group = byKey.get(item.key) ?? new Map<string, Entry>();
+    const previous = group.get(physical(item));
+    if (previous && (followsClock(previous.clock, item.clock) || (sameClock(previous.clock, item.clock) && previous.value === item.value))) return;
+    group.set(physical(item), item); byKey.set(item.key, group);
+    frontiers.delete(item.key); ownerLists.clear();
+  }
+  function hydrate() {
+    if (hydrated) return;
+    hydrated = true;
+    try {
+      const store = options.durable();

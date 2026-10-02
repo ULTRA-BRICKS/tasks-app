@@ -1,3 +1,4 @@
+import { useInputDraft, inputDraftKey } from '@/shared/lib/input-draft';
 import { WorkspacePolicySettings } from '@/features/workspace-policy';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -47,14 +48,26 @@ export function SettingsPage() {
     prefs = usePreferences(),
     client = useQueryClient();
   const [tab, setTab] = useState('appearance'),
-    [email, setEmail] = useState(''),
-    [inviteRole, setInviteRole] = useState('member'),
     [inviteLink, setInviteLink] = useState(''),
-    [tokenName, setTokenName] = useState(''),
-    [tokenScope, setTokenScope] = useState('read'),
-    [revealedToken, setRevealedToken] = useState(''),
-    [labelName, setLabelName] = useState(''),
-    [labelColor, setLabelColor] = useState('#a694ff');
+    [revealedToken, setRevealedToken] = useState('');
+  const emailDraft = useInputDraft(inputDraftKey(me, 'settings:invite-email'), '');
+  const roleDraft = useInputDraft(inputDraftKey(me, 'settings:invite-role'), 'member');
+  const tokenDraft = useInputDraft(inputDraftKey(me, 'settings:token-label'), '');
+  const scopeDraft = useInputDraft(inputDraftKey(me, 'settings:token-scope'), 'read');
+  const labelDraft = useInputDraft(inputDraftKey(me, 'settings:label-name'), '');
+  const colorDraft = useInputDraft(inputDraftKey(me, 'settings:label-color'), '#a694ff');
+  const email = emailDraft.value,
+    setEmail = emailDraft.set;
+  const inviteRole = roleDraft.value,
+    setInviteRole = roleDraft.set;
+  const tokenName = tokenDraft.value,
+    setTokenName = tokenDraft.set;
+  const tokenScope = scopeDraft.value,
+    setTokenScope = scopeDraft.set;
+  const labelName = labelDraft.value,
+    setLabelName = labelDraft.set;
+  const labelColor = colorDraft.value,
+    setLabelColor = colorDraft.set;
   const admin = ['owner', 'admin'].includes(me?.role ?? '');
   const tokens = useQuery({
     queryKey: ['tokens'],
@@ -79,13 +92,16 @@ export function SettingsPage() {
       if (data.type === 'module')
         return api('/v1/modules/' + data.id, { method: 'PATCH', json: { enabled: data.value } });
       if (data.type === 'invite') {
+        const sent = emailDraft.snapshot();
         const r = await api<{
           token: string;
         }>('/v1/invitations', { method: 'POST', json: { email, role: inviteRole } });
-        setInviteLink(window.location.origin + '/invite?token=' + encodeURIComponent(r.token));
+        emailDraft.accept(sent);
+        setInviteLink(window.location.origin + '/invite#token=' + encodeURIComponent(r.token));
         return r;
       }
       if (data.type === 'token') {
+        const sent = tokenDraft.snapshot();
         const scopes =
           tokenScope === 'admin'
             ? ['read', 'write', 'admin']
@@ -96,18 +112,19 @@ export function SettingsPage() {
           token: string;
         }>('/v1/tokens', { method: 'POST', json: { name: tokenName, scopes, days: 90 } });
         setRevealedToken(r.token);
-        setTokenName('');
+        tokenDraft.accept(sent);
         return r;
       }
       if (data.type === 'revoke') return api('/v1/tokens/' + data.id, { method: 'DELETE' });
       if (data.type === 'role')
         return api('/v1/members/' + data.id, { method: 'PATCH', json: { role: data.value } });
       if (data.type === 'label') {
+        const sent = labelDraft.snapshot();
         const r = await api('/v1/labels', {
           method: 'POST',
           json: { name: labelName, color: labelColor },
         });
-        setLabelName('');
+        labelDraft.accept(sent);
         return r;
       }
     },
@@ -501,8 +518,10 @@ function IntegrationCard({
   };
 }) {
   const client = useQueryClient(),
-    { data: catalog } = useCatalog();
-  const [text, setText] = useState(
+    { data: catalog } = useCatalog(),
+    { data: me } = useMe();
+  const mappingDraft = useInputDraft(
+    inputDraftKey(me, 'settings:mapping:' + provider),
     JSON.stringify(
       Object.keys(state.config ?? {}).length
         ? state.config
@@ -513,10 +532,13 @@ function IntegrationCard({
       2,
     ),
   );
+  const text = mappingDraft.value,
+    setText = mappingDraft.set;
   const mutation = useMutation({
-    mutationFn: () =>
-      api('/v1/integrations/' + provider, { method: 'PATCH', json: JSON.parse(text) }),
-    onSuccess: () => {
+    mutationFn: (sent: ReturnType<typeof mappingDraft.snapshot>) =>
+      api('/v1/integrations/' + provider, { method: 'PATCH', json: JSON.parse(sent.value) }),
+    onSuccess: (_result, sent) => {
+      mappingDraft.accept(sent, sent.value);
       void client.invalidateQueries({ queryKey: ['integrations'] });
     },
   });
@@ -543,7 +565,7 @@ function IntegrationCard({
           className="stack-form"
           onSubmit={(e) => {
             e.preventDefault();
-            mutation.mutate();
+            mutation.mutate(mappingDraft.snapshot());
           }}
         >
           <Textarea
