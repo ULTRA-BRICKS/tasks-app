@@ -743,5 +743,99 @@
       "$type": "cubicBezier",
       "$value": [0.2, 0, 0, 1]
     }
+  },
+  "document": {
+    "$description": "Document geometry measured against the public Linear desktop issue at 1440×1000; visual regions remain in native coordinates.",
+    "mainTop": {
+      "$type": "dimension",
+      "$value": {
+        "value": 57.5,
+        "unit": "px"
+      }
+    },
+    "mainLeft": {
+      "$type": "dimension",
+      "$value": {
+        "value": 62,
+        "unit": "px"
+      }
+    },
+    "mainRight": {
+      "$type": "dimension",
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      }
+    },
+    "fieldInset": {
+      "$type": "dimension",
+      "$value": {
+        "value": 14,
+        "unit": "px"
+      }
+    },
+    "titlePadding": {
+      "$type": "dimension",
+      "$value": {
+        "value": 6,
+        "unit": "px"
+      }
+    },
+    "titleLine": {
+      "$type": "dimension",
+      "$value": {
+        "value": 32,
+        "unit": "px"
+      }
+    },
+    "titleHeight": {
+      "$type": "dimension",
+      "$value": {
+        "value": 44,
+        "unit": "px"
+      }
+    },
+    "titleGap": {
+      "$type": "dimension",
+      "$value": {
+        "value": 8,
+        "unit": "px"
+      }
+    },
+    "bodyTop": {
+      "$type": "dimension",
+      "$value": {
+        "value": 10,
+        "unit": "px"
+      }
+    },
+    "bodyBottom": {
+      "$type": "dimension",
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "bodyMinimum": {
+      "$type": "dimension",
+      "$value": {
+        "value": 74,
+        "unit": "px"
+      }
+    },
+    "bodySpace": {
+      "$type": "dimension",
+      "$value": {
+        "value": 110,
+        "unit": "px"
+      }
+    },
+    "propertiesInset": {
+      "$type": "dimension",
+      "$value": {
+        "value": 3,
+        "unit": "px"
+      }
+    }
   }
 }

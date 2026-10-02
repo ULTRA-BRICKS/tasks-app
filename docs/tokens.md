@@ -1,6 +1,6 @@
 # Generated token reference
 
-Source: `tokens/tickets.tokens.json`. Run `npm run tokens:build`.
+Source: `tokens/tickets.tokens.json`. Run `bun run tokens:build`.
 
 | Token | Type | CSS |
 |---|---|---|
@@ -120,3 +120,16 @@ Source: `tokens/tickets.tokens.json`. Run `npm run tokens:build`.
 | `motion.fast` | duration | `80ms` |
 | `motion.normal` | duration | `140ms` |
 | `motion.ease` | cubicBezier | `cubic-bezier(0.2, 0, 0, 1)` |
+| `document.mainTop` | dimension | `57.5px` |
+| `document.mainLeft` | dimension | `62px` |
+| `document.mainRight` | dimension | `56px` |
+| `document.fieldInset` | dimension | `14px` |
+| `document.titlePadding` | dimension | `6px` |
+| `document.titleLine` | dimension | `32px` |
+| `document.titleHeight` | dimension | `44px` |
+| `document.titleGap` | dimension | `8px` |
+| `document.bodyTop` | dimension | `10px` |
+| `document.bodyBottom` | dimension | `16px` |
+| `document.bodyMinimum` | dimension | `74px` |
+| `document.bodySpace` | dimension | `110px` |
+| `document.propertiesInset` | dimension | `3px` |

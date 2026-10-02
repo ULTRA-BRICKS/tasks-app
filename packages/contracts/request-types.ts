@@ -1,4 +1,4 @@
-// Generated from schemas.mjs. Run npm run api:generate.
+// Generated from schemas.mjs. Run bun run api:generate.
 export type WorkspacePolicyPatch = { "allowed_email_domains": Array<string>; "version": number };
 export type IssueCreate = { "title": string; "description"?: string; "kind"?: "issue" | "epic"; "status_id"?: string; "priority"?: number; "assignee_id"?: string | null; "project_id"?: string | null; "cycle_id"?: string | null; "milestone_id"?: string | null; "parent_id"?: string | null; "estimate"?: number | null; "start_date"?: string | null; "due_date"?: string | null; "label_ids"?: Array<string>; "team_id": string };
 export type IssuePatch = { "title"?: string; "description"?: string; "kind"?: "issue" | "epic"; "status_id"?: string; "priority"?: number; "assignee_id"?: string | null; "project_id"?: string | null; "cycle_id"?: string | null; "milestone_id"?: string | null; "parent_id"?: string | null; "estimate"?: number | null; "start_date"?: string | null; "due_date"?: string | null; "label_ids"?: Array<string>; "version": number; "archived"?: boolean; "deleted"?: boolean; "position"?: number };

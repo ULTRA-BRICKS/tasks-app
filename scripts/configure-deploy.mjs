@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises';
-
 export const REPOSITORY = 'alex-mextner/tickets-app';
 export const TEAM_ID = 'team_uZF73oVZtW9ADjSLBDsAy5DW';
 
@@ -72,60 +70,9 @@ export async function configure({ link, apply = false, tty = false, run }) {
   return { applied: true, values, completed };
 }
 
-async function run(args, { interactive = false } = {}) {
-  const child = Bun.spawn(args, {
-    env: { ...process.env, GH_HOST: 'github.com' },
-    stdin: interactive ? 'inherit' : 'ignore',
-    stdout: interactive ? 'inherit' : 'pipe',
-    stderr: interactive ? 'inherit' : 'pipe',
-  });
-  const [code, output] = await Promise.all([
-    child.exited,
-    interactive ? Promise.resolve('') : new Response(child.stdout).text(),
-    interactive ? Promise.resolve('') : new Response(child.stderr).text(),
-  ]);
-  // Do not echo command output: future CLI versions could contain credentials.
-  if (code !== 0)
-    throw new Error(
-      `${args.slice(0, 3).join(' ')} failed (${code}); configuration may be partial. Rerun after fixing CLI access.`,
-    );
-  return output;
-}
-
 if (import.meta.main) {
-  try {
-    const args = process.argv.slice(2);
-    if (args.some((arg) => arg !== '--apply' && arg !== '--help'))
-      throw new Error('Unknown argument. Use --help.');
-    if (args.includes('--help')) {
-      console.log(
-        'bun scripts/configure-deploy.mjs [--apply]\nDefault: local plan only. --apply: set missing GitHub variables and prompt securely for a missing Vercel token.\nFirst run: bun x --bun vercel@59.11.7 login; bun x --bun vercel@59.11.7 link\nThis command does not deploy, migrate, bootstrap, rotate secrets, or configure runtime environment variables.',
-      );
-    } else {
-      let link;
-      try {
-        link = JSON.parse(await readFile('.vercel/project.json', 'utf8'));
-      } catch {
-        throw new Error(
-          'Cannot read .vercel/project.json. Run vercel link in the repository root first.',
-        );
-      }
-      const result = await configure({
-        link,
-        apply: args.includes('--apply'),
-        tty: Boolean(process.stdin.isTTY),
-        run,
-      });
-      console.log(`Repository: ${REPOSITORY}`);
-      console.log(JSON.stringify(result, null, 2));
-      console.log(
-        result.applied
-          ? 'GitHub variable/secret names configured. Token validity has not been tested. Configure Vercel runtime variables and database separately; no deployment was started.'
-          : 'Plan only. Add --apply to write these settings. Token values are never read from argv or printed.',
-      );
-    }
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : 'Deployment configuration failed.');
-    process.exitCode = 1;
-  }
+  console.error(
+    'This GitHub publisher setup is retired. Use the existing Forgejo/Vercel configuration in docs/OPERATIONS.md. No configuration was changed.',
+  );
+  process.exitCode = 1;
 }

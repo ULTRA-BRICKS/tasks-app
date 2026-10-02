@@ -80,6 +80,19 @@
   --motion-fast: 80ms;
   --motion-normal: 140ms;
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --document-main-top: 57.5px;
+  --document-main-left: 62px;
+  --document-main-right: 56px;
+  --document-field-inset: 14px;
+  --document-title-padding: 6px;
+  --document-title-line: 32px;
+  --document-title-height: 44px;
+  --document-title-gap: 8px;
+  --document-body-top: 10px;
+  --document-body-bottom: 16px;
+  --document-body-minimum: 74px;
+  --document-body-space: 110px;
+  --document-properties-inset: 3px;
 }
 :root, [data-theme="dark"] {
   --color-canvas: rgb(17 17 17 / 1);

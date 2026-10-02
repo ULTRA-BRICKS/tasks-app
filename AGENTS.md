@@ -33,4 +33,8 @@ For all entity UI work, read `.agents/skills/reference-led-product-ui/SKILL.md` 
 
 Do not describe this design contract or the old green screenshots as a completed UI rewrite. Implement and verify the behavior before updating visual baselines or claiming fidelity. Official Linear sources and evaluated external design skills are linked in the design context; no external skill overrides the product brief.
 
-For deployment setup, use `docs/DEPLOYMENT.md`. `scripts/configure-deploy.mjs` defaults to a local plan and requires `--apply` for GitHub configuration writes. Keep production migration/bootstrap and runtime secrets separate from deployment credentials; never infer a completed deployment from configuration files.
+## Forgejo release operations
+
+Active source: `https://git.hyperide.ai/ultrabricks/tickets-app`. Use the authorized `fj` account and normal Git credentials; never extract stored tokens or bypass a git review hook. The GitHub publisher and source-recovery workflows are retired. `scripts/configure-deploy.mjs` now refuses CLI writes; its pure legacy functions remain only for regression compatibility.
+
+Read `docs/OPERATIONS.md` for the exact existing Vercel project and explicit Neon initialization boundary. Do not create a second project or publish an old GitHub snapshot. `health` is liveness; `ready` requires the exact schema and an owner. Never claim a successful build or candidate URL is an authenticated working service. Production migrations/bootstrap await explicit operator approval; no demo accounts or user-data resets in production.

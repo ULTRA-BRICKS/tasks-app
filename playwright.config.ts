@@ -28,6 +28,11 @@ export default defineConfig({
   projects: [
     { name: 'chromium', testIgnore: /visual\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
     {
+      name: 'webkit',
+      testIgnore: /visual\.spec\.ts/,
+      use: { ...devices['Desktop Safari'], launchOptions: {} },
+    },
+    {
       name: 'visual',
       testMatch: /visual\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } },

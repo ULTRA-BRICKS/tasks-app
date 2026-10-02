@@ -1278,6 +1278,110 @@ export const tokens = {
       1
     ],
     "css": "cubic-bezier(0.2, 0, 0, 1)"
+  },
+  "document.mainTop": {
+    "type": "dimension",
+    "value": {
+      "value": 57.5,
+      "unit": "px"
+    },
+    "css": "57.5px"
+  },
+  "document.mainLeft": {
+    "type": "dimension",
+    "value": {
+      "value": 62,
+      "unit": "px"
+    },
+    "css": "62px"
+  },
+  "document.mainRight": {
+    "type": "dimension",
+    "value": {
+      "value": 56,
+      "unit": "px"
+    },
+    "css": "56px"
+  },
+  "document.fieldInset": {
+    "type": "dimension",
+    "value": {
+      "value": 14,
+      "unit": "px"
+    },
+    "css": "14px"
+  },
+  "document.titlePadding": {
+    "type": "dimension",
+    "value": {
+      "value": 6,
+      "unit": "px"
+    },
+    "css": "6px"
+  },
+  "document.titleLine": {
+    "type": "dimension",
+    "value": {
+      "value": 32,
+      "unit": "px"
+    },
+    "css": "32px"
+  },
+  "document.titleHeight": {
+    "type": "dimension",
+    "value": {
+      "value": 44,
+      "unit": "px"
+    },
+    "css": "44px"
+  },
+  "document.titleGap": {
+    "type": "dimension",
+    "value": {
+      "value": 8,
+      "unit": "px"
+    },
+    "css": "8px"
+  },
+  "document.bodyTop": {
+    "type": "dimension",
+    "value": {
+      "value": 10,
+      "unit": "px"
+    },
+    "css": "10px"
+  },
+  "document.bodyBottom": {
+    "type": "dimension",
+    "value": {
+      "value": 16,
+      "unit": "px"
+    },
+    "css": "16px"
+  },
+  "document.bodyMinimum": {
+    "type": "dimension",
+    "value": {
+      "value": 74,
+      "unit": "px"
+    },
+    "css": "74px"
+  },
+  "document.bodySpace": {
+    "type": "dimension",
+    "value": {
+      "value": 110,
+      "unit": "px"
+    },
+    "css": "110px"
+  },
+  "document.propertiesInset": {
+    "type": "dimension",
+    "value": {
+      "value": 3,
+      "unit": "px"
+    },
+    "css": "3px"
   }
 } as const;
 export type TokenName = keyof typeof tokens;

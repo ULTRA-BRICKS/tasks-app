@@ -1,181 +1,141 @@
 # tickets-app
 
-[![CI](https://github.com/alex-mextner/tickets-app/actions/workflows/ci.yml/badge.svg)](https://github.com/alex-mextner/tickets-app/actions/workflows/ci.yml)
+Modular, keyboard-first issue tracking for a small team. React + Base UI, Bun, Oxc, PostgreSQL, private attachments, a CLI and a schema-checked subset of Linear GraphQL.
 
-A modular, API-first issue tracker for a small team. React, owned Base UI components, executable DTCG tokens, PostgreSQL, a Bun CLI, and a **schema-checked subset of Linear's GraphQL API**.
+**[Source: Forgejo](https://git.hyperide.ai/ultrabricks/tickets-app)** · **[Operations](docs/OPERATIONS.md)** · **[Design](DESIGN.md)** · **[GraphQL schema](packages/linear/schema.graphql)**
 
-**Status:** application source, tests, generated contracts and real browser screenshots are committed. This is a working development release, not feature-complete Linear parity. A public production deployment and live third-party installations are **not yet verified**. Public source code does not make workspace data public.
+**Release boundary:** the source is implemented and tested locally; production is not considered ready until migrations, owner login, persistence and private-file acceptance pass. The [previous verification report](docs/VERIFICATION.md) is explicitly historical; current release checks and deployment readiness are recorded separately in the release PR. Public source never makes workspace data public.
 
-## Screenshots
+## The interface
 
-These are captures of the running React application against a synthetic local workspace, not static HTML mockups. The exact source commit, CI run and image hashes are recorded in [screenshot provenance](docs/screenshots/provenance.json). Normal visual CI compares reviewed baselines; it does not silently replace them.
+New issues, projects and cycles open directly as document pages. Title, Markdown body and compact properties edit in place. Existing documents save committed edits without a global Save form. New drafts publish only on Create; uncertain creation responses reuse the identical idempotency key and payload.
 
-### Issue list
+![Actual issue document](docs/screenshots/parity/issue-detail.png)
 
-![Dark issue list with grouped statuses, labels, assignees and due dates](docs/screenshots/issues-dark-visual.png)
+![Page-first issue creation](docs/screenshots/parity/new-issue-empty.png)
 
-### Board
+<details><summary>Lists, board, planning and mobile</summary>
 
-![Issue board with status columns and compact task cards](docs/screenshots/board-dark-visual.png)
-
-<details>
-<summary>Issue details, creation and narrow-screen layout</summary>
-
-![Issue detail with Markdown, activity and editable properties](docs/screenshots/issue-detail-visual.png)
-
-![Create issue dialog](docs/screenshots/create-issue-visual.png)
-
-<img src="docs/screenshots/issues-mobile-visual.png" width="393" alt="Issue list on a 393-pixel mobile viewport">
+![Issue list](docs/screenshots/parity/issues.png)
+![Board](docs/screenshots/parity/board.png)
+![New project](docs/screenshots/parity/new-project.png)
+![New cycle](docs/screenshots/parity/new-cycle.png)
+<img src="docs/screenshots/parity/issue-mobile.png" width="393" alt="Issue document on a narrow mobile viewport">
 
 </details>
 
+These are browser captures of the real React app on synthetic local data. [Provenance](docs/screenshots/parity/provenance.json) records viewport, DPR, source revision and hashes.
+
+### Comparison with Linear
+
+The public Linear issue demo is captured at the same 1440×1000 viewport and DPR 1. The audit produces a **50% pixel overlay**, an absolute difference image (4× gain) and DOM measurements, without scaling, warping or shifting screenshots.
+
+![Document-region overlay: Linear and tickets-app](docs/screenshots/parity/document-overlay.png)
+
+[Full overlay](docs/screenshots/parity/issue-detail-overlay.png) · [Difference image](docs/screenshots/parity/document-diff-x4.png)
+
+This is not a claim of 100% parity: font rendering, navigation modules, data, avatars and activity differ. Page-first creation intentionally follows this project's requirement rather than the public demo's modal. Native-mobile gestures and every Linear feature are not implied by a similar screenshot.
+
 ## Run locally
 
-Use **Bun 1.4.2 or later**; `.bun-version` and `bun.lock` pin the tested toolchain. Node is not required for the application server, CLI or project scripts.
-
-```bash
-git clone https://github.com/alex-mextner/tickets-app.git
+```sh
+git clone https://git.hyperide.ai/ultrabricks/tickets-app.git
 cd tickets-app
 bun install --frozen-lockfile
-bun run setup -- --demo
+bun run setup -- --demo --port 8888
 bun run dev
 ```
 
-Open **http://localhost:5173**. The API listens on port 8787 and Vite proxies requests to it. Local demo login: `demo@example.test` / `local-demo-password`. These credentials are only for the explicit, synthetic SQLite demo. Demo seeding refuses production or a configured cloud database.
+Open `http://localhost:5173`. API port **8888** is the single shared default; setup persists explicit overrides in ignored `.env.local`. The launcher and Vite share configuration and fail clearly on collisions or an unavailable backend. Localhost aliases work only in development; production checks exact HTTPS Origin.
 
-Setup generates private random secrets in an ignored `.env.local` and preserves an existing file. The demo bootstrap is intended for a fresh database, not for repeatedly reseeding a workspace. `bun run setup` without `--demo` prepares the environment for your own owner account; use the private `BOOTSTRAP_*` variables and the explicit migration/bootstrap commands instead.
+Explicit local demo credentials: `demo@example.test` / `local-demo-password`. Repeating setup keeps existing accounts, passwords and data. Do not delete the database to upgrade and never run `--demo` against production. A non-demo owner is initialized explicitly as described in [operations](docs/OPERATIONS.md).
 
-```bash
-bun run db:migrate
-bun run db:bootstrap
-bun run storybook
-```
+## Modules
 
-Storybook runs on port 6006. Never expose the development server or demo credentials as a production service.
-
-## Implemented modules
-
-| Module | Current implementation |
+| Module | Implemented behavior |
 | --- | --- |
-| Identity, required | Workspaces, teams, memberships, owner/admin/member/viewer roles, password login, invitations, expiring sessions and scoped personal API tokens. |
-| Tickets, required | Team identifiers, configurable statuses, priorities, labels, assignee/creator, Markdown, comments, start/due dates, estimates, ordering, epics/subissues, blocking/related/duplicate relations, activity, archive/restore and soft deletion. |
-| Planning | Projects with lead, dates, status/health, project teams and milestones. Milestone CRUD is available through the API; not every planning capability has a complete dedicated screen. |
-| Cycles | Team-scoped time intervals and assignment of issues. No automatic rollover yet. |
-| Views | URL filters, search, list/board mode and saved views. |
-| Notifications | Issue subscriptions, activity and in-app notifications. |
-| Attachments | Private local or S3-compatible storage, size/type checks, authorization and expiring download URLs. |
-| GitHub | Signed webhooks, repository/workspace checks, deduplication, issue import/export and PR links/status transitions. |
-| Slack | Signed slash commands/shortcuts, mapped members and outgoing notifications. |
+| Identity | Workspaces, teams, owner/admin/member/viewer roles, password sessions, scoped expiring tokens, invitations and exact-domain invitation policy. |
+| Tickets | Identifiers, statuses, labels, assignees, priorities, Markdown, dates, estimates, comments, activity, epics/subissues, blocking/related/duplicate links, archive and soft deletion. |
+| Planning | Projects, leads, health/status, dates, milestones, team cycles and versioned edits. Projects/cycles use shared inline document pages. |
+| Views | Search, URL filters, list/board modes, ordering, bulk updates and saved views. |
+| Notifications | Subscriptions and in-app notifications. |
+| Attachments | Authenticated private local, S3/R2 or Vercel Blob storage; size/MIME checks and workspace limits. |
+| Provider integrations | Signed GitHub/Slack events, deduplication and durable inbox/outbox. Own provider credentials/installations are required for live delivery. |
 
-Optional modules are gated on the server, not just hidden in navigation. Disabling a module retains its data. This is a **modular monolith**, not a runtime for arbitrary untrusted plugins.
+Optional modules are gated by the server, not only navigation. This is a modular monolith, not an untrusted plugin runtime. GraphQL and REST share domain services, workspace boundaries, audit history and transactional validation.
 
-Core writes use shared domain services regardless of transport. Optimistic concurrency rejects stale REST writes instead of overwriting another person's work. Bulk edits are transactional; creation supports idempotency keys; hierarchy and blocking cycles are rejected; related objects must belong to the same workspace and appropriate team/project.
+In **Settings → Security**, owners/admins can edit `allowed_email_domains`. It is checked both when sending and accepting invites, including older tokens. Domains match exactly, normalize IDNA/case and do not automatically include subdomains. Existing users are not unexpectedly locked out by changing invitation policy.
 
-## API: Linear-compatible subset, not renamed REST
+## Drafts, conflicts and keyboard
 
-**`POST /graphql`** (also `/api/graphql`) uses the official Linear schema pinned under [vendor/linear](vendor/linear). The generated supported schema is [packages/linear/schema.graphql](packages/linear/schema.graphql); [contract.mjs](packages/linear/contract.mjs) is the explicit allowlist. Generation preserves supported field names, argument/input types, nullability, enums and connection shapes. CI verifies the subset against the upstream snapshot.
+Tab-private drafts survive navigation and reload. A delayed save cannot erase newer typing. Remote conflicts retain local text and show explicit server/local choices. Rich Markdown uses Tiptap; unsupported extended constructs remain editable as source rather than being silently dropped. Raw HTML is not executed and external images are not automatically fetched.
 
-Supported roots cover issues, users, teams, workflow states, labels, projects, milestones, comments, relations and priority values. Mutations cover issue creation/update/archive/restore/soft deletion/labels, comment creation, relation creation/deletion, project creation/update and milestone creation. Cycles currently use the internal REST API, not GraphQL.
+`J/K` or arrows move through visible issues; Enter opens; `X` selects; `C/V` opens the new issue page; `G` then `I/M/P/C` navigates; `?` opens help. Cmd/Ctrl+K deliberately works inside editors. Ordinary shortcuts do not hijack typing, IME, selection or active popovers. Escape cancels the active edit or returns from issue details.
+
+No full realtime collaboration, offline synchronization or account/password-recovery system is implied.
+
+## API and CLI
+
+`POST /graphql` and `/api/graphql` implement the supported Linear schema subset. The [allowlist](packages/linear/contract.mjs) and pinned upstream schema drive generation; CI checks names, arguments, input/output types and nullability. Unsupported selections fail explicitly. This does not imply every generated query in the full official Linear SDK is supported.
 
 ```graphql
 query WorkQueue {
   issues(first: 20, filter: { priority: { lte: 2 } }) {
-    nodes {
-      id
-      identifier
-      title
-      priorityLabel
-      state { name type }
-      assignee { id name }
-    }
+    nodes { id identifier title state { name type } }
     pageInfo { hasNextPage endCursor }
   }
 }
 ```
 
-Use a personal token issued by **this installation** in `Authorization: <token>` or `Authorization: Bearer <token>`. A token issued by Linear itself is not valid here. Cookie-authenticated writes also require the same-origin CSRF header `x-tickets-csrf: 1`.
+Use a token issued by this installation, not by Linear. Raw or Bearer authorization is accepted for GraphQL; browser writes additionally require same-origin CSRF protection. Pagination cursors are signed and scoped; depth/complexity limits and parameterized filters protect the service.
 
-Supported queries include parameterized filters, forward/backward keyset pagination and authenticated scope-bound cursors. Requests have depth/complexity/size budgets. Unsupported operations, selections or inputs fail explicitly. **This does not mean the entire official Linear SDK works:** its generated selections may request fields outside this subset. Schema compatibility and the tested scenarios are not a claim of behavioral identity for every Linear edge case.
+The internal REST contract is [docs/openapi.json](docs/openapi.json). It exposes installation-specific features such as modules, conflict versions and workspace policy.
 
-The internal **REST `/api/v1`** exposes tickets-app-specific features such as module settings and conflict versions. Its generated contract is [docs/openapi.json](docs/openapi.json). Both APIs share authorization, workspace boundaries, audit history and transactional services.
-
-## CLI
-
-```bash
+```sh
 bun packages/cli/tickets.mjs --help
 bun packages/cli/tickets.mjs auth login --url https://your-installation.example < token.txt
 bun packages/cli/tickets.mjs issues list --all --json
 bun packages/cli/tickets.mjs issues get TKT-1 --json
 bun packages/cli/tickets.mjs issues update TKT-1 --version 1 --priority 2
-bun packages/cli/tickets.mjs issues create --team TKT --title "Document the release" --body-file issue.md
 ```
 
-Alternatively provide `TICKETS_URL` and `TICKETS_TOKEN` through your environment. Login reads the token from stdin, not a command-line argument. JSON output is suitable for agents; exit codes distinguish usage, authentication and conflicts. Mutations are not blindly retried. The CLI and [SDK](packages/sdk/index.mjs) use the same API as the browser.
+Alternatively use `TICKETS_URL` and `TICKETS_TOKEN`. Credentials are not passed in command-line arguments. SDK/CLI writes are not blindly retried.
 
-## Architecture and design
+## Architecture and tokens
 
-```mermaid
-flowchart LR
-  UI[React / Base UI] --> REST[Internal REST]
-  CLI[Bun CLI / SDK] --> REST
-  Client[Linear-subset clients] --> GQL[GraphQL allowlist]
-  REST --> Domain[Workspace-scoped domain modules]
-  GQL --> Domain
-  Domain --> DB[(PostgreSQL / local SQLite)]
-  Domain --> Files[Private object storage]
-  Domain --> Queue[Transactional inbox / outbox]
-  Queue --> GitHub[GitHub]
-  Queue --> Slack[Slack]
-```
+FSD layers: `src/app → pages → widgets → features → entities → shared`. TanStack Query owns server state, Zustand owns preferences, and routing/filter state belongs in the URL. Shared document and property primitives serve new and existing objects.
 
-Frontend FSD layers are `src/app → pages → widgets → features → entities → shared`; imports are checked by `bun run lint:fsd`. TanStack Query owns server state, Zustand owns small UI preferences, and navigation/filters belong in the URL. Unsaved descriptions retain their original version and do not get overwritten by refreshes. The server lives under `packages/server/modules` with shared contracts, database adapters and transport wrappers.
+[DESIGN.md](DESIGN.md) provides design context. [DTCG JSON](tokens/tickets.tokens.json) is executable: `bun run tokens:build` generates CSS, TypeScript and reference documentation. Alias/type/cycle checks fail on unsupported values; `tokens:check` detects drift. No font binaries are distributed.
 
-Read [DESIGN.md](DESIGN.md) before changing UI. [tokens/tickets.tokens.json](tokens/tickets.tokens.json) is the executable DTCG source, not a reference-only file. The generator emits CSS, TypeScript and [token documentation](docs/tokens.md), validates aliases/types and rejects cycles. It supports the token types used here, not every possible DTCG extension.
-
-```bash
-bun run tokens:build
-bun run tokens:check
-bun run graphql:generate
-bun run graphql:check
-```
-
-Oxc provides Oxlint, type-aware checking, Oxfmt and Vite/Rolldown transforms. A separate `tsc --noEmit` check prevents successful transpilation being mistaken for type correctness.
+Bun drives scripts/server/tests/CLI; Oxc provides lint/type-aware checks/formatting, with independent `tsc --noEmit` verification.
 
 ## Verification
 
-[CI](https://github.com/alex-mextner/tickets-app/actions/workflows/ci.yml) runs independent quality, PostgreSQL and browser jobs. Inspect the exact commit's result rather than assuming the badge covers unpushed local changes.
-
-```bash
-bun run check                 # generated contracts, FSD, Oxc, unit/integration, production build
+```sh
+bun run check
 bun run typecheck:tsc
 bun run check:secrets
 bun run storybook:build
-bun x --no-install playwright install --with-deps chromium
-bun run test:ui               # real browser stories + axe accessibility
+bun run test:ui
 bun run test:e2e
-bun run test:visual           # compare committed, reviewed baselines
+bun --bun playwright test --project=webkit
+bun run test:visual
 ```
 
-`bun run test:postgres` requires an explicit `TEST_DATABASE_URL` for a disposable PostgreSQL database with permission to create isolated test schemas. It reuses the domain/HTTP/GraphQL acceptance suites and does not fall back to SQLite. Production databases are not test targets.
+PostgreSQL acceptance requires an explicit isolated `TEST_DATABASE_URL`; it never falls back to SQLite. Visual baseline generation is an explicit review action, not a passing regression comparison. To audit Linear from an isolated local test server:
 
-Visual changes require `bun run screenshots`, inspection of the actual images and an explicit baseline commit. Initial capture is not a passed regression comparison. Browser artifacts include the tested commit. Unit tests exercise concurrency/conflicts, tenant boundaries, permissions, invitation security, signed webhooks, outbox behavior, CLI HTTP requests and GraphQL contracts; they are not a substitute for a security audit or live provider acceptance.
+```sh
+TEST_BASE_URL=http://localhost:5173 bun scripts/reference-audit.mjs
+```
 
-## Deployment and integration boundaries
+The scanner rejects private runtime files even if force-added to Git. Keep `.env*`, credentials, databases, browser sessions and build output out of commits. A secret scan is not a security audit.
 
-[vercel.json](vercel.json) configures a Bun function, Frankfurt region, the Vite build and SPA/API routing. PostgreSQL migrations are explicit, never performed as a side effect of an HTTP request or frontend build. The cloud adapter fails closed without `DATABASE_URL`; it never serves a production SQLite/demo fallback.
+## Deployment and remaining acceptance
 
-At minimum configure `DATABASE_URL`, a private random `AUTH_SECRET` of at least 32 characters, `APP_URL` matching the actual HTTPS origin, and `NODE_ENV=production`. Migrations use `DATABASE_URL_UNPOOLED`. Keep bootstrap passwords outside the deployed runtime. Private uploads require `STORAGE_DRIVER=s3` and the S3 variables in [.env.example](.env.example).
+Use the existing Vercel project and native CLI authorization, not the retired GitHub publication workflow. The [operations runbook](docs/OPERATIONS.md) separates deployment, migrations, first owner, private Blob/S3 and live provider installations. A private Blob store needs `STORAGE_DRIVER=blob` and `BLOB_READ_WRITE_TOKEN`; S3/R2 uses its own server-only variables. Defaults are 3 MiB per file and 500 MiB per workspace. No antivirus, full media pipeline or physical-object garbage collector is claimed.
 
-Cloudflare R2 is supported through the S3 adapter; a bucket is not automatically provisioned. Application defaults are **3 MiB per upload / 500 MiB per workspace**, independent of provider free quotas. Upload content is inspected, but there is no antivirus scan or full media transcoder.
+Production owner initialization, authenticated live acceptance and actual GitHub/Slack installations must be recorded separately. Missing provider credentials are not inherited from the assistant. `bun run worker` processes one inbox/outbox batch; hosting must schedule it for continuous integration delivery.
 
-GitHub/Slack code is present and tested with signed synthetic events and injected transports. You must install/configure their own apps or webhooks and supply credentials for an explicitly configured workspace. Assistant connector access is not inherited by the deployed app. There is no complete OAuth installation UI or universal two-way field synchronization yet.
+## License
 
-Integrations use a durable inbox/outbox with retries and at-least-once delivery. `bun run worker` processes one batch and must be scheduled by your host. The authenticated `POST /api/internal/jobs` endpoint is another option. External delivery is not guaranteed simply because an event was enqueued.
-
-## Remaining work
-
-Verified production deployment, private bucket provisioning, live GitHub/Slack acceptance and backup/restore drills remain release requirements. Product expansion includes OAuth/password recovery/MFA, full milestone/project editing screens, issue templates and richer triage, broader GraphQL coverage, realtime/offline synchronization, and more browser engines/keyboard/drag-and-drop scenarios. No initiative portfolio, timeline forecasting or full Linear parity is implied.
-
-## Contributing and attribution
-
-Use atomic commits, retain tests for corrected failures, and follow [AGENTS.md](AGENTS.md). Do not commit environment files, tokens, databases, authenticated browser state, source archives or font binaries. This is an independent implementation, not a Linear product. The upstream Linear schema retains its MIT license and provenance in `vendor/linear`.
+Independent implementation, not a Linear product. Original code is MIT; the pinned upstream schema retains its license under `vendor/linear`. Public reference screenshots are used for comparison, not as application assets. Contributions follow [AGENTS.md](AGENTS.md).

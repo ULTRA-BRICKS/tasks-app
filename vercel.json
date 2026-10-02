@@ -9,7 +9,7 @@
   "functions": {
     "api/index.mjs": {
       "maxDuration": 30,
-      "includeFiles": "{packages/db/*.sql,packages/linear/schema.graphql,docs/openapi.json}"
+      "includeFiles": "{packages/db/migrations/*.sql,packages/linear/schema.graphql,docs/openapi.json}"
     }
   },
   "rewrites": [
