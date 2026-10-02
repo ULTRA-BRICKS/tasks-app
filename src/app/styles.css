@@ -3385,3 +3385,16 @@ button,
     transition: none;
   }
 }
+
+@media (max-width: 767px) {
+  .issue-detail-toolbar {
+    min-height: 60px;
+  }
+  .issue-detail-toolbar .button {
+    min-width: var(--mobile-tap);
+    min-height: var(--mobile-tap);
+  }
+  .detail-properties .compact-property .picker {
+    min-height: var(--mobile-tap);
+  }
+}

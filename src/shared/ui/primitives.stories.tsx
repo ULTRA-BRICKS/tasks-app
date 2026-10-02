@@ -79,6 +79,7 @@ export const StatusPicker: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('combobox', { name: 'Status' }));
     const page = within(canvasElement.ownerDocument.body);
+    await expect(await page.findByRole('listbox', { name: 'Status', exact: true })).toBeVisible();
     // The portalled popup mounts asynchronously after the trigger event.
     await userEvent.click(await page.findByRole('option', { name: 'Done' }));
     await waitFor(() => expect(canvas.getByTestId('selected-status')).toHaveTextContent('done'));

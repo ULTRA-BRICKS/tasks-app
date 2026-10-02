@@ -43,7 +43,7 @@ export function Picker({
           className="popover-positioner"
         >
           <Select.Popup className="picker-popup">
-            <Select.List>
+            <Select.List aria-label={label}>
               {options.map((o) => (
                 <Select.Item
                   key={o.value}
