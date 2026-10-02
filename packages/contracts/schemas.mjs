@@ -67,6 +67,11 @@ const versioned = (fields) =>
     'version',
   ]);
 export const schemas = {
+  TeamRename: object({ name: text(120, 1), expected_name: text(120, 1) }, [
+    'name',
+    'expected_name',
+  ]),
+  TeamDelete: object({ confirm_key: text(10, 2) }, ['confirm_key']),
   DocumentCreate: object(documentFields, ['title']),
   DocumentPatch: versioned(documentFields),
   InitiativeCreate: object(initiativeFields, ['name']),

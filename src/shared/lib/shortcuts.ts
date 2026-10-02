@@ -2,8 +2,19 @@ export function isTextEntry(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   return Boolean(
     target.closest(
-      'textarea,select,input:not([type="checkbox"]):not([type="radio"]),[contenteditable="true"],[role="textbox"],[role="combobox"]',
+      'textarea,select,input:not([type="checkbox"]):not([type="radio"]),[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="combobox"]',
     ),
+  );
+}
+export function hasOpenOverlay(): boolean {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      'dialog[open],[role="dialog"],[role="menu"],[role="listbox"]',
+    ),
+  ).some(
+    (element) =>
+      !element.closest('[hidden],[inert],[aria-hidden="true"]') &&
+      element.getClientRects().length > 0,
   );
 }
 export function shortcutGuard(event: KeyboardEvent): boolean {
@@ -11,9 +22,7 @@ export function shortcutGuard(event: KeyboardEvent): boolean {
     event.defaultPrevented ||
     event.isComposing ||
     isTextEntry(event.target) ||
-    Boolean(
-      document.querySelector('dialog[open],[role="dialog"],[role="menu"],[role="listbox"]'),
-    ) ||
+    hasOpenOverlay() ||
     Boolean(window.getSelection()?.toString())
   );
 }

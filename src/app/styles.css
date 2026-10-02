@@ -829,7 +829,7 @@ kbd {
 }
 .issue-row {
   display: grid;
-  grid-template-columns: 16px 16px 66px minmax(100px, 1fr) auto 60px 22px;
+  grid-template-columns: var(--list-select-size, 16px) 16px 66px minmax(100px, 1fr) auto 60px 22px;
   gap: var(--space-12);
   align-items: center;
   min-height: var(--size-row);
@@ -2260,7 +2260,7 @@ kbd {
     grid-template-columns: minmax(300px, 1fr) 280px;
   }
   .issue-row {
-    grid-template-columns: 16px 16px 72px minmax(100px, 1fr) auto 72px 22px;
+    grid-template-columns: var(--list-select-size, 16px) 16px 72px minmax(100px, 1fr) auto 72px 22px;
   }
 }
 @media (max-width: 1150px) {
@@ -2269,7 +2269,7 @@ kbd {
   }
   .issue-row {
     gap: var(--space-8);
-    grid-template-columns: 14px 15px 61px minmax(100px, 1fr) auto 50px 22px;
+    grid-template-columns: var(--list-select-size, 16px) 15px 61px minmax(100px, 1fr) auto 50px 22px;
     padding-inline: var(--space-16);
   }
   .detail-layout {
@@ -2296,7 +2296,7 @@ kbd {
     display: none;
   }
   .issue-row {
-    grid-template-columns: 14px 15px 60px minmax(100px, 1fr) 48px 22px;
+    grid-template-columns: var(--list-select-size, 16px) 15px 60px minmax(100px, 1fr) 48px 22px;
   }
   .settings-layout {
     display: flex;
@@ -2416,7 +2416,7 @@ kbd {
   }
   .issue-row {
     padding-inline: var(--space-12);
-    grid-template-columns: 14px 14px 57px minmax(70px, 1fr) 22px;
+    grid-template-columns: var(--list-select-size, 16px) 14px 57px minmax(70px, 1fr) 22px;
     gap: var(--space-6);
     min-height: 48px;
   }
@@ -3601,5 +3601,135 @@ button,
 @media (max-width: 767px) {
   .knowledge-editor-label {
     display: none;
+  }
+}
+
+/* Context actions use the same commands in the visible menu and right-click menu. */
+.context-action-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.context-action-row > .nav-item,
+.context-action-row > .knowledge-row {
+  flex: 1;
+  min-width: 0;
+}
+.context-action-row > .page-menu-trigger {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  color: var(--color-muted);
+}
+.context-action-row > .page-menu-trigger:hover,
+.context-action-row > .page-menu-trigger:focus-visible,
+.context-action-row > .page-menu-trigger[data-popup-open] {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+.context-action-row .nav-item > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.action-menu-entry {
+  display: contents;
+}
+.page-menu-item {
+  gap: var(--space-16);
+  justify-content: space-between;
+}
+.action-keycaps {
+  display: inline-flex;
+  gap: var(--space-4);
+  margin-left: auto;
+  color: var(--color-muted);
+}
+.action-keycaps kbd {
+  min-width: 20px;
+  text-align: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  padding: 0 4px;
+}
+.action-menu-separator {
+  margin: var(--space-4) 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+.action-danger {
+  color: var(--color-danger);
+}
+.hidden-teams-toggle {
+  color: var(--color-muted);
+  margin-top: var(--space-4);
+}
+.nav-menu-error {
+  color: var(--color-danger);
+  font-size: var(--font-size-12);
+  padding: var(--space-8);
+}
+@media (pointer: coarse) {
+  .context-action-row > .page-menu-trigger {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+  .context-action-row > .nav-item {
+    min-height: 44px;
+  }
+}
+
+.team-nav-row {
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-width: 0;
+  border-radius: var(--radius-md);
+}
+.team-nav-row:hover,
+.team-nav-row:focus-within {
+  background: var(--color-hover);
+}
+.team-nav-row > .team-open {
+  flex: 1;
+  min-width: 0;
+}
+.team-open > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.team-nav-row > .page-menu-trigger {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--color-muted);
+  opacity: 0.65;
+}
+.team-nav-row:hover > .page-menu-trigger,
+.team-nav-row:focus-within > .page-menu-trigger {
+  opacity: 1;
+}
+.team-inline-rename {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  gap: var(--space-4);
+}
+.team-inline-rename input {
+  min-width: 0;
+}
+@media (pointer: coarse) {
+  .team-nav-row > .page-menu-trigger {
+    width: 44px;
+    height: 44px;
+    opacity: 1;
+  }
+  .team-nav-row > .team-open {
+    min-height: 44px;
   }
 }

@@ -1,4 +1,6 @@
 // Generated from schemas.mjs. Run bun run api:generate.
+export type TeamRename = { "name": string; "expected_name": string };
+export type TeamDelete = { "confirm_key": string };
 export type DocumentCreate = { "title": string; "body"?: string; "project_id"?: string | null; "initiative_id"?: string | null };
 export type DocumentPatch = { "title"?: string; "body"?: string; "project_id"?: string | null; "initiative_id"?: string | null; "version": number; "archived"?: boolean };
 export type InitiativeCreate = { "name": string; "description"?: string; "status"?: "planned" | "active" | "completed" | "canceled"; "owner_id"?: string | null; "target_date"?: string | null; "project_ids"?: Array<string> };

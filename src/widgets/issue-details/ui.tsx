@@ -441,7 +441,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                 <div className="activity-event" key={a.id}>
                   <span className="activity-dot" />
                   <span>
-                    <strong>{a.actor_name}</strong> {a.action}
+                    <strong>{a.actor_name}</strong> {a.summary ?? 'updated this issue'}
                   </span>
                   <time dateTime={a.created_at}>{formatDate(a.created_at)}</time>
                 </div>

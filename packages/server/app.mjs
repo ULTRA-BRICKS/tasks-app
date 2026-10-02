@@ -1,3 +1,4 @@
+import * as teamActions from './modules/identity/teams.mjs';
 import * as importFiles from './modules/linear-import/files.mjs';
 import * as knowledge from './modules/knowledge/service.mjs';
 import * as linearImport from './modules/linear-import/service.mjs';
@@ -410,6 +411,21 @@ export function createApp({
             linearImport.sourceRecord(tx, a, path.split('/')[4], path.split('/')[5]),
           ),
         );
+      } else if (/^\/api\/v1\/teams\/[^/]+$/.test(path)) {
+        const teamId = path.split('/')[4];
+        if (method === 'GET')
+          response = json(await run(true, (tx, a) => teamActions.inspectTeam(tx, a, teamId)));
+        else if (method === 'PATCH') {
+          const input = await body(request, schemas.TeamRename);
+          response = json(
+            await run(false, (tx, a) => teamActions.renameTeam(tx, a, teamId, input)),
+          );
+        } else if (method === 'DELETE') {
+          const input = await body(request, schemas.TeamDelete);
+          response = json(
+            await run(false, (tx, a) => teamActions.removeEmptyTeam(tx, a, teamId, input)),
+          );
+        } else throw missing('Route');
       } else if (path === '/api/v1/teams' && method === 'POST') {
         const input = await body(request, schemas.Team);
         response = json(await run(false, (tx, a) => identity.createTeam(tx, a, input)), 201);

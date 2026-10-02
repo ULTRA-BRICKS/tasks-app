@@ -10,6 +10,6 @@ export { DocumentText, InlineTitle } from './document';
 
 export { PressPreview } from './press-preview';
 
-export { ActionMenu } from './action-menu';
+export { ActionMenu, ContextActions, type MenuAction } from './action-menu';
 
 export { ImportedFilesProvider, ImportedSourceLink } from './imported-files';

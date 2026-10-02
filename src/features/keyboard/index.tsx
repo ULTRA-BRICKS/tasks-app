@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMe } from '@/entities/workspace';
 import { Modal } from '@/shared/ui';
-import { shortcutGuard, navigationChords } from '@/shared/lib/shortcuts';
+import { shortcutGuard, navigationChords, hasOpenOverlay } from '@/shared/lib/shortcuts';
 export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
   const { data: me } = useMe(),
     navigate = useNavigate(),
@@ -15,12 +15,7 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
       // Deliberate exception: command search works inside editors; ordinary keys do not.
       // Covered by the editor-command-menu browser regression.
       if ((e.metaKey || e.ctrlKey) && key === 'k') {
-        if (
-          e.defaultPrevented ||
-          e.isComposing ||
-          document.querySelector('dialog[open],[role="dialog"],[role="menu"],[role="listbox"]')
-        )
-          return;
+        if (e.defaultPrevented || e.isComposing || hasOpenOverlay()) return;
         e.preventDefault();
         e.stopPropagation();
         onSearch();

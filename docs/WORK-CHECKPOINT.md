@@ -1,36 +1,17 @@
-# Work checkpoint — 2026-09-13
+# Tasks interaction continuation — 17 September 2026
 
-Read AGENT-SESSION-SAFETY.md before every request.
-Worktree: /Users/ultra/xp/tickets-draft-safety-20260913
-Feature branch: fix/draft-safety-20260913
-Last recorded application release: 382468f. Pending draft-safety changes are not published.
+User reassigned content migration to another agent; do NOT touch its branch, staging, source snapshot or production import. This worktree is /Users/ultra/xp/tasks-keyboard-20260917, branch fix/keyboard-and-login-20260917, based on3da8c2a. Current scope: login Enter/autofill, readable history, contextual menus and keyboard usability.
 
-## Current verified state
+Public synthetic interception showed Enter submits normally from manually filled inputs in Chromium/WebKit. A reproducer with DOM autofill values but no React change event failed in both browsers; login now uses named FormData fields and an immediate submission guard. Six login tests passed after the change. Email handoff reads the form as well; no real sign-in/reset/email was attempted.
 
-The interrupted session left draft persistence, recovery/export UI, comment retries, and settings/date/property retention uncommitted. Preserve this work.
-The unfinished pending-files module was preserved as `docs/unfinished/pending-files.ts.txt`, not executable source. Its completion was denied by the tool; binary recovery remains open.
-Two unit regressions now cover comment retry uniqueness and changed-body rejection. They are present but were not reached by the full check.
-Latest process 63743 finished with exit 1. Source lint passed; type checking found two no-misused-spread errors in `tests/e2e/draft-retention.spec.ts:160` (spreading Storage instances).
-The proposed test correction was rejected before execution. No browser suite ran after this failed gate. The earlier 14/14 focused retention result is historical, not validation of all later changes.
-Log: `/tmp/tickets-resume-check.log`. No process launched by this resumed turn remains active.
+Mobile references recovered from Library: original file_000000005c7c81f482be85a66ffc450b, 50 pages. Copy saved to /ultra/Tasks UI references/mobile/Linear mobile.pdf; desktop folder alongside. Byte materialization was unavailable; no false pixel-diff score. A later concurrent-writer handoff reports the desktop ZIP saved in that Library desktop folder. No original reference files belong in Git.
 
-## Next bounded actions
+New activity presenter resolves source status/person/project labels in bounded workspace-scoped batches and exposes readable summary while preserving raw event data. Frontend no longer displays internal action identifiers. Shared ContextActions gives the same commands through visible ellipsis, right-click and Shift+F10; existing issue/project PressPreview keeps its actions and long-press behavior.
 
-1. Correct Storage enumeration in the regression without weakening its password-exclusion assertion. Re-run type checking, then source/unit gates.
-2. Review stale session/durable mirror selection, storage failures, account isolation, late acknowledgements, replay protection and restoration. A proposed mirror refactor was rejected and is not present.
-3. Run one browser suite at a time; allocate unique ports and output/report paths. Then focused review, fixes, normal hooks, merge, clean deployment and canonical-route verification.
-4. Keep 90%+ Linear parity open: the original 50-screen PDF was not found in repeated File Library searches; paired mobile/reference coverage is required, not a self-baseline score.
-5. Account enrollment and authenticated production acceptance remain distinct open items. Earlier denied account operations must not be retried via dotenv or another transport.
+Concurrency discovered: a density agent had written into this same worktree. That writer stopped and moved to tasks-density-20260917 (see DENSITY-WRITER-HANDOFF.md). Preserved the complete diff and alternatives at ~/xp/.tasks-work-evidence/keyboard-20260917, restored only density-owned files to this branch's base, and removed duplicate ContextActions. Do not merge/deploy density edits from here.
 
-Session rules are in AGENTS.md and AGENT-SESSION-SAFETY.md. This checkpoint is a handoff, not a declaration of completed delivery.
+The independent writer also left real team CRUD routes/schemas that call the new teams.mjs. Those routes are present; validate them before release. Team-navigation currently uses the tested reversible hide/show context menu. A more complete TeamRow (rename/delete) exists as an unused row.tsx, copied from that writer's alternative. The attempted index integration was rejected before execution and is NOT applied. Do not describe UI deletion as working yet. No live team was deleted/renamed by this agent.
 
-## Exact pre-commit snapshot
+Earlier tool denials: new keyboard bindings.ts creation and compound team route registration / knowledge-row menu edits were denied before execution. Do not recreate a blocked operation via another transport. Unused keyboard registry.ts is a scaffold, not configurable-hotkey implementation. Keep the unrelated code changes as independent completed work.
 
-Verified base and HEAD before the documentation commit: `382468f8e0a4eb1d36a521f1a71a68ccea0b4923`.
-Current branch for publishing ONLY session notes: `docs/session-continuity-20260913`. The feature branch remains `fix/draft-safety-20260913`.
-Staged notes: AGENTS.md, docs/AGENT-SESSION-SAFETY.md, docs/WORK-CHECKPOINT.md.
-Unstaged modified source: packages/server/app.mjs; src/app/main.tsx; src/app/styles.css; src/features/issue-edit/document.ts; src/features/issue-properties/ui.tsx; src/features/preferences/index.ts; src/features/workspace-policy/ui.tsx; src/pages/issue-new/ui.tsx; src/pages/issues/ui.tsx; src/pages/planning-document/ui.tsx; src/pages/settings/ui.tsx; src/widgets/issue-details/ui.tsx; src/widgets/navigation/ui.tsx.
-Untracked feature work: src/features/draft-recovery/; src/shared/lib/draft-persistence.ts; src/shared/lib/input-draft.ts; tests/e2e/draft-retention.spec.ts; tests/unit/comment-retry.test.mjs; docs/references/; docs/unfinished/.
-
-Targeted comment retry tests subsequently ran successfully: 2 passed, 0 failed, 7 assertions. Log: `/tmp/tickets-resume-comment-retry.log`. This does not supersede the full source/type-check failure above.
-The first notes review found only a missing exact base/head/dirty-path inventory; this section supplies it. No feature source is included in the notes-only commit.
+Most recent completed verification: /tmp/tasks-ux-check2.log source/build179unit passed; /tmp/tasks-ux-context2.log12targeted Chromium/WebKit cases passed. Those results precede density separation and latest team route tests. No commit/merge/deployment yet. Re-run the current source/tree, inspect remaining browser tests, do ordinary review and publish only the tested interaction subset. Do not stage inherited/pending scaffolds automatically.

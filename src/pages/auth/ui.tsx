@@ -1,22 +1,31 @@
 import { useEphemeralLinkToken } from './password-reset';
-import { useId, useState } from 'react';
+import { useId, useRef, useState, type MouseEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthShell } from './shell';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
 import { Button, Input, ErrorState } from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
+const formText = (data: FormData, key: string) => {
+  const value = data.get(key);
+  return typeof value === 'string' ? value : '';
+};
 export function LoginPage() {
   const location = useLocation(),
-    passwordId = useId();
+    passwordId = useId(),
+    navigate = useNavigate(),
+    submitting = useRef(false);
   const [email, setEmail] = useState(() =>
       typeof location.state?.email === 'string' ? location.state.email.slice(0, 254) : '',
     ),
     [password, setPassword] = useState(''),
     client = useQueryClient();
   const mutation = useMutation({
-    mutationFn: () =>
-      api('/auth/login', { method: 'POST', json: { email: email.trim(), password } }),
+    mutationFn: (input: { email: string; password: string }) =>
+      api('/auth/login', { method: 'POST', json: input }),
+    onSettled: () => {
+      submitting.current = false;
+    },
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['me'] });
     },
@@ -40,7 +49,16 @@ export function LoginPage() {
         className="stack-form auth-form"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!mutation.isPending) mutation.mutate();
+          if (submitting.current || mutation.isPending) return;
+          // Native form values also cover autofill/password managers without React change events.
+          const data = new FormData(e.currentTarget);
+          const input = {
+            email: formText(data, 'email').trim(),
+            password: formText(data, 'password'),
+          };
+          setEmail(input.email);
+          submitting.current = true;
+          mutation.mutate(input);
         }}
       >
         <label className="auth-field">
@@ -48,7 +66,11 @@ export function LoginPage() {
           <Input
             data-autofocus
             type="email"
+            name="email"
             autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            enterKeyHint="next"
             maxLength={254}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -62,6 +84,15 @@ export function LoginPage() {
               className="auth-recovery-link"
               to="/forgot-password"
               state={{ email: email.trim() }}
+              onClick={(e: MouseEvent<HTMLAnchorElement>) => {
+                if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || e.button !== 0) return;
+                const form = e.currentTarget.closest('form');
+                if (!form) return;
+                e.preventDefault();
+                void navigate('/forgot-password', {
+                  state: { email: formText(new FormData(form), 'email').trim() },
+                });
+              }}
             >
               Forgot password?
             </Link>
@@ -69,7 +100,9 @@ export function LoginPage() {
           <Input
             id={passwordId}
             type="password"
+            name="password"
             autoComplete="current-password"
+            enterKeyHint="go"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

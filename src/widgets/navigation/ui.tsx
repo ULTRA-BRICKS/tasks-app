@@ -1,3 +1,4 @@
+import { TeamNavigation } from '@/features/team-navigation';
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -143,20 +144,7 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
           </>
         )}
         <div className="nav-section-label">Your teams</div>
-        {catalog?.teams.map((t) => (
-          <button
-            type="button"
-            key={t.id}
-            className="nav-item"
-            onClick={() => {
-              close();
-              void navigate('/issues?team_id=' + t.id);
-            }}
-          >
-            <span className="team-icon">{t.key.slice(0, 1)}</span>
-            <span>{t.name}</span>
-          </button>
-        ))}
+        <TeamNavigation close={close} />
         {moduleEnabled(catalog, 'views') && (
           <>
             <div className="nav-section-label">Saved views</div>
