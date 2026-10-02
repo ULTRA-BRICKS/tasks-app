@@ -239,9 +239,7 @@ export async function exportNativeMetadata(db, env, job, options = {}) {
       originalNative = normalizedNative(collection, prepared.original, Object.keys(source)),
       conflicts = {};
     for (const field of Object.keys(source)) {
-      const equal = ['description', 'body'].includes(field)
-        ? markdownEquivalent(originalNative[field], source[field])
-        : digest(originalNative[field]) === digest(source[field]);
+      const equal = resolver.sameField(field, originalNative[field], source[field]);
       if (!equal)
         conflicts[field] = {
           local: native[field],

@@ -1,4 +1,3 @@
-import { sameField as same } from './merge-fields.mjs';
 import { sourceInScope, nativeInScope } from './scope.mjs';
 import { exportNativeIssue, exportNativeComment } from './export.mjs';
 import { exportNativeMetadata } from './export-metadata.mjs';
@@ -235,7 +234,7 @@ async function markRemoval(db, env, job, options) {
       const baseline =
           state?.baseNative ?? normalizedSource(collection, original, resolver.resolve),
         local = normalizedNative(collection, native, Object.keys(baseline));
-      if (Object.keys(baseline).some((k) => !same(k, baseline[k], local[k])))
+      if (Object.keys(baseline).some((k) => !resolver.sameField(k, baseline[k], local[k])))
         conflicts.removal = {
           local,
           source: { removedAt: occurredAt },
@@ -410,13 +409,13 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
     for (const field of fields) {
       const l = local[field],
         r = context.source[field];
-      if (same(field, l, r)) continue;
+      if (context.resolver.sameField(field, l, r)) continue;
       if (state?.conflicts?.[field]) {
         conflicts[field] = { ...state.conflicts[field], local: l, source: r };
         continue;
       }
-      if (same(field, l, baseLocal[field])) toNative[field] = r;
-      else if (same(field, r, baseSource[field])) toSource[field] = l;
+      if (context.resolver.sameField(field, l, baseLocal[field])) toNative[field] = r;
+      else if (context.resolver.sameField(field, r, baseSource[field])) toSource[field] = l;
       else conflicts[field] = { baseline: baseLocal[field], local: l, source: r };
     }
     const localFingerprint = digest(context.native);

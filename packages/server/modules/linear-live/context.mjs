@@ -1,3 +1,5 @@
+import { addMemberAttributionAliases } from './member-attribution.mjs';
+import { sameField } from './merge-fields.mjs';
 import { assert } from '../../core/errors.mjs';
 import { canonical, digest, targetId, collections } from '../../../imports/linear-source.mjs';
 import { now } from '../../core/crypto.mjs';
@@ -114,6 +116,13 @@ export async function referenceResolver(tx, config, collection, remote, original
         byTarget.set(kind + ':' + row.target_id, row.source_id);
     }
   }
+  await addMemberAttributionAliases(
+    tx,
+    config,
+    [...(targets.get('users') ?? [])],
+    bySource,
+    byTarget,
+  );
   const resolve = (kind, id) => {
     const value = bySource.get(kind + ':' + id);
     assert(value, 409, 'SYNC_REFERENCE_PENDING', 'A referenced source entity is not mapped', {
@@ -131,7 +140,14 @@ export async function referenceResolver(tx, config, collection, remote, original
     });
     return value;
   };
-  return { resolve, reverse, bySource, byTarget };
+  const equivalent = (field, a, b) =>
+    sameField(field, a, b) ||
+    (['assignee_id', 'lead_id', 'owner_id'].includes(field) &&
+      a != null &&
+      b != null &&
+      byTarget.has('users:' + a) &&
+      byTarget.get('users:' + a) === byTarget.get('users:' + b));
+  return { resolve, reverse, bySource, byTarget, sameField: equivalent };
 }
 export async function registerSource(tx, config, collection, record, target) {
   const stamp = now(),
