@@ -12,18 +12,49 @@ function normalizedUrl(value) {
   } catch {}
   return value;
 }
-function semanticNode(value, depth = 0) {
-  assert(depth <= 128, 422, 'MARKDOWN_TOO_DEEP', 'Markdown nesting exceeds the comparison budget');
-  if (Array.isArray(value)) return value.map((item) => semanticNode(item, depth + 1));
-  if (value && typeof value === 'object')
-    return Object.fromEntries(
-      Object.entries(value)
-        .filter(([key]) => !['position', 'spread'].includes(key))
-        .map(([key, item]) => [
-          key,
-          key === 'url' ? normalizedUrl(item) : semanticNode(item, depth + 1),
-        ]),
-    );
+function automaticLink(node){
+  if(node.type!=='link'||node.title||!node.children?.every(child=>child.type==='text'))return false;
+  const label=node.children.map(child=>child.value).join('');
+  try{
+    const url=new URL(node.url);
+    if(!['http:','https:'].includes(url.protocol)||url.username||url.password)return false;
+    if(/^https?:\/\//.test(label))return new URL(label).href===url.href;
+    return /^[^\s/]+\.[a-z]{2,}(?:[/?#]|$)/i.test(label)&&new URL(url.protocol+'//'+label).href===url.href;
+  }catch{return false;}
+}
+function semanticNode(value,depth=0){
+  assert(depth<=128,422,'MARKDOWN_TOO_DEEP','Markdown nesting exceeds the comparison budget');
+  if(Array.isArray(value)){
+    const result=[];
+    for(const child of value){
+      const normalized=semanticNode(child,depth+1);
+      for(const item of Array.isArray(normalized)?normalized:[normalized]){
+        const previous=result.at(-1);
+        if(previous?.type==='text'&&item?.type==='text')previous.value+=item.value;
+        else if(previous?.type===item?.type&&['strong','emphasis'].includes(item?.type))previous.children=semanticNode([...previous.children,...item.children],depth+1);
+        else result.push(item);
+      }
+    }
+    return result;
+  }
+  if(value&&typeof value==='object'){
+    const node=Object.fromEntries(Object.entries(value).filter(([key])=>!['position','spread'].includes(key)).map(([key,item])=>[key,key==='url'?normalizedUrl(item):semanticNode(item,depth+1)]));
+    if(automaticLink(node))return node.children;
+    if(['strong','emphasis'].includes(node.type)){
+      const result=[];let group=[];
+      const flush=()=>{
+        if(!group.length)return;
+        const first=group[0],last=group.at(-1),leading=first.type==='text'?first.value.match(/^\s+/)?.[0]??'':'',trailing=last.type==='text'?last.value.match(/\s+$/)?.[0]??'':'';
+        if(leading){result.push({type:'text',value:leading});first.value=first.value.slice(leading.length);}
+        if(trailing)last.value=last.value.slice(0,-trailing.length);
+        const children=group.filter(child=>child.type!=='text'||child.value);
+        if(children.length)result.push({...node,children});
+        if(trailing)result.push({type:'text',value:trailing});group=[];
+      };
+      for(const child of node.children){if(child.type==='inlineCode'){flush();result.push(child);}else group.push(child);}flush();return result;
+    }
+    return node;
+  }
   return value;
 }
 export function markdownEquivalent(a, b) {
