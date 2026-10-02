@@ -1,37 +1,48 @@
-.date-inline {
-  position: relative;
-  padding: 0 8px 0 2px;
-  gap: 4px;
+/*
+ * The date row is a regular property row (docs/PROPERTY-CONTROLS.md): its surface, hover, active,
+ * focus and open states come from the shared `.detail-properties .compact-property` rules in
+ * styles.css. Only the geometry of its two parts lives here: the calendar trigger carries the
+ * row's left padding and the input its right padding, so the whole row is the click target and
+ * the icon sits at the same inset as every other property icon.
+ */
+.detail-properties .compact-property.date-inline {
+  padding-inline: 0;
+  gap: 0;
 }
-.date-inline input {
+.detail-properties .date-inline input {
   min-width: 0;
   width: 100%;
+  max-width: none;
+  align-self: stretch;
   border: 0;
-  padding: 8px 2px;
+  padding: 8px var(--property-pad) 8px 2px;
   background: transparent;
   box-shadow: none;
+  outline: 0;
   font-variant-numeric: tabular-nums;
+}
+/* A disabled trigger dims through `button:disabled`; the input dims to the same level. */
+.date-inline input:disabled {
+  opacity: 0.45;
 }
 .date-inline input::placeholder {
   color: var(--color-muted);
 }
-.date-inline:focus-within {
-  border-color: var(--color-accent);
-}
 .date-calendar-trigger {
-  flex: 0 0 44px;
-  width: 44px;
-  min-height: 44px;
+  flex: 0 0 auto;
+  align-self: stretch;
+  box-sizing: border-box;
+  /* row padding + 16px calendar icon + 8px gap: the value then starts where a picker's does */
+  width: calc(var(--property-pad) + 16px + 8px);
   display: grid;
-  place-items: center;
+  justify-items: start;
+  align-items: center;
+  padding-left: var(--property-pad);
   border: 0;
-  border-radius: 50%;
+  border-radius: 0;
   background: transparent;
   color: var(--color-muted);
-  cursor: pointer;
-}
-.date-inline[data-disabled='true'] {
-  opacity: 0.65;
+  outline: 0;
 }
 .date-input-error {
   position: absolute;
@@ -99,8 +110,7 @@
 .date-calendar-popup button:hover {
   background: var(--color-hover);
 }
-.date-calendar-popup button:focus-visible,
-.date-calendar-trigger:focus-visible {
+.date-calendar-popup button:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: -2px;
 }
@@ -171,5 +181,13 @@
 @media (max-width: 639px) {
   .detail-properties > .date-inline {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 767px) {
+  /* 44px tap target; its last 10px overlap the input so the value keeps the pickers' offset. */
+  .date-calendar-trigger {
+    width: 44px;
+    margin-right: -10px;
   }
 }

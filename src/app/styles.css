@@ -4934,6 +4934,75 @@ a.code-history-task:hover {
   }
 }
 
+/*
+ * Property control states (docs/PROPERTY-CONTROLS.md, UB-101): the row is the control surface,
+ * so the icon sits inside the outline and every property — pickers and the date field alike —
+ * shares one rest, hover, active, focus-visible and open paint. Controls inside paint nothing.
+ */
+.detail-properties .compact-property {
+  --property-pad: var(--space-8);
+  position: relative;
+  transition:
+    background-color var(--motion-fast),
+    border-color var(--motion-fast);
+}
+@media (min-width: 768px) {
+  .detail-properties .compact-property {
+    margin-inline: calc(-1 * var(--property-pad));
+    padding-inline: var(--property-pad);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+  }
+}
+@media (max-width: 767px) {
+  .detail-properties .compact-property {
+    --property-pad: 10px;
+  }
+}
+/* The extra state selectors match the specificity of the base `.picker:hover` / `[data-popup-open]`
+   rules so the row, not the trigger, paints every state. */
+.detail-properties .compact-property > .picker,
+.detail-properties .compact-property > .picker:hover:not(:disabled),
+.detail-properties .compact-property > .picker[data-popup-open],
+.detail-properties .compact-property > .picker:focus-visible {
+  background: transparent;
+  border-color: transparent;
+  outline: 0;
+}
+.detail-properties .compact-property:hover:not(:has(> :disabled)):not([data-disabled='true']),
+.detail-properties .compact-property:has([data-popup-open]) {
+  background: var(--color-hover);
+  border-color: var(--color-border-strong);
+}
+.detail-properties .compact-property:active:not(:has(> :disabled)):not([data-disabled='true']) {
+  background: var(--color-selected);
+}
+.detail-properties
+  .compact-property:has(
+    > .picker:focus-visible,
+    > input:focus-visible,
+    > .date-calendar-trigger:focus-visible
+  ) {
+  border-color: var(--color-accent);
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
+  outline-offset: 0;
+}
+.detail-properties .compact-property:hover > .picker > svg:last-child,
+.detail-properties .compact-property:has([data-popup-open]) > .picker > svg:last-child {
+  opacity: 1;
+}
+/* A press anywhere on the row — icon, padding — acts on its picker like a press on the value. */
+.detail-properties .compact-property > .picker::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.detail-properties .property-icon:has(button, [role='button'], a),
+.detail-properties .compact-property > .cycle-help-trigger {
+  position: relative;
+  z-index: 1;
+}
+
 /* A label chip is a button that opens the task on its Labels property (docs/LABEL-CLICK.md). */
 .label-pill-button {
   background: transparent;
