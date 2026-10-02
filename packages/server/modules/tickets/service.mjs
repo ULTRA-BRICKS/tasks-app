@@ -1,4 +1,6 @@
+import { withSourceState } from '../linear-live/presentation.mjs';
 import { presentActivity } from './activity.mjs';
+import { queueNativeLinearChange } from '../../core/linear-events.mjs';
 import { resolvePerson } from '../../core/source-people.mjs';
 import { id, now, sha256, hmac, constantEqual } from '../../core/crypto.mjs';
 import { assert, missing, conflict, requirePermission } from '../../core/errors.mjs';
@@ -110,6 +112,13 @@ export async function validateReferences(tx, actor, issue, labelIds) {
 }
 export async function recordActivity(tx, actor, issue, action, data = {}) {
   const created = now();
+  await queueNativeLinearChange(
+    tx,
+    actor,
+    data.comment_id ? 'comments' : 'issues',
+    data.comment_id ?? issue.id,
+    id(),
+  );
   await tx.exec(
     'INSERT INTO activity(id,workspace_id,issue_id,actor_id,action,data,created_at) VALUES(?,?,?,?,?,?,?)',
     [id(), actor.workspace_id, issue.id, actor.id, action, JSON.stringify(data), created],
@@ -213,7 +222,8 @@ export async function createIssue(tx, actor, input, { idempotencyKey } = {}) {
         'IDEMPOTENCY_CONFLICT',
         'Idempotency key was used with a different request',
       );
-      return JSON.parse(previous.response);
+      const response = JSON.parse(previous.response);
+      return getIssue(tx, actor, response.id, { includeDeleted: true });
     }
   }
   const team = await tx.one('SELECT * FROM teams WHERE workspace_id=? AND id=?', [
@@ -225,12 +235,12 @@ export async function createIssue(tx, actor, input, { idempotencyKey } = {}) {
     "SELECT id FROM statuses WHERE workspace_id=? AND team_id=? ORDER BY CASE WHEN category='unstarted' THEN 0 ELSE 1 END,position LIMIT 1",
     [actor.workspace_id, team.id],
   );
-  const numbering = await tx.one(
+  const policy = await tx.one(
     "SELECT config FROM module_settings WHERE workspace_id=? AND module='linear-numbering' AND enabled=1",
     [actor.workspace_id],
   );
-  const pending = numbering && JSON.parse(numbering.config).teamIds.includes(team.id);
-  const lowest = pending
+  const pending = policy && JSON.parse(policy.config).teamIds.includes(team.id);
+  const minimum = pending
     ? await tx.one('SELECT MIN(number) AS value FROM issues WHERE workspace_id=? AND team_id=?', [
         actor.workspace_id,
         team.id,
@@ -265,7 +275,7 @@ export async function createIssue(tx, actor, input, { idempotencyKey } = {}) {
     deleted_at: null,
   };
   if (pending) {
-    issue.number = Math.min(0, Number(lowest?.value ?? 0)) - 1;
+    issue.number = Math.min(0, Number(minimum?.value ?? 0)) - 1;
     issue.key = 'PENDING-' + issue.id;
   }
   await validateReferences(tx, actor, issue, input.label_ids ?? []);
@@ -613,8 +623,8 @@ export async function issueDetails(tx, actor, key) {
     ),
   );
   return {
-    ...issue,
-    comments,
+    ...(await withSourceState(tx, actor.workspace_id, 'issues', [issue]))[0],
+    comments: await withSourceState(tx, actor.workspace_id, 'comments', comments),
     activity: await presentActivity(tx, actor.workspace_id, issue.id, activity, links),
     relations,
     children,

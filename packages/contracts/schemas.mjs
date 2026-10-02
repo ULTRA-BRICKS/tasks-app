@@ -74,6 +74,14 @@ export const schemas = {
   LinearFileUnavailable: object({ source_status: { type: 'integer', enum: [404, 410] } }, [
     'source_status',
   ]),
+  LinearSyncConfig: object(
+    {
+      organizationId: uuid,
+      enabled: { type: 'boolean' },
+      teamIds: { type: 'array', maxItems: 100, items: uuid },
+    },
+    ['organizationId', 'enabled'],
+  ),
   LinearNumbering: object(
     {
       source_workspace_id: uuid,
