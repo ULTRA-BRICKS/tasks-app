@@ -41,4 +41,4 @@ export type View = { "name": string; "filters": { "q"?: string; "team_id"?: stri
 export type Attachment = { "filename": string; "mime": string; "bytes": number };
 export type Module = { "enabled": boolean };
 export type GitHubConfig = { "review_status_id"?: string | null; "done_status_id"?: string | null; "notify"?: boolean };
-export type SlackConfig = { "notify"?: boolean; "team_id"?: string; "user_map"?: Record<string, string> };
+export type SlackConfig = { "notify"?: boolean; "team_id"?: string; "user_map"?: Record<string, string>; "source_person_map"?: Record<string, string> };

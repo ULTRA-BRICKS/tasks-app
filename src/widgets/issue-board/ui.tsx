@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useState, type ComponentProps, type CSSProperties, type ReactNode } from 'react';
 import {
   DndContext,
   PointerSensor,
@@ -15,11 +15,19 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Plus } from 'lucide-react';
 import type { Issue, Status } from '@tickets/contracts';
 import { IssueCard, StatusIcon } from '@/entities/issue';
+import { useCatalog } from '@/entities/workspace';
+import { PersonChip } from '@/entities/workspace';
 import { useIssueUpdate, useIssueWriteBusy, useTaskActions } from '@/features/issue-edit';
+import { selectedPerson } from '@/shared/lib/people';
 import { ErrorState, Button } from '@/shared/ui';
 import { errorMessage } from '@/shared/api/client';
 /** The page's assignee control for one card (features/issue-edit IssueAssignee). */
 type AssigneeControl = (issue: Issue) => ReactNode;
+/** A board card whose assignee name and photo come from the shared person projection. */
+function BoardCard(props: Omit<ComponentProps<typeof IssueCard>, 'assignee'>) {
+  const { data: catalog } = useCatalog();
+  return <IssueCard {...props} assignee={selectedPerson(catalog, props.issue.assignee_id)} />;
+}
 function Draggable({
   issue,
   onOpen,
@@ -51,11 +59,14 @@ function Draggable({
       >
         <GripVertical size={13} />
       </button>
-      <IssueCard
+      <BoardCard
         issue={issue}
         onOpen={onOpen}
         actions={actions}
         assigneeControl={assigneeControl?.(issue)}
+        peekAssignee={
+          <PersonChip id={issue.assignee_id} name={issue.assignee_name} display="name" />
+        }
       />
     </div>
   );
@@ -173,7 +184,7 @@ export function IssueBoard({
         <DragOverlay>
           {active && (
             <div className="drag-preview">
-              <IssueCard issue={active} onOpen={() => {}} actions={[]} />
+              <BoardCard issue={active} onOpen={() => {}} actions={[]} />
             </div>
           )}
         </DragOverlay>

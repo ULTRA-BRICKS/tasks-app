@@ -8,7 +8,7 @@ Settled by the review quorum on 29 September 2026 (evidence outside Git: `~/xp/.
 
 - No `identity_aliases` table and no production migration. The canonical identity is the Tasks member account. Linear `source_people` rows stay aliases computed at read time.
 - The Ultra and Danny pairs found by the read-only inventory are cross-provider, same-email pairs (a member plus its Linear author). The acceptance criteria allow such pairs to share a presentation identity. The projection groups them (14 records present as 12 options), and no stored row changes.
-- Explicit verified links continue to come only from the Slack module `user_map`.
+- Explicit verified links come only from the Slack module mappings: `user_map` and, since UB-34, `source_person_map` ([SLACK-PROFILES.md](SLACK-PROFILES.md)).
 - A durable table becomes a question for the operator again only if a genuinely ambiguous match or a non-email verified binding appears.
 
 ## Inputs
@@ -16,11 +16,12 @@ Settled by the review quorum on 29 September 2026 (evidence outside Git: `~/xp/.
 - **Tasks members** — `users` joined with `memberships` of the workspace (provider `tasks`). They are accounts and always count as humans.
 - **Source people** — `source_people` rows (provider `linear`, later `slack`). They are attribution records; they never become accounts or memberships.
 - **Explicit verified bindings** — the Slack module `settings.user_map` (Slack user ID → member ID), written only by an administrator through `setIntegrationConfig`, which already rejects non-members. Slack source profiles use `source_id` `<Slack team ID>:<Slack user ID>`. A mapping becomes a binding only when the Slack module is enabled, the mapped member is a current member, and exactly one Slack source profile in the workspace carries that Slack user ID. The catalog exposes only the resulting pairs as `identity_bindings: [{ member_id, source_person_id, via: 'slack_user_map' }]`. Entries that fail a condition (`module_disabled`, `unknown_member`, `no_source_profile`, `ambiguous_source_profile` when the user ID appears under two Slack teams) are reported by the inventory and never applied.
+- **Imported-person bindings (UB-34)** — the Slack module `settings.source_person_map` (Slack user ID → imported non-Slack source person ID) binds a Slack profile to a person without a Tasks account under the same conditions, and is exposed as `{ person_id, source_person_id, via: 'slack_source_person_map' }`. Its refusal reason for a missing, Slack or foreign target is `unknown_person`. Saving refuses cross-workspace, missing, Slack and bot targets and ambiguous mappings; see [SLACK-PROFILES.md](SLACK-PROFILES.md#mappings).
 
 ## Grouping rules (in order)
 
 1. **Bots stay separate.** A profile is a bot when its provider says so (`bot: true`) or when it is a Linear profile on a reserved automation domain: `@oauthapp.linear.app` (OAuth applications such as Codex and Cursor) or `@linear.linear.app` (Linear's own system user). The catalog returns this flag on `source_people`. A bot never joins another identity, neither through a binding nor through email. A binding that touches a bot is refused and reported as `bot_binding`.
-2. **Explicit bindings first.** A valid binding joins the member and the bound source profile, whatever their emails. A source bound to two different members is `conflicting_binding`, and none of those bindings apply. A binding that names an unknown profile is `unresolved_binding` and does not apply.
+2. **Explicit bindings first.** A valid binding joins the member and the bound source profile, whatever their emails. A source bound to two different members is `conflicting_binding`, and none of those bindings apply. Two profiles of one provider bound to the same target (two Slack user IDs mapped to one member) are also `conflicting_binding`, and neither applies. A binding that names an unknown profile is `unresolved_binding` and does not apply.
 3. **Unambiguous cross-provider email only.** Emails are normalized by trimming and lower-casing only; dots and `+` suffixes are significant. All non-bot profiles that share a normalized email join one identity only when no provider appears in more than one of the identities being joined. Otherwise nothing in that email group merges by email, and a conflict is reported:
    - `same_provider_email` — two or more profiles of one provider share the email (for example two Linear users). This is a review conflict, never an automatic merge.
    - `ambiguous_email` — joining would put two identities of one provider into one person, for example a second Slack profile beside an explicitly bound one, or two Tasks accounts linked through a binding.
@@ -30,7 +31,7 @@ Settled by the review quorum on 29 September 2026 (evidence outside Git: `~/xp/.
 
 ## Presentation
 
-- The canonical ID is the Tasks member ID when the identity has one, otherwise the first profile's ID. The name comes from the Slack profile when present, otherwise from that identity. The avatar comes from Slack, then the identity, then any profile.
+- The canonical ID is the Tasks member ID when the identity has one, otherwise its first non-Slack profile's ID (for a Slack profile bound to an imported person: that person, or another imported profile grouped with it by email), otherwise the first profile's ID. The name comes from the Slack profile when present, otherwise from that identity. The avatar comes from Slack, then the identity, then any profile. `emails` lists every alias's normalized email, and pickers search `names` and `emails` as well as the shown name.
 - `aliases` keeps every original ID. Every legacy author, assignee, lead and owner ID resolves to its canonical person; assignment still writes through the existing authenticated, version-checked API.
 - **One person, one picker entry.** The assignee, project lead, initiative owner and task-list assignee filter pickers show each canonical person once. Profiles held apart by a conflict stay separate entries, labeled with their provider and "Needs review" so a user can see which record is which. Bots are labeled "Bot".
 - **Server-rendered names.** Task `assignee_name` (detail and list), comment `author_name` (including the response to a new comment), activity `actor_name` and the people named in imported Linear assignee changes use the same projection. The stored-name SQL remains only as the fallback for IDs the projection does not know, such as former members. The projection is loaded once per transaction; the catalog reuses it for `people`, `source_people`, `identity_bindings` and the counts.
@@ -45,7 +46,7 @@ Settled by the review quorum on 29 September 2026 (evidence outside Git: `~/xp/.
 
 ## Catalog exposure
 
-Every catalog reader, viewers included, receives `identity_bindings`, because pickers, lists and the People tab of every role render the same canonical people. The field is kept minimal: verified pairs only, and only the three fields `member_id`, `source_person_id` and `via`. It carries no Slack user ID, no unverified or refused mapping and no other module setting; the catalog test pins that exact shape. It does not widen exposure: before this change `catalog.modules[*].config` already returned the whole Slack `user_map` to every reader, and the canonical names the server renders reveal the same links. Restricting `modules[*].config` to administrators is follow-up UB-73; `identity_bindings` stays readable after it.
+Every catalog reader, viewers included, receives `identity_bindings`, because pickers, lists and the People tab of every role render the same canonical people. The field is kept minimal: verified pairs only, and only three fields each: `member_id` (or `person_id` for an imported-person binding), `source_person_id` and `via`. It carries no Slack user ID, no unverified or refused mapping and no other module setting; the catalog tests pin that exact shape. A verified pair that touches a bot profile is still listed: the projection is the one place that refuses it, as `bot_binding`, so the Identity review can show the administrator the mistaken mapping. It does not widen exposure: before this change `catalog.modules[*].config` already returned the whole Slack `user_map` to every reader, and the canonical names the server renders reveal the same links. Restricting `modules[*].config` to administrators is follow-up UB-73; `identity_bindings` stays readable after it.
 
 ## Inventory
 
@@ -76,5 +77,4 @@ Every catalog reader, viewers included, receives `identity_bindings`, because pi
 
 ## Out of scope
 
-- The Slack profile sync, Slack photos and `users:read` scopes belong to UB-34.
-- A bot flag supplied by Slack (`is_bot`) needs that sync. The projection already honors `bot: true` from any provider.
+- The Slack profile sync, Slack photos and the `users:read` scope are specified in [SLACK-PROFILES.md](SLACK-PROFILES.md) (UB-34). The sync flags Slack bots, and the projection honors `bot: true` from any provider.

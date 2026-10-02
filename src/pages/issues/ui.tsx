@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import type { Issue, IssueFilters, IssueCreate, Status, StatusCategory } from '@tickets/contracts';
 import { useIssues, IssueRow, StatusIcon, type IssueRowProps } from '@/entities/issue';
-import { useMe, useCatalog, useProjects, moduleEnabled } from '@/entities/workspace';
+import { useMe, useCatalog, useProjects, moduleEnabled, PersonChip } from '@/entities/workspace';
 import { CreateIssue } from '@/features/issue-create';
 import { usePreferences } from '@/features/preferences';
 import { useVisibleError } from '@/features/saved-copy';
@@ -554,11 +554,22 @@ export function IssuesPage({ reference }: { reference?: string } = {}) {
   );
 }
 /** A list row whose preview and context menus act on the current source version of the task. */
-function TaskListRow({ current, ...row }: Omit<IssueRowProps, 'actions'> & { current: Issue }) {
+function TaskListRow({
+  current,
+  ...row
+}: Omit<IssueRowProps, 'actions' | 'peekAssignee'> & { current: Issue }) {
   const actions = useTaskActions(current, {
     onOpen: row.onOpen,
     selected: row.selected,
     onSelect: row.canSelect ? row.onSelect : undefined,
   });
-  return <IssueRow {...row} actions={actions} />;
+  return (
+    <IssueRow
+      {...row}
+      actions={actions}
+      peekAssignee={
+        <PersonChip id={row.issue.assignee_id} name={row.issue.assignee_name} display="name" />
+      }
+    />
+  );
 }

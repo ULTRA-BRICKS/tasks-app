@@ -3,7 +3,12 @@ import { withLinear } from '../../packages/linear/handler.mjs';
 import { createDatabase, migrate } from '../../packages/db/index.mjs';
 import { bootstrap } from '../../packages/server/modules/identity/service.mjs';
 import { createApp } from '../../packages/server/app.mjs';
-export async function fixture(extra = {}, databaseOptions = { sqlitePath: ':memory:' }) {
+/** `appOptions` reaches createApp, e.g. an injected `slackFetch` or a capturing `logger`. */
+export async function fixture(
+  extra = {},
+  databaseOptions = { sqlitePath: ':memory:' },
+  appOptions = {},
+) {
   let cleanup = async () => {};
   if (process.env.TEST_DATABASE_URL && databaseOptions.sqlitePath === ':memory:') {
     const { Pool } = await import('pg');
@@ -41,7 +46,10 @@ export async function fixture(extra = {}, databaseOptions = { sqlitePath: ':memo
     NODE_ENV: 'test',
     ...extra,
   };
-  const app = withLinear(createApp({ db, env, storage, logger: { error: () => {} } }), { db, env });
+  const app = withLinear(
+    createApp({ db, env, storage, logger: { error: () => {} }, ...appOptions }),
+    { db, env },
+  );
   let session;
   async function request(method, path, data, options = {}) {
     const headers = {

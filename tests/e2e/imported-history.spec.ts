@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { browserHistoryFixture } from '../unit/activity-browser-fixture.mjs';
 import { targetId } from '../../packages/imports/linear-source.mjs';
+import { expectOneLine, lineTexts } from './activity-lines';
 
 test('imported history uses source names and readable events on desktop and mobile', async ({
   page,
@@ -44,19 +45,40 @@ test('imported history uses source names and readable events on desktop and mobi
   // Finish the current page's queries before reloading into another viewport in WebKit.
   await expect(activity).toContainText('Todo → Done');
   await page.waitForLoadState('networkidle');
-  for (const width of [1280, 393]) {
+  for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.reload();
     await expect(activity).toContainText('Todo → Done');
     // Linear history records that the description changed, never its text.
-    await expect(activity).toContainText('Linear history does not include the text');
+    await expect(activity).toContainText(
+      'edited the description (Linear history does not include the text)',
+    );
     await expect(activity).toContainText('No priority → Urgent');
-    await expect(activity).toContainText('added Imported fixture');
+    await expect(activity).toContainText('added label Imported fixture');
     await expect(activity).toContainText('Unavailable task → No parent');
     await expect(activity).toContainText('archived the task');
     await expect(activity).not.toContainText(/\bissues?\b/i);
     await expect(activity).not.toContainText('linear_imported_change');
+    await expect(activity).not.toContainText('updated the task');
     await expect(activity).not.toContainText(done);
+    // UB-100: one imported change is one line; a multi-field event is one line per field.
+    const entries = activity.getByTestId('activity-entry');
+    const status = entries.filter({ hasText: 'Todo → Done' });
+    expect(await lineTexts(status)).toEqual([
+      expect.stringMatching(/^\S.* changed Status Todo → Done$/),
+    ]);
+    if (width === 1440) await expectOneLine(status.getByTestId('activity-line'));
+    const edited = await lineTexts(entries.filter({ hasText: 'No priority → Urgent' }));
+    expect(edited).toEqual([
+      expect.stringMatching(/ changed Priority No priority → Urgent$/),
+      // The server shortens very long values with an ellipsis.
+      expect.stringMatching(/^changed Title Old title → Long title (readable )+readable ?…?$/),
+      'added label Imported fixture',
+    ]);
+    expect(await lineTexts(entries.filter({ hasText: 'archived the task' }))).toEqual([
+      expect.stringMatching(/ archived the task$/),
+      'changed Parent task Unavailable task → No parent',
+    ]);
     await activity.scrollIntoViewIfNeeded();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       width,

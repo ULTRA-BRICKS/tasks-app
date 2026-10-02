@@ -58,6 +58,9 @@ export function PriorityIcon({ value }: { value: number }) {
     />
   );
 }
+/** The assignee's canonical person (docs/SLACK-PROFILES.md): the same name and photo as the
+ * assignee control. */
+export type IssueAssigneePerson = { name: string; avatar_url: string | null };
 export interface IssueRowProps {
   issue: Issue;
   status?: Status;
@@ -69,6 +72,8 @@ export interface IssueRowProps {
   canSelect?: boolean;
   updating?: boolean;
   assigneeControl?: ReactNode;
+  /** The assignee in the task preview while one is set, e.g. a person chip that opens their card. */
+  peekAssignee?: ReactNode;
 }
 export function IssueRow({
   issue,
@@ -80,6 +85,7 @@ export function IssueRow({
   canSelect = true,
   updating = false,
   assigneeControl,
+  peekAssignee,
 }: IssueRowProps) {
   return (
     <PressPreview
@@ -87,7 +93,7 @@ export function IssueRow({
       dialogLabel="Task preview"
       heading={issue.key}
       menuLabel={`Actions for ${issue.key}`}
-      content={<IssuePeek issue={issue} />}
+      content={<IssuePeek issue={issue} assignee={peekAssignee} />}
       actions={actions}
     >
       <div
@@ -150,14 +156,21 @@ export function IssueRow({
 export function IssueCard({
   issue,
   onOpen,
+  assignee,
   actions,
   assigneeControl,
+  peekAssignee,
 }: {
   issue: Issue;
   onOpen: () => void;
   actions: MenuAction[];
   /** Rendered beside the open button: a combobox cannot nest inside a button. */
   assigneeControl?: ReactNode;
+  /** As on `IssueRow`: the assignee in the task preview while one is set. */
+  peekAssignee?: ReactNode;
+  /** Name and photo of the assignee's canonical person for the avatar shown without an
+   * assignee control, such as on a dragged card; the issue's `assignee_name` without it. */
+  assignee?: IssueAssigneePerson | null;
 }) {
   return (
     <PressPreview
@@ -165,7 +178,7 @@ export function IssueCard({
       dialogLabel="Task preview"
       heading={issue.key}
       menuLabel={`Actions for ${issue.key}`}
-      content={<IssuePeek issue={issue} />}
+      content={<IssuePeek issue={issue} assignee={peekAssignee} />}
       actions={actions}
     >
       <div className="issue-card">
@@ -191,7 +204,9 @@ export function IssueCard({
           </span>
         </button>
         <span className="card-assignee">
-          {assigneeControl ?? <Avatar name={issue.assignee_name} />}
+          {assigneeControl ?? (
+            <Avatar name={assignee?.name ?? issue.assignee_name} src={assignee?.avatar_url} />
+          )}
         </span>
       </div>
     </PressPreview>
@@ -199,7 +214,7 @@ export function IssueCard({
 }
 
 /** Content first: title, compact properties, the whole description and attachments. */
-function IssuePeek({ issue }: { issue: Issue }) {
+function IssuePeek({ issue, assignee }: { issue: Issue; assignee?: ReactNode }) {
   const details = useIssue(issue.id);
   return (
     <>
@@ -214,8 +229,14 @@ function IssuePeek({ issue }: { issue: Issue }) {
           {priorities[issue.priority]?.label}
         </span>
         <span className="peek-chip">
-          <Avatar name={issue.assignee_name} />
-          {issue.assignee_name || 'Unassigned'}
+          {issue.assignee_id && assignee ? (
+            assignee
+          ) : (
+            <>
+              <Avatar name={issue.assignee_name} />
+              {issue.assignee_name || 'Unassigned'}
+            </>
+          )}
         </span>
         {issue.labels.map((l) => (
           <span className="label-pill" key={l.id}>
