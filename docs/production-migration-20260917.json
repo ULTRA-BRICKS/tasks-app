@@ -1,0 +1,11 @@
+{
+  "status": "prepared_and_tested_not_applied",
+  "migration_id": "62866ad1-4002-483b-a4c7-d6ebd4d9618b",
+  "migration_sql_file": "docs/production-migration-20260917.sql",
+  "database_name": "tickets",
+  "project_id": "autumn-brook-27632436",
+  "temporary_branch_id": "br-divine-firefly-b18g8smq",
+  "parent_branch_id": "br-sparkling-morning-b1bs7tl5",
+  "required_confirmation": "Apply schema migrations 5-7 to production; retain links and explicit missing-source status for 27 upstream 404 files, without creating any login account or changing existing account credentials.",
+  "verification": "Eight read-only migration assertions passed; users=1, memberships=1, original owner retained, native issue/project rows unchanged, new tables empty. Do not call complete_database_migration before the operator confirms."
+}

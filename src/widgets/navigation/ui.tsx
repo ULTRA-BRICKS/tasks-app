@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
+  Star,
   Inbox,
   FileText,
   Flag,
@@ -18,7 +19,14 @@ import {
   Ellipsis,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCatalog, useMe, useViews, useNotifications, moduleEnabled } from '@/entities/workspace';
+import {
+  useCatalog,
+  useMe,
+  useViews,
+  useFavorites,
+  useNotifications,
+  moduleEnabled,
+} from '@/entities/workspace';
 import { usePreferences } from '@/features/preferences';
 import { Avatar, Button, Modal } from '@/shared/ui';
 import { api } from '@/shared/api/client';
@@ -26,6 +34,7 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
   const { data: catalog } = useCatalog(),
     { data: me } = useMe(),
     views = useViews(moduleEnabled(catalog, 'views')),
+    favorites = useFavorites(moduleEnabled(catalog, 'views')),
     notifications = useNotifications(moduleEnabled(catalog, 'notifications')),
     client = useQueryClient();
   const prefs = usePreferences(),
@@ -159,6 +168,28 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
         ))}
         {moduleEnabled(catalog, 'views') && (
           <>
+            {!!favorites.data?.length && (
+              <>
+                <div className="nav-section-label">Favorites</div>
+                {favorites.data.map((favorite) => (
+                  <button
+                    key={favorite.id}
+                    type="button"
+                    className="nav-item"
+                    onClick={() => {
+                      close();
+                      void navigate(favorite.href);
+                    }}
+                  >
+                    <Star size={15} />
+                    <span>{favorite.title}</span>
+                  </button>
+                ))}
+              </>
+            )}
+            {favorites.isError && (
+              <output className="nav-empty">Favorites could not be loaded.</output>
+            )}
             <div className="nav-section-label">Saved views</div>
             {views.data?.map((v) => (
               <button

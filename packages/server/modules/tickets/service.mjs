@@ -408,6 +408,24 @@ export async function listIssues(
       where.push(`i.${field}=?`);
       args.push(filters[field]);
     }
+  for (const [list, column] of [
+    ['project_ids', 'project_id'],
+    ['status_ids', 'status_id'],
+  ]) {
+    if (Object.hasOwn(filters, list)) {
+      const values = filters[list];
+      assert(
+        Array.isArray(values) && values.length <= 100,
+        422,
+        'INVALID_FILTER',
+        'Invalid identifier list',
+      );
+      where.push(
+        values.length ? 'i.' + column + ' IN (' + values.map(() => '?').join(',') + ')' : '1=0',
+      );
+      args.push(...values);
+    }
+  }
   if (filters.assignee_id) {
     if (filters.assignee_id === 'unassigned')
       where.push('i.assignee_id IS NULL AND i.assignee_source_id IS NULL');

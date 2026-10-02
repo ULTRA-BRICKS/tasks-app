@@ -82,6 +82,8 @@ export function IssuesPage() {
       const v = params.get(key);
       if (v) f[key] = v;
     }
+    for (const key of ['project_ids', 'status_ids'] as const)
+      if (params.has(key)) f[key] = params.get(key) ? params.get(key)!.split(',') : [];
     if (params.has('priority')) f.priority = Number(params.get('priority'));
     if (params.has('category')) f.category = params.get('category') as StatusCategory;
     if (params.get('kind') === 'epic') f.kind = 'epic';

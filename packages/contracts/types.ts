@@ -147,6 +147,8 @@ export interface IssueDetail extends Issue {
   subscribed: boolean;
 }
 export interface IssueFilters {
+  project_ids?: Id[];
+  status_ids?: Id[];
   q?: string;
   team_id?: Id;
   status_id?: Id;
@@ -193,6 +195,22 @@ export interface Milestone {
   project_id: Id;
   name: string;
   target_date: DateOnly | null;
+}
+export interface Favorite {
+  id: Id;
+  target_type:
+    | 'issue'
+    | 'project'
+    | 'document'
+    | 'initiative'
+    | 'cycle'
+    | 'customView'
+    | 'label'
+    | 'team';
+  target_id: Id;
+  sort_order: number;
+  title: string;
+  href: string;
 }
 export interface SavedView {
   id: Id;

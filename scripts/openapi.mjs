@@ -25,6 +25,9 @@ export function toType(schema) {
   throw new Error('Unrecognized request schema');
 }
 const operations = [
+  ['/v1/favorites', 'get', null, 'List personal favorites', 'read'],
+  ['/v1/favorites', 'post', 'Favorite', 'Favorite a workspace object', 'write'],
+  ['/v1/favorites/{id}', 'delete', null, 'Remove a personal favorite', 'write'],
   ['/v1/workspace/policy', 'get', null, 'Read workspace invitation-domain policy', 'admin'],
   [
     '/v1/workspace/policy',

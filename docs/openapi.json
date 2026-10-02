@@ -19,6 +19,165 @@
     }
   ],
   "paths": {
+    "/v1/favorites": {
+      "get": {
+        "summary": "List personal favorites",
+        "operationId": "get_v1_favorites",
+        "x-required-scope": "read",
+        "tags": [
+          "favorites"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "parameters": []
+      },
+      "post": {
+        "summary": "Favorite a workspace object",
+        "operationId": "post_v1_favorites",
+        "x-required-scope": "write",
+        "tags": [
+          "favorites"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "201": {
+            "description": "Created"
+          },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Favorite"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/favorites/{id}": {
+      "delete": {
+        "summary": "Remove a personal favorite",
+        "operationId": "delete_v1_favorites__id_",
+        "x-required-scope": "write",
+        "tags": [
+          "favorites"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation. Creates usually return 201; queued GitHub export and webhook requests return 202."
+          },
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Resource identifier"
+          }
+        ]
+      }
+    },
     "/v1/workspace/policy": {
       "get": {
         "summary": "Read workspace invitation-domain policy",
@@ -2176,6 +2335,32 @@
           }
         },
         "parameters": [
+          {
+            "name": "project_ids",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "maxItems": 100,
+              "uniqueItems": true
+            }
+          },
+          {
+            "name": "status_ids",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "maxItems": 100,
+              "uniqueItems": true
+            }
+          },
           {
             "name": "q",
             "in": "query",
@@ -5689,6 +5874,33 @@
         ],
         "additionalProperties": false
       },
+      "Favorite": {
+        "type": "object",
+        "properties": {
+          "target_type": {
+            "type": "string",
+            "enum": [
+              "issue",
+              "project",
+              "document",
+              "initiative",
+              "cycle",
+              "customView",
+              "label",
+              "team"
+            ]
+          },
+          "target_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "target_type",
+          "target_id"
+        ],
+        "additionalProperties": false
+      },
       "View": {
         "type": "object",
         "properties": {
@@ -5700,6 +5912,24 @@
           "filters": {
             "type": "object",
             "properties": {
+              "project_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "maxItems": 100,
+                "uniqueItems": true
+              },
+              "status_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "maxItems": 100,
+                "uniqueItems": true
+              },
               "q": {
                 "type": "string",
                 "minLength": 0,

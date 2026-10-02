@@ -1,4 +1,5 @@
 import { collections, digest, targetId, uuid } from './linear-source.mjs';
+import { navigationRows } from './linear-navigation.mjs';
 const stateKinds = new Set([
   'triage',
   'backlog',
@@ -23,7 +24,11 @@ const initiativeStatus = {
   Canceled: 'canceled',
 };
 // Pure conversion only: this function neither connects to a database nor grants access.
-export function projectSnapshot(snapshot, actor, { labelTargets = {} } = {}) {
+export function projectSnapshot(
+  snapshot,
+  actor,
+  { labelTargets = {}, sourceOwnerTargets = {} } = {},
+) {
   const { data, manifest } = snapshot;
   const workspace = actor.workspace_id,
     source = manifest.organization.id;
@@ -287,8 +292,11 @@ export function projectSnapshot(snapshot, actor, { labelTargets = {} } = {}) {
       ),
     });
   }
+  const navigation = navigationRows(data, actor, { ref, id, sourceOwnerTargets });
+  rows.push(...navigation.rows);
+  warnings.push(...navigation.warnings);
   for (const collection of collections)
-    for (const record of data[collection])
+    for (const record of data[collection] ?? [])
       mappings.push({
         collection,
         source_id: record.id,

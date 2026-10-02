@@ -17,6 +17,8 @@ const stringArray = (items = uuid, maxItems = 100) => ({
   uniqueItems: true,
 });
 export const filters = object({
+  project_ids: stringArray(),
+  status_ids: stringArray(),
   q: text(200),
   team_id: uuid,
   status_id: uuid,
@@ -254,6 +256,22 @@ export const schemas = {
     'start_date',
     'end_date',
   ]),
+  Favorite: object(
+    {
+      target_type: enumeration(
+        'issue',
+        'project',
+        'document',
+        'initiative',
+        'cycle',
+        'customView',
+        'label',
+        'team',
+      ),
+      target_id: uuid,
+    },
+    ['target_type', 'target_id'],
+  ),
   View: object({ name: text(100, 1), filters, shared: { type: 'boolean' } }, ['name', 'filters']),
   Attachment: object(
     {

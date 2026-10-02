@@ -22,7 +22,10 @@ export const collections = Object.freeze([
   'initiativeUpdates',
   'teamMembers',
   'issueHistory',
+  'customViews',
+  'favorites',
 ]);
+const optionalCollections = new Set(['customViews', 'favorites']);
 export const uuid = (value) =>
   typeof value === 'string' &&
   /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(value);
@@ -66,9 +69,10 @@ export function validateManifest(manifest) {
     !manifest.counts ||
     collections.some(
       (c) =>
-        !Number.isSafeInteger(manifest.counts[c]) ||
-        manifest.counts[c] < 0 ||
-        manifest.counts[c] > 100000,
+        !(optionalCollections.has(c) && manifest.counts[c] === undefined) &&
+        (!Number.isSafeInteger(manifest.counts[c]) ||
+          manifest.counts[c] < 0 ||
+          manifest.counts[c] > 100000),
     )
   )
     throw new Error('Missing or invalid collection counts');
@@ -90,6 +94,11 @@ export async function loadSnapshot(directory) {
     hashes = {};
   let bytes = 0;
   for (const name of collections) {
+    if (optionalCollections.has(name) && manifest.counts[name] === undefined) {
+      data[name] = [];
+      hashes[name] = digest([]);
+      continue;
+    }
     const file = await realpath(resolve(root, name + '.json'));
     if (!file.startsWith(root + sep)) throw new Error('Snapshot path escapes its directory');
     const info = await stat(file);

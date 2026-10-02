@@ -1,5 +1,6 @@
 import * as importFiles from './modules/linear-import/files.mjs';
 import * as knowledge from './modules/knowledge/service.mjs';
+import * as favorites from './modules/favorites/service.mjs';
 import * as linearImport from './modules/linear-import/service.mjs';
 import { listSourcePeople } from './core/source-people.mjs';
 import { PRODUCT_NAME, PRODUCT_VERSION } from '../config/product.mjs';
@@ -528,7 +529,11 @@ export function createApp({
                 : v
             : k === 'priority'
               ? Number(v)
-              : v;
+              : ['project_ids', 'status_ids'].includes(k)
+                ? v
+                  ? v.split(',')
+                  : []
+                : v;
         }
         validate(filter, filterSchema);
         response = json(
@@ -721,13 +726,22 @@ export function createApp({
           ),
           201,
         );
+      } else if (path === '/api/v1/favorites' && method === 'GET') {
+        response = json(await run(true, (tx, a) => favorites.listFavorites(tx, a)));
+      } else if (path === '/api/v1/favorites' && method === 'POST') {
+        const input = await body(request, schemas.Favorite);
+        response = json(await run(false, (tx, a) => favorites.createFavorite(tx, a, input)), 201);
+      } else if (/^\/api\/v1\/favorites\/[^/]+$/.test(path) && method === 'DELETE') {
+        response = json(
+          await run(false, (tx, a) => favorites.deleteFavorite(tx, a, path.split('/').at(-1))),
+        );
       } else if (path === '/api/v1/views' && method === 'GET')
         response = json(
           await run(true, async (tx, a) => {
             await assertModule(tx, a.workspace_id, 'views');
             return (
               await tx.all(
-                'SELECT * FROM saved_views WHERE workspace_id=? AND (owner_id=? OR shared=1) ORDER BY name',
+                'SELECT * FROM saved_views WHERE workspace_id=? AND (owner_id=? OR shared=1) AND archived_at IS NULL ORDER BY name',
                 [a.workspace_id, a.id],
               )
             ).map((v) => ({ ...v, filters: JSON.parse(v.filters) }));

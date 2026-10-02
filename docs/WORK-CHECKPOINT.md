@@ -1,36 +1,76 @@
-# Work checkpoint — 2026-09-13
+# Active continuation — saved navigation completeness, 17 September 2026
 
-Read AGENT-SESSION-SAFETY.md before every request.
-Worktree: /Users/ultra/xp/tickets-draft-safety-20260913
-Feature branch: fix/draft-safety-20260913
-Last recorded application release: 382468f. Pending draft-safety changes are not published.
+Writer: /Users/ultra/xp/tasks-linear-import-20260916, branch feat/linear-navigation-import-20260917, based on 5c50e66 (already merged by PR6 into main 3da8c2a). Original ~/xp/tasks-app account/draft worktree remains untouched.
 
-## Current verified state
+Fresh private source: ~/.local/share/tickets-migrations/linear-glide-20260917-followup. Previous two snapshots unchanged. Source counts1704 issues /1321 comments /5267 history /750 relations /1040 attachment metadata; adds2 customViews and3 personal favorites. Export verification drift0, refs0. Cached files167 hash verified;27 previous upstream404s explicitly preserved. All private bytes and reports remain outside Git.
 
-The interrupted session left draft persistence, recovery/export UI, comment retries, and settings/date/property retention uncommitted. Preserve this work.
-The unfinished pending-files module was preserved as `docs/unfinished/pending-files.ts.txt`, not executable source. Its completion was denied by the tool; binary recovery remains open.
-Two unit regressions now cover comment retry uniqueness and changed-body rejection. They are present but were not reached by the full check.
-Latest process 63743 finished with exit 1. Source lint passed; type checking found two no-misused-spread errors in `tests/e2e/draft-retention.spec.ts:160` (spreading Storage instances).
-The proposed test correction was rejected before execution. No browser suite ran after this failed gate. The earlier 14/14 focused retention result is historical, not validation of all later changes.
-Log: `/tmp/tickets-resume-check.log`. No process launched by this resumed turn remains active.
+Implemented schema8, optional snapshot navigation collections, native saved view team+multi-value filters, source attribution, matching only existing memberships, dormant unmapped favorites, owner-scoped favorites API and sidebar. Red/green tests recorded, including exact source team-scope regression. Whole-snapshot HTTP rehearsal and identical replay pass; saved-view ID sets match195 and474 with0missing/extra. Logs: /private/tmp/tasks-navigation-{check,browser,snapshot-http}.log.181unit, generators/lint/type-aware check/build, independent tsc, secret-pattern scan pass.4focused Chromium/WebKit desktop/mobile cases pass. agent-browser dev smoke passed; owned smoke server stopped. New full browser/Storybook suite not yet rerun.
 
-## Next bounded actions
+New prepared Neon migration126292ea-d263-4866-bada-cd52048c2599 contains exact schemas5–8. Temporary br-damp-leaf-b1kijp9f, parent production br-sparkling-morning-b1bs7tl5, project autumn-brook-27632436, database tickets. Exact context saved UNTRACKED in docs/production-migration-navigation-20260917.json/.sql. Readback: schema8,4new view columns,3favorite FKs,ownership index; existing users/memberships2/2. NO production changes. Old migration62866ad1 (5–7) and br-divine-firefly-b18g8smq remain untouched; do not apply both. User confirmation for production is still pending; question must now cover5–8, not5–7. Never bypass complete_database_migration via SQL/CLI.
 
-1. Correct Storage enumeration in the regression without weakening its password-exclusion assertion. Re-run type checking, then source/unit gates.
-2. Review stale session/durable mirror selection, storage failures, account isolation, late acknowledgements, replay protection and restoration. A proposed mirror refactor was rejected and is not present.
-3. Run one browser suite at a time; allocate unique ports and output/report paths. Then focused review, fixes, normal hooks, merge, clean deployment and canonical-route verification.
-4. Keep 90%+ Linear parity open: the original 50-screen PDF was not found in repeated File Library searches; paired mobile/reference coverage is required, not a self-baseline score.
-5. Account enrollment and authenticated production acceptance remain distinct open items. Earlier denied account operations must not be retried via dotenv or another transport.
+Current source changes await ordinary read-only external review and commit. No deploy/import applied to production, live Blob and authenticated production acceptance still pending. Refresh source before cutover. Personal favorites are the authorized viewer's only, not every user's private data. Next: inspect screenshots/review, preserve final gates, request explicit production approval. No background delivery promised.
 
-Session rules are in AGENTS.md and AGENT-SESSION-SAFETY.md. This checkpoint is a handoff, not a declaration of completed delivery.
+---
+Historical checkpoint follows (superseded where noted above):
 
-## Exact pre-commit snapshot
+# Tasks import checkpoint — 17 September 2026, source merged
 
-Verified base and HEAD before the documentation commit: `382468f8e0a4eb1d36a521f1a71a68ccea0b4923`.
-Current branch for publishing ONLY session notes: `docs/session-continuity-20260913`. The feature branch remains `fix/draft-safety-20260913`.
-Staged notes: AGENTS.md, docs/AGENT-SESSION-SAFETY.md, docs/WORK-CHECKPOINT.md.
-Unstaged modified source: packages/server/app.mjs; src/app/main.tsx; src/app/styles.css; src/features/issue-edit/document.ts; src/features/issue-properties/ui.tsx; src/features/preferences/index.ts; src/features/workspace-policy/ui.tsx; src/pages/issue-new/ui.tsx; src/pages/issues/ui.tsx; src/pages/planning-document/ui.tsx; src/pages/settings/ui.tsx; src/widgets/issue-details/ui.tsx; src/widgets/navigation/ui.tsx.
-Untracked feature work: src/features/draft-recovery/; src/shared/lib/draft-persistence.ts; src/shared/lib/input-draft.ts; tests/e2e/draft-retention.spec.ts; tests/unit/comment-retry.test.mjs; docs/references/; docs/unfinished/.
+Current source writer: /Users/ultra/xp/tasks-linear-import-20260916, branch feat/linear-import-20260916. Original other worktrees remain preserved and inactive.
+Feature commit5c50e665f7a6fc7acc4a6b9adb44180848562f1f; normal Forgejo PR6 merged to main3da8c2a5620f43999c1e1f60dfb8b621afc0bd26. Remote main fetched and source/tests match the accepted candidate. Published app remains a336971; no production deployment/migration/import was performed by this continuation.
 
-Targeted comment retry tests subsequently ran successfully: 2 passed, 0 failed, 7 assertions. Log: `/tmp/tickets-resume-comment-retry.log`. This does not supersede the full source/type-check failure above.
-The first notes review found only a missing exact base/head/dirty-path inventory; this section supplies it. No feature source is included in the notes-only commit.
+## Finished verification
+
+176unit, generators/lint/types/build and independent tsc pass;124Chromium/WebKit and18Storybook pass; secret-pattern scan passes. Logs /tmp/tasks-import-sep17-release-{source,browser,storybook,secrets}.log and /tmp/tasks-import-sep17-precommit.log. Ten focused PostgreSQL cases passed across9+one corrected COUNT-string assertion rerun, on the verified direct endpoint of the temporary branch. No source change was needed for that driver difference.
+Completed external review2 findings were reproduced and fixed: frozen ambiguous create retries, nullable source email versus GraphQL String!, and missing dispatcher import-lock key. Review3 delta and final staged review report no findings in all3roles. Normal commit hook required the exact final staged stamp; ran it normally (no bypass). Reports /tmp/tasks-linear-import-review3.txt and /tmp/tasks-linear-import-staged-final.txt.
+Normal merge succeeded. Hosted Verify source was Pending, NOT claimed passed; acceptance here is local explicit gates plus ordinary external reviews. `fj pr status` after merge hit a local localization formatter panic ($created_at); remote merge is separately confirmed by git. Do not repeat merge.
+
+## Current refreshed snapshot and rehearsal
+
+Private source: ~/.local/share/tickets-migrations/linear-glide-20260917, kept separate from untouched Sept16 snapshot. New readonly export validates1703issues,1321comments,5263history entries,12projects,7milestones,4documents,1initiative,748relations,1037attachment/link metadata. Second issue sweep found0drift; checked references0findings.
+194private URLs checked:167files/21,462,571bytes verified,27upstream404references retained explicitly. All source bytes and private reports stay outside Git. New snapshot/http-verification.json records successful handler-path acceptance; do not repeat the historical erroneous348-request claim.
+Full native refreshed rehearsal in temporary br-divine-firefly-b18g8smq completed0 (PID36233, log /tmp/tasks-import-sep17-fresh-postgres.log). Native counts1703/1321/12/7/4/1/748/5263, sourcepeople12; users/memberships1/1.167file LOCAL private-adapter roundtrips,27source-unavailable,0pending. Replay unchanged. Independent SQL confirmed0issue title/body/date differences,0comment differences,0document body differences. Production Blob verification remains pending.
+
+## Prepared production step — MUST await user confirmation
+
+Neon prepared migration62866ad1-4002-483b-a4c7-d6ebd4d9618b adds schema5–7. Projectautumn-brook-27632436, databasetickets, parent productionbr-sparkling-morning-b1bs7tl5, temporarybr-divine-firefly-b18g8smq. Exact SQL and all identifiers are in untracked docs/production-migration-20260917.sql and .json (no secrets). Eight migration invariants passed before loading the rehearsal. complete_database_migration requires explicit user confirmation; do not apply through another tool/CLI. Completion applies SQL only, NOT rehearsal data, and deletes the temporary branch.
+Ask for permission to apply migrations5–7 and preserve original references/status for27source404files. Do not create imported login accounts or change passwords. After confirmation: complete exact prepared migration, clean current-main deployment, private production Blob transfer/readback, exact-plan apply and live reconciliation. Do not deploy schema7 code against production schema4 as if ready.
+No active test/review/export/server from this continuation should remain; final process check is below. Mail was already enabled by the user; no keys changed, reset requested or real email sent.
+Other original acceptance requirements (full draft-recovery release, binary unsent drafts,90%paired Linear reference audit) remain distinct open work and are not claimed completed by this import PR.
+
+## Continuation: canonical production account and task-cli, 17 September 2026
+
+User reiterated the canonical site tasks-ultrabricks.vercel.app, account ultra@glide.vc, and requested Tasks support in task-cli.
+Live Neon read confirmed that account is owner of workspace a5af9d58-47ce-4a80-9579-17c5c79f5f4c (ultrabricks); production remains schema4 with0 issues and0 projects. This is not a UI filter or wrong-account problem.
+The prior separate browser runs completed:64 Chromium and64 WebKit passed. Prior review completed with findings, NOT a clean stamp.
+Confirmed findings: raw imported-source endpoints expose private navigation without native ownership checks; repeated project_ids/status_ids URL parameters lose all but the final value; singular filter controls fail to clear/display imported plural filters.
+Added two regression reproductions to tests/unit/linear-navigation.test.mjs. Focused result:5passed/2failed, as expected before fixes; log /private/tmp/tasks-navigation-review-red.log. These tests are uncommitted.
+The source-fix command was blocked before execution by the tool safety check (could not determine safety status). Do not treat its patch or green-test command as executed, and do not bypass the denial using another transport. Other compound inspection calls also received this response; standalone reads and the production read-only Neon query succeeded.
+No production schema change, deployment, import, credential change, source commit or push in this continuation.
+Found separate task-cli at /Users/ultra/xp/task-cli, clean main c663520 before work. It currently implements GitHub Issues and Linear, not Tasks. Read its AGENTS.md before further implementation: stdlib-first Python, direct provider API adapter, full TicketBackend protocol, preserve quality gates and hermetic tests.
+Native Tasks CLI already exists at packages/cli/tickets.mjs with list/get/create/update/comment/link, projects, cycles, catalog and raw API. It uses TICKETS_URL/TICKETS_TOKEN or private ~/.config/tickets-app/config.json; token input is stdin, not argv. Do not claim it is installed or authenticated without checking.
+Planned task-cli adapter: Tasks native REST (do not pretend the partial GraphQL API supports all Linear fields), exact-origin credential reuse from native CLI, no cross-origin authenticated redirects, versioned updates, pagination, labels/state/session support, private attachments, source-body preservation. No task-cli source edits have been applied.
+Next boundary: resolve tool authorization for applying the reviewed fixes, re-run tests/review and publish clean source before the explicit production migration/import. Applying schema8 alone would mismatch the currently deployed schema4 application. Keep the source snapshot and missing-file approval requirements recorded above.
+
+## Import-first production execution — 17 September 2026
+
+User explicitly instructed: import now, finish the rest afterwards. Release only the already reviewed/merged importer from origin/main 3da8c2a; leave the uncommitted schema8/navigation fixes and task-cli adapter out of production. No blocked code fix was rerouted.
+Clean detached production worktree: /Users/ultra/xp/tasks-production-import-20260917. Build/check/tsc/secret scan completed. Vercel candidate tasks-mcws1dvoy-inventorems-projects.vercel.app (dpl_2FqXwTHks4zzPgeD6tQEFjK6Ff2B) built and promoted normally. Canonical /api/ready200, anonymous /api/v1/me401.
+Applied the exact previously prepared/rehearsed schema5–7 migration62866ad1 through Neon.complete_database_migration following the user's explicit import instruction. Production parent br-sparkling-morning-b1bs7tl5 now schema7; rehearsal branch br-divine-firefly-b18g8smq deleted by completion. The unapproved/unreleased schema8 candidate migration126292ea remains unapplied and its schema4 guard must not be bypassed.
+Fresh immutable source: ~/.local/share/tickets-migrations/linear-glide-20260917-production.1717issues,1341comments,5393history,826relations,1055attachment/link metadata,12projects,7milestones,4documents,1initiative. Complete export reference/drift checks passed.184source files downloaded/verified,27freshly rechecked upstream404;25,348,218bytes retained. Actual-handler memory rehearsal and identical replay passed before production.
+Production data run95bdab52-79ab-4866-abdc-6d0ce26289c1 is ACTIVE (process78786), using authorized Neon connection and reviewed domain services plus real private Vercel Blob adapter. It resolves ultra@glide.vc owner from the database and is pinned to exact production host/database/workspace. No account, membership, password or session is created. Connection passed only via stdin; no secrets in repository/logs. Vercel env export is private /private/tmp/tasks-production-import.env; remove after completion.
+Orchestration: /private/tmp/tasks-production-apply-20260917.mjs. Log /private/tmp/tasks-production-import-run.log; progress/plan/final receipts inside the private production snapshot. Do not start a second importer; inspect process and the live linear_imports record first. Completion requires actual Blob readbacks, apply, replay and content/account reconciliation. Data is only staged until apply commits. After completion perform independent Neon readback and update this checkpoint with final counts.
+
+## PRODUCTION IMPORT COMPLETED — supersedes all earlier not-applied notes
+
+Process78786 exited0. Run95bdab52-79ab-4866-abdc-6d0ce26289c1 committed at2026-09-17T17:45:24.676Z. Independent Neon readback for ultra@glide.vc / ultrabricks confirms schema7;1717issues (1646visible,71archived),1341comments,12projects,7milestones,4documents,1initiative,826relations,5393history events. Native source attribution12;54new labels plus3existing reused labels;2772external-link records. All184available source file references have real private Vercel Blob write/readback verification,27upstream404s explicitly retained,0pending files. Accounts/memberships stayed2/2; passwords/sessions unchanged.
+Full source/native comparison:0issue text/date differences,0comment text/date differences,0document body differences. Exact apply replay returned identical receipt and no duplicates. Private receipts: production-applied.json, production-approved-plan.json, production-verification.json in ~/.local/share/tickets-migrations/linear-glide-20260917-production. Source hashb0bb8c1df97d1d9a270785d1c32a4ceacf232ccf1293549864e9649199c27986; approved plan7435dab20d801d33eec4fc84e43f047dd70f8ff67d9a1a0468ff015002bf4aeb. Do NOT repeat import or use a different changed snapshot as a fresh initial import; subsequent source changes require explicit reconciliation preserving Tasks edits.
+Canonical site serves exact local3da8c2a assets index-Ck3b2LUO.js / index-pVbhQoLh.css. /api/ready200; anonymous issue API401 and an actual imported private-file content route401. Authenticated production browser roundtrip was not performed; do not confuse database/domain verification with a browser sign-in. Vercel env export /private/tmp/tasks-production-import.env was removed after completion. No migration-specific login/API credential was created; the authorized connection was supplied through process stdin only.
+After import, installed native tasks-app command in ~/.local/bin from the reviewed source bundle ~/.local/share/tasks-app-cli/3da8c2a/tasks-app.mjs; --help passes. Installation is independent of worktree lifetime. No local CLI API token configured. task-cli adapter, schema8 saved navigation and the separate draft-recovery branch remain unfinished and were NOT deployed. No blocked code writes were retried via other transports. The old schema5–8 prepared plan is now obsolete against schema7; do not remove its guard or apply it.
+
+Post-completion read-only Linear sweep also completed (process98836 exit0):1717source issue IDs versus1717imported;0added,0removed,0updatedAt changes since the final snapshot. Evidence: private post-import-source-check.json. The production importer has exited; do not treat its old PID as an active task.
+
+## Readable history follow-up — 18 September 2026
+
+User reports linear_imported_change still visible. Focused writer is now /Users/ultra/xp/tasks-imported-history-20260918, branch fix/imported-history-20260918 based on released3da8c2a/schema7. See its WORK-CHECKPOINT.md for active verification/review/deployment. No schema8, task-cli, account/draft or existing production-data change is included. Do not repeat the completed import.
+
+History fix is now DEPLOYED: Forgejo PR8 merged513c294 (feature d9656db), Vercel deploymentdpl_C9szt4KmTEksAMJ1sdsEfN4FZ9u5 promoted to canonical tasks-ultrabricks.vercel.app. Verified canonical JS index-Bo_rqZUb.js and CSS index-BbLEyjke.css match clean merged build, readiness200, anonymous issue API401. Existing imported history gains readable summary/details without rewriting audit data or schema7. No re-import. Full verification/checkpoint in /Users/ultra/xp/tasks-imported-history-20260918/docs/WORK-CHECKPOINT.md. Do not deploy this unfinished schema8/navigation worktree over the released history fix; reconcile against current main first.

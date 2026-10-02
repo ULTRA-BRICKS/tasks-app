@@ -28,6 +28,8 @@ const nativeTables = new Set([
   'documents',
   'comments',
   'activity',
+  'saved_views',
+  'favorites',
 ]);
 export async function getImport(tx, actor, key) {
   requirePermission(actor, 'admin');
@@ -157,7 +159,7 @@ async function projection(tx, actor, run) {
     manifest = JSON.parse(run.manifest);
   for (const record of stored) data[record.collection].push(JSON.parse(record.payload));
   assert(
-    collections.every((c) => data[c].length === manifest.counts[c]),
+    collections.every((c) => data[c].length === (manifest.counts[c] ?? 0)),
     409,
     'INCOMPLETE_SNAPSHOT',
     'All declared source collections must be staged before planning',
@@ -182,7 +184,22 @@ async function projection(tx, actor, run) {
         return target ? [[label.id, target]] : [];
       }),
     );
-    return projectSnapshot({ data, manifest }, { ...actor, id: run.created_by }, { labelTargets });
+    const members = await tx.all(
+      'SELECT u.id,u.email FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.workspace_id=?',
+      [actor.workspace_id],
+    );
+    const sourceOwnerTargets = {};
+    for (const person of data.users) {
+      const email = person.email?.trim().toLowerCase();
+      const matches = members.filter((m) => email && m.email.trim().toLowerCase() === email);
+      if (matches.length > 1) throw Error('Ambiguous source ownership');
+      if (matches.length === 1) sourceOwnerTargets[person.id] = matches[0].id;
+    }
+    return projectSnapshot(
+      { data, manifest },
+      { ...actor, id: run.created_by },
+      { labelTargets, sourceOwnerTargets },
+    );
   } catch (error) {
     assert(false, 422, 'UNREPRESENTABLE_SOURCE', error.message);
   }

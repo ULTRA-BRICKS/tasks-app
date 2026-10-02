@@ -2,7 +2,12 @@ import { parseArgs } from 'node:util';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fixture } from '../tests/unit/helpers.mjs';
-import { loadSnapshot, collections, canonical } from '../packages/imports/linear-source.mjs';
+import {
+  loadSnapshot,
+  collections,
+  canonical,
+  targetId,
+} from '../packages/imports/linear-source.mjs';
 const { values } = parseArgs({
   strict: true,
   options: { snapshot: { type: 'string' }, report: { type: 'string' } },
@@ -88,9 +93,69 @@ try {
   const catalog = await request('GET', '/api/v1/catalog');
   if (catalog.people.length !== 1 || catalog.source_people.length !== snapshot.data.users.length)
     throw new Error('Imported people altered access membership');
+  const navigation = [];
+  let membershipEvidence;
+  try {
+    membershipEvidence = JSON.parse(
+      await readFile(resolve(values.snapshot, 'view-membership-verification.json'), 'utf8'),
+    );
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  if (membershipEvidence) {
+    const views = await request('GET', '/api/v1/views');
+    for (const source of snapshot.data.customViews ?? []) {
+      if (source.archivedAt) continue;
+      const view = views.find(
+        (v) =>
+          v.id ===
+          targetId(
+            f.init.workspace_id,
+            snapshot.manifest.organization.id,
+            'customViews',
+            source.id,
+          ),
+      );
+      if (!view) throw Error('Expected imported saved view is missing');
+      const expected = membershipEvidence.memberships[source.id];
+      if (!Array.isArray(expected)) throw Error('Missing source view-membership evidence');
+      const wanted = new Set(
+        expected.map((key) =>
+          targetId(f.init.workspace_id, snapshot.manifest.organization.id, 'issues', key),
+        ),
+      );
+      const actual = new Set();
+      let cursor;
+      do {
+        const params = new URLSearchParams(
+          Object.entries(view.filters).map(([k, v]) => [k, String(v)]),
+        );
+        params.set('limit', '200');
+        if (cursor) params.set('cursor', cursor);
+        const page = await request('GET', '/api/v1/issues?' + params);
+        for (const issue of page.data) {
+          if (actual.has(issue.id)) throw Error('Duplicate issue in saved view pagination');
+          actual.add(issue.id);
+        }
+        if (page.next_cursor && page.next_cursor === cursor)
+          throw Error('Repeated saved view cursor');
+        cursor = page.next_cursor;
+      } while (cursor);
+      const missing = [...wanted].filter((key) => !actual.has(key)).length;
+      const extra = [...actual].filter((key) => !wanted.has(key)).length;
+      if (missing || extra) throw Error('Saved view membership differs from source: ' + source.id);
+      navigation.push({
+        sourceId: source.id,
+        expected: wanted.size,
+        actual: actual.size,
+        missing,
+        extra,
+      });
+    }
+  }
   const metadata = await f.db.transaction((tx) =>
     tx.one(
-      'SELECT (SELECT count(*) FROM issues) AS issues,(SELECT count(*) FROM comments) AS comments,(SELECT count(*) FROM activity) AS history,(SELECT count(*) FROM users) AS accounts',
+      'SELECT (SELECT count(*) FROM issues) AS issues,(SELECT count(*) FROM comments) AS comments,(SELECT count(*) FROM activity) AS history,(SELECT count(*) FROM users) AS accounts,(SELECT count(*) FROM saved_views) AS saved_views,(SELECT count(*) FROM favorites) AS favorites',
     ),
   );
   const report = {
@@ -102,6 +167,7 @@ try {
     sourceUnavailable: unavailable,
     counts: metadata,
     sourceCounts: snapshot.manifest.counts,
+    navigation,
     replayUnchanged: true,
     elapsedMs: Date.now() - started,
   };

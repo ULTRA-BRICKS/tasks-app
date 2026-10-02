@@ -7,6 +7,7 @@ import type {
   Milestone,
   Notification,
   SavedView,
+  Favorite,
 } from '@tickets/contracts';
 import { api } from '@/shared/api/client';
 export const useMe = () =>
@@ -34,6 +35,8 @@ export const useNotifications = (enabled = true) =>
     queryFn: () => api<Notification[]>('/v1/notifications'),
     enabled,
   });
+export const useFavorites = (enabled = true) =>
+  useQuery({ queryKey: ['favorites'], queryFn: () => api<Favorite[]>('/v1/favorites'), enabled });
 export const useViews = (enabled = true) =>
   useQuery({ queryKey: ['views'], queryFn: () => api<SavedView[]>('/v1/views'), enabled });
 export function moduleEnabled(catalog: Catalog | undefined, id: string) {
