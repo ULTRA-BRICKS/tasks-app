@@ -1,36 +1,19 @@
-# Work checkpoint — 2026-09-13
+# Tasks release checkpoint — 25 September 2026
 
-Read AGENT-SESSION-SAFETY.md before every request.
-Worktree: /Users/ultra/xp/tickets-draft-safety-20260913
-Feature branch: fix/draft-safety-20260913
-Last recorded application release: 382468f. Pending draft-safety changes are not published.
+Current worktree: ~/xp/tasks-mobile-cache-20260924; branch fix/login-autofill-20260924; HEAD/main0f9ffd06b9f39ad90c10c1b4cb4bf3a88b9687f5. Mac56f7ee32-74a8-4650-8009-e23b1328e602. This checkpoint is an unstaged handoff only; published runtime is clean. Untracked rig.yaml belongs to another workflow and is not staged. Read AGENT-SESSION-SAFETY.md before continuing.
 
-## Current verified state
+## Published and verified
 
-The interrupted session left draft persistence, recovery/export UI, comment retries, and settings/date/property retention uncommitted. Preserve this work.
-The unfinished pending-files module was preserved as `docs/unfinished/pending-files.ts.txt`, not executable source. Its completion was denied by the tool; binary recovery remains open.
-Two unit regressions now cover comment retry uniqueness and changed-body rejection. They are present but were not reached by the full check.
-Latest process 63743 finished with exit 1. Source lint passed; type checking found two no-misused-spread errors in `tests/e2e/draft-retention.spec.ts:160` (spreading Storage instances).
-The proposed test correction was rejected before execution. No browser suite ran after this failed gate. The earlier 14/14 focused retention result is historical, not validation of all later changes.
-Log: `/tmp/tickets-resume-check.log`. No process launched by this resumed turn remains active.
+PR25 People email invitations was finally promoted from its ready candidate. Canonical site had still served old assets before this continuation. The actual public People UI was checked with synthetic private API data in Chromium/WebKit at phone/desktop widths: email form and pending/accepted/expired rows are visible, no manual invitation-link field. No actual invitation email sent. Evidence: ~/xp/.tasks-work-evidence/completion-20260925/public-people/.
 
-## Next bounded actions
+PR26 fixes login Enter/autofill, same-task duplicate submit, mixed edit/autofill state loss and recovery-email handoff. Code commit9a1b4de; merged0f9ffd0. Deployment dpl_PM9j3JH6ZRJKMh7SszGp56qTgNQe promoted to tasks-ultrabricks.vercel.app. Canonical assets index-RvtDlMLK.js/index-Df6_7A-v.css match the reviewed build.
 
-1. Correct Storage enumeration in the regression without weakening its password-exclusion assertion. Re-run type checking, then source/unit gates.
-2. Review stale session/durable mirror selection, storage failures, account isolation, late acknowledgements, replay protection and restoration. A proposed mirror refactor was rejected and is not present.
-3. Run one browser suite at a time; allocate unique ports and output/report paths. Then focused review, fixes, normal hooks, merge, clean deployment and canonical-route verification.
-4. Keep 90%+ Linear parity open: the original 50-screen PDF was not found in repeated File Library searches; paired mobile/reference coverage is required, not a self-baseline score.
-5. Account enrollment and authenticated production acceptance remain distinct open items. Earlier denied account operations must not be retried via dotenv or another transport.
+Baseline4browser failures reproduced blank autofill payload and duplicate POSTs; WebKit recovery and mixed-input failures also reproduced. Final10focused cases pass. Whole exact-source gates:225unit passed/1pre-existing skip;90Chromium+90WebKit;20Storybook;6visual;independent types/build/secrets pass. Logs /tmp/tasks-login-shipping-*-sep25.log. Two completed review cycles confirmed runtime correctness/performance; small repeated-field-extraction readability suggestions remain optional, not covertly removed from the report. No baseline images or assertions were weakened.
 
-Session rules are in AGENTS.md and AGENT-SESSION-SAFETY.md. This checkpoint is a handoff, not a declaration of completed delivery.
+Actual public login bundle was retested in Chromium/WebKit with synthetic intercepted rejections: native fields, one-flight guard, retry and email handoff verified. IMPORTANT: the initial WebKit diagnostic let its Service Worker bypass page.route; synthetic rejected login requests reached the real endpoint. No real user credentials were used. Do NOT claim those initial probes had zero requests. The corrected diagnostic blocks workers only in the isolated test context and intercepts ALL API calls; its receipt is ~/xp/.tasks-work-evidence/completion-20260925/public-login/receipt.json. Source: https://playwright.dev/docs/network#missing-network-events-and-service-workers . Worker/offline behavior is tested separately, not inferred from a worker-blocked mock test.
 
-## Exact pre-commit snapshot
+## Still open
 
-Verified base and HEAD before the documentation commit: `382468f8e0a4eb1d36a521f1a71a68ccea0b4923`.
-Current branch for publishing ONLY session notes: `docs/session-continuity-20260913`. The feature branch remains `fix/draft-safety-20260913`.
-Staged notes: AGENTS.md, docs/AGENT-SESSION-SAFETY.md, docs/WORK-CHECKPOINT.md.
-Unstaged modified source: packages/server/app.mjs; src/app/main.tsx; src/app/styles.css; src/features/issue-edit/document.ts; src/features/issue-properties/ui.tsx; src/features/preferences/index.ts; src/features/workspace-policy/ui.tsx; src/pages/issue-new/ui.tsx; src/pages/issues/ui.tsx; src/pages/planning-document/ui.tsx; src/pages/settings/ui.tsx; src/widgets/issue-details/ui.tsx; src/widgets/navigation/ui.tsx.
-Untracked feature work: src/features/draft-recovery/; src/shared/lib/draft-persistence.ts; src/shared/lib/input-draft.ts; tests/e2e/draft-retention.spec.ts; tests/unit/comment-retry.test.mjs; docs/references/; docs/unfinished/.
+Persistent authenticated workspace read models/offline contents, configurable comprehensive shortcuts/UndoRedo, long-press menu parity and Slack setup remain incomplete. Prior safety-rejected private-cache/keyboard/hold edits are preserved in external pending evidence; do not reroute them or describe them as installed. A dock focus/compaction edge is also pending. This continuation did not alter content migration, account roles, passwords or provider credentials. The other agent retains ownership of Linear migration/sync.
 
-Targeted comment retry tests subsequently ran successfully: 2 passed, 0 failed, 7 assertions. Log: `/tmp/tickets-resume-comment-retry.log`. This does not supersede the full source/type-check failure above.
-The first notes review found only a missing exact base/head/dirty-path inventory; this section supplies it. No feature source is included in the notes-only commit.
+No owned review/test/deployment process remains active. PR25 andPR26 contain verification/promotion receipts. Next work is the unresolved product backlog, not another People/login redo or re-promotion of an older release.
