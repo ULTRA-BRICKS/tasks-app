@@ -45,10 +45,9 @@ export function IssueAssignee({
     <div className="row-assignee" data-hold-action="assign" ref={control}>
       <Combobox
         aria-label={'Assignee for ' + issue.key + ': ' + name}
-        searchLabel="Search people"
         value={person?.id ?? issue.assignee_id ?? 'none'}
         className="avatar-picker"
-        triggerContent={
+        leadingContent={
           <Avatar name={name === 'Unassigned' ? null : name} src={person?.avatar_url} />
         }
         options={options}

@@ -1,106 +1,93 @@
-# Searchable comboboxes with explicit inline creation
+# Single-input searchable comboboxes and rounded picker states
 
-Task identity: UB-30 / `1247c85e-51f6-4446-9f8e-af4e351cc8cf` (resolve by UUID; codes were renumbered). No database migration.
+Task identities: UB-30 (prior searchable-picker work), UB-104 (single input) and UB-98 (rounded open state). No database migration.
 
-## Requirement
+## User decision
 
-Use search in appropriate selectors and permit creating a typed missing value where entity rules and user permissions allow. Acceptance criteria from the task:
+> «некоторые селекты все еще зачем-то добавляют отдельный инпут для поиска, вспомни что я говорил про комбо боксы! надо единый инпут и для поиска и даже для добавления нового и по нему же кликаем чтобы открывать выпадушку … и еще при открытии выпадушки некрасиво выделяется прямоугольник внутри округлого контрола … для комбобоксов и мультиселектов посмотри хорошие компоненты в base ui если там такие как мне нужны есть / у нас же base ui/shadcn надеюсь?»
 
-1. Preserve value, IME, keyboard navigation, Escape and accessibility; people results include avatars.
-2. Only explicit Create triggers a write; typing and blur never create objects.
-3. Required extra fields open normal page-first creation retaining typed input and return context.
-4. No implicit accounts or status-enum creation; viewers cannot create; handle concurrent matches, idempotent retry, 403/409/offline.
+The app owns shadcn-style wrappers in `src/shared/ui` and uses installed `@base-ui/react` 1.8. The supported Base UI parts are `Combobox.Input`, `InputGroup`, `Trigger`, `Chips`, `Chip`, `ChipRemove`, `Empty`, `Status`, `Group` and `Clear`.
 
-## Primitive
+## Required interaction
 
-`Combobox` in `src/shared/ui/combobox.tsx` wraps the installed Base UI 1.8 `Combobox` in its _input inside popup_ form. The resting control stays the compact property value (`.picker`), so rows and property rails keep their geometry; `Picker` (Base UI `Select`) remains for short menus that are not workspace data.
+`Combobox` in `src/shared/ui/combobox.tsx` is the only searchable picker primitive.
 
-- Trigger: `role="combobox"`, `aria-haspopup="dialog"`, `aria-expanded`, named by the field (`Status`, `Assignee`, …), so existing `getByRole('combobox', { name })` callers keep working.
-- Popup: a search input named `Search <field>` (`role="combobox"`, `aria-autocomplete="list"`, virtual focus through `aria-activedescendant`), a listbox named after the field, options with `aria-selected`, an empty state and one polite status region for create feedback (errors use `role="alert"`).
-- Value: opening, typing, Escape, Tab and outside clicks never change the value. The query starts empty each time the popup opens. Selecting an option commits exactly once and returns focus to the trigger.
-- Create feedback lives in the popup, so it is never lost: when an existing match is selected instead of created, a single-select popup stays open with the notice; when a create fails after the popup was closed, the popup reopens with the typed text and the error.
-- Keyboard: ArrowUp/ArrowDown move the highlight (looping to the input), Enter chooses the highlighted option, Escape closes and restores focus to the trigger. Escape is consumed by the popup, so page shortcuts (Escape → back from a task) do not run.
-- IME: Base UI ignores Enter while composing (`keyCode 229`) and keeps the composing text out of controlled updates; no option is chosen and nothing is created until composition ends.
-- People: options render the avatar (image or initials) beside the name; search matches the displayed name and the option's `keywords` (never shown). Assignee suggestions add the person's other names and email ([ROW-ASSIGNEE.md](ROW-ASSIGNEE.md), UB-43).
-- Multiple mode (labels) keeps the popup open after each toggle and shows a check for selected values; label options show their colour swatch.
-- Commands (`actions`): non-value items such as `View profile` lead the list while the query is empty and hide as soon as the person types, so Enter after a search always picks a match. Choosing one closes the popup and runs its `onSelect`; it is never selected, saved or checked, and the value does not change. UB-77 uses this for the assignee picker's profile link.
+- The control itself contains exactly one Base UI `Combobox.Input`. It is the named `role="combobox"` surface for the current value, opening, typing and explicit creation. `openOnInputClick` opens the list on pointer/touch input; Enter and Space open a closed control without navigating its row; keyboard focus and Arrow navigation retain Base UI semantics.
+- A `Combobox.InputGroup` owns the control outline, selected decoration/value, optional chevron and focus treatment. The popup contains only `List`, `Empty`, `Status`, feedback, value options and explicit Create/command actions. It never contains another input.
+- On a single-value control, the closed and opened input presents the selected option while its logical search query is empty. Its selected text is ready to replace on the first typed character; the query is never inferred from the display label. Opening, typing, blur, Tab, Escape and outside press never commit a value. Choice commits once; Escape restores focus to that same input and never reaches page-level Escape shortcuts.
+- `actions` remain non-value options: for example, **View profile** leads an empty assignee list, hides while a query exists, closes when invoked and never changes/saves the value.
+- Filtering includes `Option.label` and hidden `Option.keywords`; people options retain avatar, canonical name and allowed description. The row-assignee avatar remains the visible control for its selected person.
+- Base UI handles `aria-activedescendant`, listbox/options, IME Enter (`keyCode 229`), keyboard navigation and focus. The wrapper must not replace those handlers with custom touch selection.
 
-## Touch selection
+### Multiple values
 
-Checked 30 Sep 2026 after a WebKit phone test tapped an option and nothing was chosen. A tap chooses an option. A swipe that starts on an option scrolls the list and chooses nothing. The wrapper adds no touch handling. Base UI 1.8 `Combobox.Item` cancels `pointerdown` and `mousedown`, so the search field keeps focus and the phone keyboard stays up. It chooses on the `click` that follows the tap. A swipe ends in `pointercancel` and never produces that click.
+Labels use `multiple` plus `Combobox.Chips`, `Combobox.Chip` and `Combobox.ChipRemove` inside the same `InputGroup` as the one search input. Chips render in controlled-value order, including a fallback for a temporarily missing catalog option, so Base UI's positional removal always addresses the visible chip. Each chip keeps its swatch/name and exposes a named remove button. With an empty query, Base UI Backspace moves to/removes the final chip; removing with a chip button or keyboard calls the ordinary controlled `onChange`. The list stays open after a label toggle and the input retains focus.
 
-Cancelling `pointerdown` suppresses only the compatibility `mousedown` and `mouseup`, not `click` (WPT `pointerevent_suppress_compat_events_on_click.html`). Engines differ in how closely they follow that:
+### Pending selection lock
 
-| Engine                                                   | Tap after a cancelled `pointerdown`              | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| -------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| iOS Safari 26 and 27                                     | `click` fires; the option is chosen              | WebKit 211458@main (2019) and its iOS test `pointer-events-prevent-default-allows-click-event.html`. An iOS change that suppressed this click (310491@main, spring 2026) was reverted on 29 May 2026 (314097@main, test `click-event-after-pointerdown-prevent-default-on-ancestor.html`), before Safari 27 shipped. Safari 27 also restored the `mousedown` suppression (312396@main). The Base UI maintainer could not reproduce a failed tap on iOS 26.5 or Android Chrome 148 ([mui/base-ui#5066](https://github.com/mui/base-ui/issues/5066)). That reporter's iOS 27 beta 1 failure was gone in beta 2. |
-| Android Chrome; Playwright Chromium with touch emulation | `click` fires; the option is chosen              | Probe at 390×844 (`hasTouch`, `isMobile`): `touchscreen.tap`, raw CDP touch events and a CDP tap gesture chose an option in the row assignee, Status, Priority and Assignee pickers                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Playwright WebKit; WebKitGTK and WPE touch devices       | no mouse event and no `click`; nothing is chosen | WebKit's non-iOS touch path treats a touch whose `pointerdown` was cancelled as handled (310827@main, April 2026). Playwright's `fakeTouchTap` then synthesizes no mouse events at all, `click` included. The same probe failed in every Combobox. On a plain page without Base UI, a tapped element whose `pointerdown` is cancelled gets no `click` either, while Chromium sends it. The pre-UB-30 `Select` pickers were chosen in both engines, because `Select` never cancels `pointerdown`                                                                                                               |
+`readOnly` is the wrapper's temporary pending-save lock: it keeps the input focused and lets a person inspect/filter the current list, but every value change is cancelled before it reaches the caller. The editable search input exposes `aria-busy`, not `aria-readonly` or native `readonly`; a nonmatching query can show the disabled explicit Create action with its `Saving…` reason.
 
-Consequences:
+### Explicit creation
 
-- The phone e2e tests (`touch phone` in `tests/e2e/searchable-combobox.spec.ts`) tap and swipe in Chromium only. WebKit phone tests choose Combobox options with `click()`: mouse input, not proof of a tap. Storybook runs Chromium without touch emulation, so its play tests cannot tap either.
-- Automated WebKit is not iOS. One manual check on a physical iPhone is still needed: tap an option in a row assignee picker, the Status picker and the Labels picker, and swipe the Estimate list.
+The Create option appears only for a non-empty trimmed query with no exact case-insensitive option match, when the caller permits creation and the actor is not a viewer. It follows matches. Choosing Create by click or Enter is the only write trigger; typing, composition, blur, Escape, Tab, outside press and popup close never create.
 
-Rejected:
+- **Labels and milestones:** inline creation. The existing refetch/idempotency/409/403/offline behavior remains: a concurrent exact match is selected; failure preserves the query and retry key.
+- **Project and cycle task properties:** page-first creation. Choosing Create opens the normal draft route with typed title and return state; it does not create or attach anything from the picker.
+- **Never create:** accounts/invitations, teams, statuses, roles, priority, estimate, project status/health or initiative status.
 
-- Choosing on `pointerup`/`touchend` in the wrapper (cancel `touchend`, then click the option). Playwright WebKit taps would pass. But the wrapper would take over the tap, scroll, momentum-stop and long-press rules from the browser on the device where they already work. A browser that still sent the click would choose twice, or its click would land on whatever lies under the closed popup. The only proof would be an emulator that is known not to behave like iOS.
-- Not cancelling `pointerdown` for touch. Base UI uses that event to tell a drag-to-select `mouseup` from a tap. Without it, a tap chooses on `mouseup` and again on `click`.
-- A Base UI upgrade. 1.8.0 is the latest release, and `master` keeps the same item handlers.
+A viewer can inspect a picker where that is already permitted, but options that would mutate an issue are disabled and Create is absent. Server-side roles, versions, 403, 409 and offline failures remain authoritative.
 
-## Per-field eligibility
+### Touch selection
 
-| Field                                                                            | Search            | Create                                                                       |
-| -------------------------------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------- |
-| Labels                                                                           | yes               | **inline**: `Create label “…”`                                               |
-| Milestone                                                                        | yes               | **inline**: `Create milestone “…”` in the task's project                     |
-| Project (task properties)                                                        | yes               | **page-first**: `Create project “…”…` opens `/projects/new`                  |
-| Cycle                                                                            | yes               | **page-first**: `Create cycle “…”…` opens `/cycles/new` (dates are required) |
-| Status, priority, estimate, team, role, project status/health, initiative status | yes               | never (no status-enum creation)                                              |
-| Assignee, project lead, document owner                                           | yes, with avatars | never (no implicit accounts or invitations)                                  |
+Base UI 1.8 intentionally cancels item `pointerdown` so the input stays focused, and chooses from the following click. Chromium touch emulation proves `touchscreen.tap` on the input opens a list and an option tap chooses once. Playwright WebKit's non-iOS touch shim suppresses that click after cancelled `pointerdown`; WebKit picker-option tests use `click()` rather than pretending an emulated tap is iPhone evidence. No wrapper `pointerup`/`touchend` fallback is allowed: it would steal scrolling/long-press semantics and can double-select on engines that already emit click.
 
-The Create option appears only when the trimmed query is non-empty, no existing option matches it case-insensitively (all options, not just visible ones), the caller permits creation and the actor is not a viewer. It sits after matching options. Choosing it with a click or Enter is the only write trigger; typing, blur, Escape, Tab, outside clicks and closing never create.
+## Picker inventory and classification
 
-### Inline creation (labels, milestones)
+Searchable workspace data and every existing editable property `Combobox` use the shared single-input primitive. Short enumerations already implemented as owned Base UI `Picker` remain non-searchable. A later enum migration may choose `Picker` only where direct type filtering and creation are not required; it must not introduce a native select or another picker convention.
 
-Milestones have no required field beyond a name once the task's project is known, so they follow the inline rule rather than page-first creation (there is also no milestone page).
+| Location                                                                        | Fields                                                                        | Classification and reason                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/features/issue-edit/assignee.tsx:46`                                       | row assignee                                                                  | Combobox: people can be numerous; avatar and keywords are required; never Create.                                                                                                                                                                     |
+| `src/features/issue-properties/ui.tsx:98-219,266`                               | Team, Status, Priority, Assignee, Estimate, Cycle, Project, Milestone, Labels | Combobox: these existing editable property controls receive the single-input cutover. Workspace entities can be large; static priority/estimate retain direct type filtering. Cycle/project are page-first Create; label/milestone are inline Create. |
+| `src/pages/knowledge/ui.tsx:237,252,267,306`                                    | document Project, initiative Status/Owner, Link project                       | Combobox: current document properties share the input primitive; project/person collections need search and status remains keyboard filterable. No creation is allowed in these contexts.                                                             |
+| `src/pages/planning-document/ui.tsx:550,561,572,590`                            | Team, Project status/health, Project lead                                     | Combobox: existing planning document properties share one input; people retain avatars and keywords.                                                                                                                                                  |
+| `src/pages/planning/ui.tsx:240`                                                 | project-card health                                                           | Combobox: current dense-card implementation receives the single-input behavior.                                                                                                                                                                       |
+| `src/pages/settings/ui.tsx:226`                                                 | member role                                                                   | Combobox: existing role control receives the single-input behavior; confirmation and server authorization remain authoritative.                                                                                                                       |
+| `src/features/people-invitations/index.tsx:95`                                  | invite role                                                                   | Combobox: existing invitation role control receives the single-input behavior; no account creation from a picker.                                                                                                                                     |
+| `src/pages/issues/ui.tsx:289-368`                                               | list filters and bulk status                                                  | Picker: URL filter/bulk command controls are intentionally out of this property-editor change; they neither create data nor add a popup search field.                                                                                                 |
+| `src/shared/ui/press-preview.tsx:485`                                           | preview toolbar choices                                                       | Picker: short contextual command choices.                                                                                                                                                                                                             |
+| `src/widgets/issue-details/ui.tsx:558`                                          | relation type                                                                 | Picker: three fixed relation verbs.                                                                                                                                                                                                                   |
+| `src/pages/settings/ui.tsx:346`                                                 | API-token permission                                                          | Picker: short security-sensitive enum.                                                                                                                                                                                                                |
+| `src/shared/ui/primitives.stories.tsx` and `src/shared/ui/combobox.stories.tsx` | fixture controls                                                              | Test only: exercise the owned Select and Combobox primitives respectively.                                                                                                                                                                            |
 
-1. Before sending, the latest list is refetched. A case-insensitive match created meanwhile is selected instead of creating a duplicate (concurrent match), with the status `Selected existing label “…”`.
-2. `POST /v1/labels {name, color:'#a694ff'}` (the Settings default colour) or `POST /v1/milestones {project_id, name}` carries `Idempotency-Key`. The key is stable per exact payload while the picker is mounted and is dropped after success or a definitive 4xx. A retry after a lost response usually finds the committed object in step 1; when that refetch fails too (the cached list is used), the same key replays the first result instead of creating a second object. The server reuses the existing `idempotency_keys` table through `createIdempotently`.
-3. Success adds the object to the cache and selects it (labels are added to the task's labels; the milestone becomes the task's milestone).
-4. `409 ALREADY_EXISTS` (a concurrent label with the same name won the unique constraint): refetch and select the existing object. If that refetch fails too, the alert says `A label named “…” already exists. Try again to select it.` (the retry's step 1 finds it). Milestone names are not unique on the server, so step 1 is their concurrent-match check.
-5. `403`: `You don't have permission to create …`; nothing is selected.
-6. Offline (`navigator.onLine === false`): the Create option is disabled and says `Offline — reconnect to create`. A network failure while sending shows `Couldn't reach the server …` and choosing Create again retries with the same key.
+## Rounded controls and highlights (UB-98)
 
-### Page-first creation (projects, cycles)
+The reported inner rectangle comes from the phone property rail: `.detail-properties .compact-property` owns the rounded pill and leading icon, while its nested `.picker[data-popup-open]` paints a second rectangular hover/open background. The nested painting starts after the icon and does not share the pill boundary.
 
-Choosing `Create project “Q4 launch”…` writes nothing. It navigates to the normal draft page with router state (never URL parameters):
+| Surface                                                            | Owner of focus/open/selected geometry | Required treatment                                                                                                                                                                                  |
+| ------------------------------------------------------------------ | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Combobox` and `Picker` standalone controls (`src/app/styles.css`) | `.picker` / `Combobox.InputGroup`     | The same root owns border, background, hover/open state and radius. The input itself has no independent border/background/outline.                                                                  |
+| Phone property rail (`.detail-properties .compact-property`)       | `.compact-property`                   | The outer rounded pill contains the leading icon and owns open/focus background, border and visible focus ring. The nested picker is transparent, borderless and does not paint an inner rectangle. |
+| Popup options (`.picker-item`)                                     | option itself                         | Highlight/selected background stays clipped to its token radius; decorations remain in the existing grid/flex layout.                                                                               |
+| Action menus (`.page-menu-popup`, `.page-menu-item`)               | menu trigger/item                     | Keep the existing rounded popup and rounded highlighted items; any open trigger state must inherit its own control radius.                                                                          |
+| Date property (`date-property.css`)                                | `.date-inline` / calendar button      | The rounded property shell owns focus. The text input must not render the global rectangular input outline inside it; calendar buttons retain their own rounded focus treatment.                    |
 
-```ts
-{ defaults: { name: 'Q4 launch', team_id }, from: '/tasks/UB-12', fromState }
-```
-
-`from` is the existing return-path convention of the new-task page; `fromState` is that page's own router state. The draft title is the typed text and the team is the task's team (an unknown team falls back to the first team). The draft is namespaced by these defaults, so an unrelated earlier project draft is not overwritten. `Back to task` (or `Back to new task`) returns to the originating path with its router state, so a `/tasks/new` draft is restored. Only same-application paths are followed. After Create, the route is replaced by the durable project/cycle, keeping the return context; the task's picker then lists it.
-
-Rejected: automatically assigning the new project/cycle to the task on return. It would be a second implicit write on the task that can hit version conflicts after an arbitrary delay on another page.
-
-## Permissions and server contract
-
-Viewers keep read-only (disabled) pickers and never see Create. The server remains authoritative: label and milestone creation require `write` (viewers get `403 READ_ONLY`) whether or not a key is sent, and a denied request stores no idempotency record. Reusing a key with a different payload or operation returns `409 IDEMPOTENCY_CONFLICT`.
-
-## Out of scope
-
-- Task list filters and bulk status (`src/pages/issues/ui.tsx`), relationship type and API token scopes keep `Picker`.
-- Row/board assignee changes, and email and alias search for people, are UB-43 ([ROW-ASSIGNEE.md](ROW-ASSIGNEE.md)) and UB-29.
-- Page-first project creation from a document's Project field or an initiative's Link project picker: both are searchable but offer no Create in this increment, because a knowledge document has no team to seed a project draft.
-- Creating accounts, statuses, teams or roles from a picker.
+Keyboard focus stays visible: a paint-only accent ring follows the owner’s radius and meets the existing contrast contract. No visual baseline is refreshed merely to accept this correction.
 
 ## Acceptance mapping
 
-| Criterion | Evidence                                                                                                                                                                                                                                                                                                                 |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1         | `src/shared/ui/combobox.stories.tsx` play tests with axe (search, keyboard, Escape, IME, avatars); `tests/e2e/searchable-combobox.spec.ts` search/Escape on a real task                                                                                                                                                  |
-| 2         | Stories and e2e: typing, blur and Escape send no create request; only the Create option does                                                                                                                                                                                                                             |
-| 3         | e2e: project and cycle page-first prefill and return                                                                                                                                                                                                                                                                     |
-| 4         | `tests/unit/inline-create-idempotency.test.mjs` (retry, key conflict, 409, viewer 403); e2e viewer, 409 concurrent match, lost-response retry with a failed refetch (same key, one label) and offline (pointer and Enter send nothing)                                                                                   |
-| Touch     | e2e `touch phone` (Chromium, 390×844 with touch): a tap chooses exactly one option in the row assignee, Status and Labels pickers (one save per tap; Labels stays open and toggles back); a swipe starting on an Estimate option scrolls the list and saves nothing. Physical iPhone check outstanding (Touch selection) |
+| Requirement                                                    | Evidence                                                                                                                                                                                                                    |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Input click opens, same input filters, popup has no text input | `src/shared/ui/combobox.stories.tsx` and `tests/e2e/searchable-combobox.spec.ts`: input focus, filtered options, `role=textbox` count inside popup is zero.                                                                 |
+| Keyboard, Escape, IME and focus                                | Storybook axe/play tests plus `searchable-combobox.spec.ts`, `row-assignee.spec.ts`, `people-layout-feedback.spec.ts` and `person-popover.spec.ts`.                                                                         |
+| Explicit Create and failure behavior                           | Existing label/milestone/project/cycle E2E paths, now typing through the control input; only Create sends a write.                                                                                                          |
+| Multiple chips and removal                                     | Storybook `multiple` play test plus E2E label selection: named ChipRemove, Backspace, focus remains in the input and the popup remains open.                                                                                |
+| Chromium phone input tap and WebKit option behavior            | `searchable-combobox.spec.ts`: Chromium `touchscreen.tap` opens input/list; option selection uses `click()` in WebKit.                                                                                                      |
+| Rounded open state                                             | Chromium and WebKit E2E geometry checks prove the mobile outer pill owns the open background/radius and the nested input is transparent; focus remains visible.                                                             |
+| Visual evidence                                                | Real desktop 1440×900 Chromium and phone 390×844 Chromium/WebKit captures for closed/open/single-input, chips, Create and avatar assignee; 320 px layout risk capture; every PNG is read and reviewed with `review visual`. |
+
+## Out of scope
+
+- Physical-iPhone option-tap verification remains separate from Playwright WebKit emulation.
+- New account invitations, team/status/role creation, filter-builder redesign, relation taxonomy and API-token scope changes.
+- Page-first project creation from knowledge/initiative pickers, because those contexts have no safe team default.

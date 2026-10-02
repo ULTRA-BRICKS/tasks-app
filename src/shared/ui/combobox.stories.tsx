@@ -22,14 +22,18 @@ const statuses: Option[] = [
   { value: 'done', label: 'Done' },
 ];
 const body = (element: HTMLElement) => within(element.ownerDocument.body);
-/** Opens a field's popup and waits until its search input owns focus, as a person would. */
+/** Opens the field's only control input and proves the popup does not duplicate it. */
 async function openSearch(canvasElement: HTMLElement, field: string) {
-  await userEvent.click(within(canvasElement).getByRole('combobox', { name: field }));
-  const search = await body(canvasElement).findByRole('combobox', {
-    name: 'Search ' + field.toLowerCase(),
-  });
-  await waitFor(() => expect(search).toHaveFocus());
-  return search;
+  const input = within(canvasElement).getByRole('combobox', { name: field });
+  await userEvent.click(input);
+  const page = body(canvasElement);
+  await page.findByRole('listbox', { name: field });
+  await waitFor(() => expect(input).toHaveFocus());
+  const popup = canvasElement.ownerDocument.body.querySelector<HTMLElement>('.combobox-popup');
+  await expect(popup).not.toBeNull();
+  await expect(within(popup!).queryAllByRole('textbox')).toHaveLength(0);
+  await expect(popup!.querySelector('input')).toBeNull();
+  return input;
 }
 
 function StatusField() {
@@ -54,14 +58,13 @@ function StatusField() {
 
 export const SearchKeyboardAndEscape: Story = {
   render: () => <StatusField />,
+  parameters: { a11y: { context: 'body' } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement),
       page = body(canvasElement);
-    const trigger = canvas.getByRole('combobox', { name: 'Status' });
-    await expect(trigger).toHaveTextContent('Todo');
-    await userEvent.click(trigger);
-    const search = await page.findByRole('combobox', { name: 'Search status' });
-    await waitFor(() => expect(search).toHaveFocus());
+    const input = canvas.getByRole('combobox', { name: 'Status' });
+    await expect(input).toHaveValue('Todo');
+    const search = await openSearch(canvasElement, 'Status');
     await expect(page.getByRole('listbox', { name: 'Status' })).toBeVisible();
     await userEvent.keyboard('prog');
     await waitFor(() =>
@@ -73,31 +76,55 @@ export const SearchKeyboardAndEscape: Story = {
     await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(canvas.getByTestId('value')).toHaveTextContent('started'));
     await waitFor(() => expect(page.queryByRole('listbox')).not.toBeInTheDocument());
-    await waitFor(() => expect(trigger).toHaveFocus());
-    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(input).toHaveFocus());
+    await expect(input).toHaveAttribute('aria-expanded', 'false');
 
     // Arrow keys move through every option; Escape discards the query, not the value.
-    await userEvent.keyboard('{Enter}');
-    await waitFor(() =>
-      expect(page.getByRole('combobox', { name: 'Search status' })).toHaveFocus(),
-    );
+    const reopened = await openSearch(canvasElement, 'Status');
+    await expect(reopened).toHaveValue('In progress');
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
     await userEvent.keyboard('Do');
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('listbox')).not.toBeInTheDocument());
-    await waitFor(() => expect(trigger).toHaveFocus());
+    await waitFor(() => expect(input).toHaveFocus());
     await expect(canvas.getByTestId('value')).toHaveTextContent('started');
     await expect(canvas.getByTestId('page-escapes')).toHaveTextContent('0');
-    await userEvent.click(trigger);
-    await waitFor(() =>
-      expect(page.getByRole('combobox', { name: 'Search status' })).toHaveValue(''),
-    );
+    await openSearch(canvasElement, 'Status');
+    await expect(input).toHaveValue('In progress');
     await expect(page.getAllByRole('option')).toHaveLength(statuses.length);
     await expect(page.getByRole('option', { name: 'In progress' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
+    await userEvent.clear(input);
+    await userEvent.keyboard('In progress');
+    await waitFor(() =>
+      expect(page.getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'In progress',
+      ]),
+    );
+    await userEvent.keyboard('x');
+    await expect(input).toHaveValue('In progressx');
+    await expect(page.getByText('No matches')).toBeVisible();
     await userEvent.keyboard('{Escape}');
+    await expect(input).toHaveFocus();
+    await userEvent.keyboard('t');
+    await expect(input).toHaveValue('t');
+    await expect(page.getByRole('listbox', { name: 'Status' })).toBeVisible();
+  },
+};
+
+export const KeyboardTypingClearsStaleHighlight: Story = {
+  render: () => <StatusField />,
+  parameters: { a11y: { context: 'body' } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement),
+      page = body(canvasElement);
+    await openSearch(canvasElement, 'Status');
+    await userEvent.keyboard('{ArrowDown}prog');
+    await expect(page.getAllByRole('option')).toHaveLength(1);
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(canvas.getByTestId('value')).toHaveTextContent('started'));
   },
 };
 
@@ -131,7 +158,7 @@ export const PeopleShowAvatars: Story = {
       'GHGrace Hopper',
       'GHGrace HopperSlack',
     ]);
-    await userEvent.clear(page.getByRole('combobox', { name: 'Search assignee' }));
+    await userEvent.clear(page.getByRole('combobox', { name: 'Assignee' }));
     const ada = await page.findByRole('option', { name: 'Ada Lovelace' });
     // Photo loading is covered in the browser suite; here the option carries the person's avatar.
     await expect(ada.querySelector('.avatar')).toHaveAttribute('title', 'Ada Lovelace');
@@ -247,12 +274,36 @@ function LabelField({
         onChange={setValue}
         options={labels}
         create={create}
-        triggerContent={<span>{value.length ? value.join(', ') : 'Add labels'}</span>}
       />
       <p data-testid="value">{value.join(',')}</p>
     </>
   );
 }
+
+function OrderedLabelField() {
+  const [value, setValue] = useState(['feature', 'missing', 'bug']);
+  return (
+    <>
+      <Combobox
+        multiple
+        aria-label="Labels"
+        value={value}
+        onChange={setValue}
+        options={initialLabels}
+      />
+      <p data-testid="value">{value.join(',')}</p>
+    </>
+  );
+}
+export const ChipRemovalFollowsVisibleOrder: Story = {
+  render: () => <OrderedLabelField />,
+  parameters: { a11y: { context: 'body' } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove Bug' }));
+    await expect(canvas.getByTestId('value')).toHaveTextContent('feature,missing');
+  },
+};
 
 /** A milestone field whose list is stale: "Beta" already exists on the server. */
 function MilestoneField() {
@@ -306,10 +357,12 @@ export const ExistingMatchNoticeStaysVisible: Story = {
 export const ExplicitInlineCreate: CreateStory = {
   args: { onCreate: fn() },
   render: (args) => <LabelField onCreate={args.onCreate} />,
+  parameters: { a11y: { context: 'body' } },
   play: async ({ canvasElement, args }) => {
     const { onCreate } = args;
     const canvas = within(canvasElement),
       page = body(canvasElement);
+    const labels = canvas.getByRole('combobox', { name: 'Labels' });
     await openSearch(canvasElement, 'Labels');
     await userEvent.keyboard('Needs design');
     await expect(
@@ -329,20 +382,28 @@ export const ExplicitInlineCreate: CreateStory = {
     await expect(await page.findByRole('option', { name: 'Bug' })).toBeVisible();
     await expect(page.queryByRole('option', { name: /Create label/ })).not.toBeInTheDocument();
 
-    await userEvent.clear(page.getByRole('combobox', { name: 'Search labels' }));
+    await userEvent.clear(labels);
     await userEvent.keyboard('Needs design');
     await userEvent.click(await page.findByRole('option', { name: 'Create label “Needs design”' }));
     await waitFor(() => expect(canvas.getByTestId('value')).toHaveTextContent('needs design'));
     await expect(onCreate).toHaveBeenCalledTimes(1);
     await expect(onCreate).toHaveBeenCalledWith('Needs design');
-    // Multiple selection stays open with a cleared query for the next label.
-    await waitFor(() =>
-      expect(page.getByRole('combobox', { name: 'Search labels' })).toHaveValue(''),
-    );
+    // Multiple selection keeps focus in its input with a cleared query for the next label.
+    await waitFor(() => expect(labels).toHaveValue(''));
+    await expect(labels).toHaveFocus();
+    await expect(
+      canvasElement.querySelector<HTMLButtonElement>('.combobox-chip-remove'),
+    ).toHaveAttribute('aria-label', 'Remove Needs design');
     await expect(page.getByRole('option', { name: 'Needs design' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
+    await userEvent.keyboard('{Backspace}');
+    await waitFor(() => expect(canvas.getByTestId('value')).toHaveTextContent(''));
+    await expect(
+      canvasElement.querySelector<HTMLButtonElement>('.combobox-chip-remove'),
+    ).toBeNull();
+    await expect(labels).toHaveFocus();
     await userEvent.keyboard('{Escape}');
   },
 };
@@ -359,7 +420,7 @@ export const CreateFailureKeepsTextAndRetries: CreateStory = {
     await userEvent.keyboard('Flaky');
     await userEvent.keyboard('{Enter}');
     await expect(await page.findByRole('alert')).toHaveTextContent('Couldn’t reach the server');
-    await expect(page.getByRole('combobox', { name: 'Search labels' })).toHaveValue('Flaky');
+    await expect(page.getByRole('combobox', { name: 'Labels' })).toHaveValue('Flaky');
     await expect(canvas.getByTestId('value')).toHaveTextContent('');
     await userEvent.click(page.getByRole('option', { name: 'Create label “Flaky”' }));
     await waitFor(() => expect(canvas.getByTestId('value')).toHaveTextContent('flaky'));
@@ -383,7 +444,7 @@ export const FailureAfterCloseReopens: CreateStory = {
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(page.queryByRole('listbox')).not.toBeInTheDocument());
     await expect(await page.findByRole('alert')).toHaveTextContent('Couldn’t reach the server');
-    await expect(page.getByRole('combobox', { name: 'Search labels' })).toHaveValue('Slow');
+    await expect(page.getByRole('combobox', { name: 'Labels' })).toHaveValue('Slow');
     await expect(page.getByRole('option', { name: 'Create label “Slow”' })).toBeVisible();
   },
 };
@@ -391,6 +452,7 @@ export const FailureAfterCloseReopens: CreateStory = {
 export const ImeCompositionNeverCreates: CreateStory = {
   args: { onCreate: fn() },
   render: (args) => <LabelField onCreate={args.onCreate} />,
+  parameters: { a11y: { context: 'body' } },
   play: async ({ canvasElement, args }) => {
     const { onCreate } = args;
     const page = body(canvasElement);
@@ -464,6 +526,7 @@ function AssigneeWithProfile({ onViewProfile }: ActionArgs) {
 export const LeadingActionIsNeverSaved: StoryObj<ActionArgs> = {
   args: { onViewProfile: fn() },
   render: (args) => <AssigneeWithProfile onViewProfile={args.onViewProfile} />,
+  parameters: { a11y: { context: 'body' } },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement),
       page = body(canvasElement);
@@ -505,15 +568,42 @@ export const LeadingActionIsNeverSaved: StoryObj<ActionArgs> = {
   },
 };
 
+function ReadOnlyField() {
+  const [value, setValue] = useState('todo');
+  return (
+    <>
+      <Combobox
+        aria-label="Status"
+        value={value}
+        onChange={setValue}
+        options={statuses}
+        readOnly
+        create={{
+          label: (query) => `Create status “${query}”`,
+          onCreate: async () => ({ value: 'created' }),
+        }}
+      />
+      <p data-testid="value">{value}</p>
+    </>
+  );
+}
 export const ReadOnly: Story = {
-  render: () => (
-    <Combobox aria-label="Status" value="todo" onChange={() => {}} options={statuses} disabled />
-  ),
+  render: () => <ReadOnlyField />,
+  parameters: { a11y: { context: 'body' } },
   play: async ({ canvasElement }) => {
-    const page = body(canvasElement);
-    const trigger = within(canvasElement).getByRole('combobox', { name: 'Status' });
-    await expect(trigger).toBeDisabled();
-    await userEvent.click(trigger, { pointerEventsCheck: 0 });
-    await expect(page.queryByRole('listbox')).not.toBeInTheDocument();
+    const canvas = within(canvasElement),
+      page = body(canvasElement);
+    const input = await openSearch(canvasElement, 'Status');
+    await expect(input).toHaveAttribute('aria-busy', 'true');
+    await expect(input).not.toBeDisabled();
+    await userEvent.clear(input);
+    await userEvent.keyboard('prog');
+    await userEvent.click(await page.findByRole('option', { name: 'In progress' }));
+    await expect(canvas.getByTestId('value')).toHaveTextContent('todo');
+    await expect(input).toHaveFocus();
+    await userEvent.clear(input);
+    await userEvent.keyboard('Custom');
+    const create = await page.findByRole('option', { name: 'Create status “Custom” Saving…' });
+    await expect(create).toHaveAttribute('aria-disabled', 'true');
   },
 };

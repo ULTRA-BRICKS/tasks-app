@@ -35,11 +35,13 @@ export function IssueProperties({
   value: v,
   onChange,
   disabled = false,
+  readOnly = false,
   onTeamChange,
 }: {
   value: IssuePropertyValue;
   onChange: (patch: Omit<IssuePatch, 'version'>) => void;
   disabled?: boolean;
+  readOnly?: boolean;
   onTeamChange?: (id: string) => void;
 }) {
   const { data: c } = useCatalog(),
@@ -101,6 +103,7 @@ export function IssueProperties({
             options={c?.teams.map((t) => ({ value: t.id, label: t.name })) ?? []}
             onChange={onTeamChange}
             disabled={disabled}
+            readOnly={readOnly}
           />,
         )}
       {row(
@@ -115,6 +118,7 @@ export function IssueProperties({
           }
           onChange={(id) => onChange({ status_id: id })}
           disabled={disabled}
+          readOnly={readOnly}
         />,
       )}
       {row(
@@ -125,6 +129,7 @@ export function IssueProperties({
           options={priorities}
           onChange={(id) => onChange({ priority: Number(id) })}
           disabled={disabled}
+          readOnly={readOnly}
         />,
       )}
       {row(
@@ -135,6 +140,7 @@ export function IssueProperties({
           options={[{ value: 'none', label: 'Unassigned' }, ...personOptions(c)]}
           onChange={(id) => onChange({ assignee_id: id === 'none' ? null : id })}
           disabled={disabled}
+          readOnly={readOnly}
         />,
         Boolean(person),
       )}
@@ -151,6 +157,7 @@ export function IssueProperties({
           ]}
           onChange={(id) => onChange({ estimate: id === 'none' ? null : Number(id) })}
           disabled={disabled}
+          readOnly={readOnly}
         />,
       )}
       {moduleEnabled(c, 'cycles') &&
@@ -168,6 +175,7 @@ export function IssueProperties({
               ]}
               onChange={(id) => onChange({ cycle_id: id === 'none' ? null : id })}
               disabled={disabled}
+              readOnly={readOnly}
               create={pageFirst('cycle')}
             />
             <CycleHelp />
@@ -177,6 +185,7 @@ export function IssueProperties({
       <LabelPicker
         selected={v.label_ids}
         disabled={disabled}
+        readOnly={readOnly}
         canCreate={canCreate}
         onChange={(ids) => onChange({ label_ids: ids })}
       />
@@ -198,6 +207,7 @@ export function IssueProperties({
                 onChange({ project_id: id === 'none' ? null : id, milestone_id: null })
               }
               disabled={disabled}
+              readOnly={readOnly}
               create={pageFirst('project')}
             />,
           )}
@@ -215,6 +225,7 @@ export function IssueProperties({
                 ]}
                 onChange={(id) => onChange({ milestone_id: id === 'none' ? null : id })}
                 disabled={disabled}
+                readOnly={readOnly}
                 create={milestoneCreate}
               />,
             )}
@@ -240,11 +251,13 @@ function LabelPicker({
   selected,
   onChange,
   disabled,
+  readOnly,
   canCreate,
 }: {
   selected: string[];
   onChange: (ids: string[]) => void;
   disabled: boolean;
+  readOnly: boolean;
   canCreate: boolean;
 }) {
   const { data: c } = useCatalog();
@@ -261,7 +274,6 @@ function LabelPicker({
     },
     canCreate,
   );
-  const chosen = c?.labels.filter((l) => selected.includes(l.id)) ?? [];
   return (
     <Combobox
       multiple
@@ -270,24 +282,9 @@ function LabelPicker({
       value={selected}
       onChange={onChange}
       disabled={disabled}
+      readOnly={readOnly}
       options={c?.labels.map((l) => ({ value: l.id, label: l.name, color: l.color })) ?? []}
       create={create}
-      triggerContent={
-        <span className="property-label-values">
-          {chosen.length ? (
-            chosen.map((l) => (
-              <span key={l.id} className="label-pill">
-                <span style={{ color: l.color }} aria-hidden="true">
-                  ●
-                </span>
-                {l.name}
-              </span>
-            ))
-          ) : (
-            <span className="muted">Add labels</span>
-          )}
-        </span>
-      }
     />
   );
 }

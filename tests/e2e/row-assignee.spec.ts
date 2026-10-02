@@ -127,14 +127,16 @@ test.describe('desktop', () => {
     await page.reload();
     const taylor = (await seededPeople(page)).find((person) => person.name === 'Taylor Park')!;
     const avatar = avatarOf(rows(page).first());
-    const search = page.getByRole('combobox', { name: 'Search people', exact: true });
     const options = page.getByRole('listbox').getByRole('option');
     await avatar.click();
-    await search.fill(taylor.email.slice(0, taylor.email.indexOf('@') + 1));
+    await expect(page.locator('.combobox-popup').locator('input')).toHaveCount(0);
+    await expect(avatar).toHaveJSProperty('tagName', 'INPUT');
+    await expect(avatar).toBeFocused();
+    await avatar.fill(taylor.email.slice(0, taylor.email.indexOf('@') + 1));
     await expect(options).toHaveCount(1);
     await expect(options.locator('.picker-item-text')).toHaveText('Taylor Park');
     for (const alias of ['jchen', 'Jamie Chen']) {
-      await search.fill(alias);
+      await avatar.fill(alias);
       await expect(options).toHaveCount(1);
       await expect(options.locator('.picker-item-text')).toHaveText('Jamie C.');
     }

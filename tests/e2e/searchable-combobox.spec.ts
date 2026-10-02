@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Request } from '@playwright/test';
+import { test, expect, type Locator, type Page, type Request } from '@playwright/test';
 import { login } from './session-fixture';
 
 const unique = (prefix: string) => `${prefix} ${Date.now().toString(36)}`;
@@ -28,38 +28,60 @@ async function labelsNamed(page: Page, name: string) {
   return catalog.labels.filter((label: { name: string }) => label.name === name);
 }
 
-test('property pickers search, keep their value on Escape and show people avatars', async ({
-  page,
-}) => {
+async function openSingleInput(page: Page, label: string | RegExp) {
+  const input = page.getByRole('combobox', {
+    name: label,
+    exact: typeof label === 'string',
+  });
+  await input.click();
+  const popup = page.locator('.combobox-popup');
+  await expect(popup).toBeVisible();
+  await expect(popup.getByRole('textbox')).toHaveCount(0);
+  await expect(popup.locator('input')).toHaveCount(0);
+  await expect(input).toHaveJSProperty('tagName', 'INPUT');
+  await expect(input).toBeFocused();
+  return input;
+}
+
+test('a property combobox uses its control input for opening and filtering', async ({ page }) => {
   await openTask(page);
-  const url = page.url();
   const status = page.getByRole('combobox', { name: 'Status', exact: true });
-  const before = (await status.textContent())?.trim();
-  await status.click();
-  const search = page.getByRole('combobox', { name: 'Search status' });
-  await expect(search).toBeFocused();
-  await expect(page.getByRole('listbox', { name: 'Status' })).toBeVisible();
-  await search.pressSequentially('zzz-no-status');
+  const input = await openSingleInput(page, 'Status');
+  await expect(input).toHaveValue('Triage');
+  await input.pressSequentially('zzz-no-status');
   await expect(page.getByText('No matches')).toBeVisible();
   await expect(page.getByRole('option')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('listbox')).toHaveCount(0);
   await expect(status).toBeFocused();
-  await expect(status).toHaveText(before ?? '');
+});
+
+test('property pickers search, keep their value on Escape and show people avatars', async ({
+  page,
+}) => {
+  await openTask(page);
+  const url = page.url();
+  const status = await openSingleInput(page, 'Status');
+  const before = await status.inputValue();
+  await status.pressSequentially('zzz-no-status');
+  await expect(page.getByText('No matches')).toBeVisible();
+  await expect(page.getByRole('option')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  await expect(status).toBeFocused();
+  await expect(status).toHaveValue(before);
   // Escape belonged to the picker, not to the task page's back navigation.
   expect(page.url()).toBe(url);
 
   const catalog = await (await page.request.get('/api/v1/catalog')).json();
   const person = catalog.people.find((p: { name: string }) => p.name === 'Jamie Chen');
-  await page.getByRole('combobox', { name: 'Assignee', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Search assignee' }).pressSequentially('jami');
+  const assignee = await openSingleInput(page, 'Assignee');
+  await assignee.pressSequentially('jami');
   const option = page.getByRole('option', { name: person.name, exact: true });
   await expect(option.locator('.avatar')).toHaveText('JC');
   await expect(page.getByRole('option')).toHaveCount(1);
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('combobox', { name: 'Assignee', exact: true })).toHaveText(
-    person.name,
-  );
+  await expect(assignee).toHaveValue(person.name);
 });
 
 test('labels are created only by the explicit Create option, and a lost response retries idempotently', async ({
@@ -68,14 +90,11 @@ test('labels are created only by the explicit Create option, and a lost response
   await openTask(page);
   const name = unique('Needs design');
   const sent = requests(page, 'POST', '/api/v1/labels');
-  const trigger = page.getByRole('combobox', { name: 'Labels', exact: true });
-  await trigger.click();
-  const search = page.getByRole('combobox', { name: 'Search labels' });
-  await search.pressSequentially(name);
+  const input = await openSingleInput(page, 'Labels');
+  await input.pressSequentially(name);
   await expect(page.getByRole('option', { name: `Create label “${name}”` })).toBeVisible();
   await page.keyboard.press('Escape');
-  await trigger.click();
-  await page.getByRole('combobox', { name: 'Search labels' }).pressSequentially(name);
+  await (await openSingleInput(page, 'Labels')).pressSequentially(name);
   await page.mouse.click(5, 5);
   await expect(page.getByRole('listbox')).toHaveCount(0);
   expect(sent).toHaveLength(0);
@@ -98,11 +117,10 @@ test('labels are created only by the explicit Create option, and a lost response
   await page.route('**/api/v1/catalog', (route) =>
     catalogDown ? route.abort('failed') : route.fallback(),
   );
-  await trigger.click();
-  await page.getByRole('combobox', { name: 'Search labels' }).pressSequentially(name);
+  await (await openSingleInput(page, 'Labels')).pressSequentially(name);
   await page.getByRole('option', { name: `Create label “${name}”` }).click();
   await expect(page.getByRole('alert')).toContainText('Couldn’t reach the server');
-  await expect(page.getByRole('combobox', { name: 'Search labels' })).toHaveValue(name);
+  await expect(input).toHaveValue(name);
   catalogDown = true;
   await page.getByRole('option', { name: `Create label “${name}”` }).click();
   await expect(page.getByRole('option', { name, exact: true })).toHaveAttribute(
@@ -114,10 +132,12 @@ test('labels are created only by the explicit Create option, and a lost response
   expect(keys[0]).toBeTruthy();
   expect(keys[1]).toBe(keys[0]);
   expect(await labelsNamed(page, name)).toHaveLength(1);
+  await expect(input).toBeFocused();
+  await expect(page.locator('.combobox-chip').filter({ hasText: name })).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(trigger).toContainText(name);
+  await expect(page.getByRole('button', { name: `Remove ${name}` })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('combobox', { name: 'Labels', exact: true })).toContainText(name);
+  await expect(page.getByRole('button', { name: `Remove ${name}` })).toBeVisible();
 });
 
 test('a label created concurrently is selected instead of duplicated on 409', async ({ page }) => {
@@ -133,9 +153,8 @@ test('a label created concurrently is selected instead of duplicated on 409', as
     expect(other.status()).toBe(201);
     await route.continue();
   });
-  const trigger = page.getByRole('combobox', { name: 'Labels', exact: true });
-  await trigger.click();
-  await page.getByRole('combobox', { name: 'Search labels' }).pressSequentially(name);
+  const input = await openSingleInput(page, 'Labels');
+  await input.pressSequentially(name);
   const conflict = page.waitForResponse(
     (response) => response.url().endsWith('/api/v1/labels') && response.status() === 409,
   );
@@ -149,6 +168,7 @@ test('a label created concurrently is selected instead of duplicated on 409', as
     'aria-selected',
     'true',
   );
+  await expect(input).toBeFocused();
   expect(await labelsNamed(page, name)).toHaveLength(1);
 });
 
@@ -172,13 +192,13 @@ test('a 409 whose winner cannot be listed yet explains itself and the retry sele
   await page.route('**/api/v1/catalog', (route) =>
     catalogDown ? route.abort('failed') : route.fallback(),
   );
-  await page.getByRole('combobox', { name: 'Labels', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Search labels' }).pressSequentially(name);
+  const input = await openSingleInput(page, 'Labels');
+  await input.pressSequentially(name);
   await page.getByRole('option', { name: `Create label “${name}”` }).click();
   await expect(page.getByRole('alert')).toHaveText(
     `A label named “${name}” already exists. Try again to select it.`,
   );
-  await expect(page.getByRole('combobox', { name: 'Search labels' })).toHaveValue(name);
+  await expect(input).toHaveValue(name);
 
   catalogDown = false;
   await page.getByRole('option', { name: `Create label “${name}”` }).click();
@@ -197,8 +217,7 @@ test('project creation opens the page-first draft with the typed name and return
   const name = unique('Q4 launch');
   const sent = requests(page, 'POST', '/api/v1/projects');
   const project = page.getByRole('combobox', { name: 'Project', exact: true });
-  await project.click();
-  await page.getByRole('combobox', { name: 'Search project' }).pressSequentially(name);
+  await (await openSingleInput(page, 'Project')).pressSequentially(name);
   await page.getByRole('option', { name: `Create project “${name}”…` }).click();
   await expect(page).toHaveURL(/\/projects\/new$/);
   await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue(name);
@@ -207,18 +226,16 @@ test('project creation opens the page-first draft with the typed name and return
   await expect(page).toHaveURL(taskUrl);
   expect(sent).toHaveLength(0);
 
-  await project.click();
-  await page.getByRole('combobox', { name: 'Search project' }).pressSequentially(name);
+  await (await openSingleInput(page, 'Project')).pressSequentially(name);
   await page.getByRole('option', { name: `Create project “${name}”…` }).click();
   await page.getByRole('button', { name: 'Create project' }).click();
   await expect(page).toHaveURL(/\/projects\/[0-9a-f-]{36}$/);
   expect(sent).toHaveLength(1);
   await page.getByRole('button', { name: 'Back to task' }).click();
   await expect(page).toHaveURL(taskUrl);
-  await page.getByRole('combobox', { name: 'Project', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Search project' }).pressSequentially(name);
+  await (await openSingleInput(page, 'Project')).pressSequentially(name);
   await page.getByRole('option', { name, exact: true }).click();
-  await expect(page.getByRole('combobox', { name: 'Project', exact: true })).toHaveText(name);
+  await expect(project).toHaveValue(name);
 });
 
 test('cycle creation from a new task keeps the unsent task draft for the return', async ({
@@ -229,8 +246,7 @@ test('cycle creation from a new task keeps the unsent task draft for the return'
   const title = unique('Draft task');
   await page.getByRole('textbox', { name: 'Title' }).fill(title);
   const name = unique('Sprint');
-  await page.getByRole('combobox', { name: 'Cycle', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Search cycle' }).pressSequentially(name);
+  await (await openSingleInput(page, 'Cycle')).pressSequentially(name);
   await page.getByRole('option', { name: `Create cycle “${name}”…` }).click();
   await expect(page).toHaveURL(/\/cycles\/new$/);
   await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue(name);
@@ -244,13 +260,16 @@ test('cycle creation from a new task keeps the unsent task draft for the return'
 test('milestones are created inline in the task project', async ({ page }) => {
   await openTask(page);
   const name = unique('Public beta');
-  const milestone = page.getByRole('combobox', { name: 'Milestone', exact: true });
-  await milestone.click();
-  await page.getByRole('combobox', { name: 'Search milestone' }).pressSequentially(name);
+  const milestone = await openSingleInput(page, 'Milestone');
+  await milestone.pressSequentially(name);
   await page.getByRole('option', { name: `Create milestone “${name}”` }).click();
-  await expect(milestone).toHaveText(name);
-  const milestones = await (await page.request.get('/api/v1/milestones')).json();
-  expect(milestones.filter((m: { name: string }) => m.name === name)).toHaveLength(1);
+  await expect(milestone).toHaveValue(name);
+  await expect
+    .poll(async () => {
+      const milestones = await (await page.request.get('/api/v1/milestones')).json();
+      return milestones.filter((milestone: { name: string }) => milestone.name === name).length;
+    })
+    .toBe(1);
 });
 
 test('viewers cannot create and a server 403 keeps the typed text', async ({ page }) => {
@@ -264,11 +283,11 @@ test('viewers cannot create and a server 403 keeps the typed text', async ({ pag
         })
       : route.fallback(),
   );
-  await page.getByRole('combobox', { name: 'Labels', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Search labels' }).pressSequentially(name);
+  const input = await openSingleInput(page, 'Labels');
+  await input.pressSequentially(name);
   await page.getByRole('option', { name: `Create label “${name}”` }).click();
   await expect(page.getByRole('alert')).toHaveText('You don’t have permission to create labels.');
-  await expect(page.getByRole('combobox', { name: 'Search labels' })).toHaveValue(name);
+  await expect(input).toHaveValue(name);
   expect(await labelsNamed(page, name)).toHaveLength(0);
   await page.keyboard.press('Escape');
 
@@ -288,8 +307,8 @@ test('offline disables Create without losing the typed text', async ({ page, con
   await openTask(page);
   const name = unique('Offline');
   const sent = requests(page, 'POST', '/api/v1/labels');
-  await page.getByRole('combobox', { name: 'Labels', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Search labels' }).pressSequentially(name);
+  const input = await openSingleInput(page, 'Labels');
+  await input.pressSequentially(name);
   await context.setOffline(true);
   const option = page.getByRole('option', { name: new RegExp(`Create label “${name}”`) });
   await expect(option).toHaveAttribute('aria-disabled', 'true');
@@ -300,28 +319,42 @@ test('offline disables Create without losing the typed text', async ({ page, con
   expect(sent).toHaveLength(0);
   await context.setOffline(false);
   await expect(option).not.toHaveAttribute('aria-disabled', 'true');
-  await expect(page.getByRole('combobox', { name: 'Search labels' })).toHaveValue(name);
+  await expect(input).toHaveValue(name);
 });
 
-// Real touch input at phone size. Base UI cancels an option's pointerdown (the search field
-// keeps focus) and chooses on the click that follows the tap, as iOS Safari and Android Chrome
-// dispatch it. Playwright's WebKit is not iOS: its emulated tap drops that click, so only
-// Chromium can prove a tap here (docs/SEARCHABLE-COMBOBOX.md, Touch selection).
+// Chromium's touchscreen API proves that tapping the control input opens a list. Playwright
+// WebKit can tap that input too, but its emulated option tap drops the click Base UI needs after
+// cancelling pointerdown; WebKit therefore chooses options with click().
 test.describe('touch phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-  test.skip(
-    ({ browserName }) => browserName === 'webkit',
-    'Emulated WebKit taps never click an option whose pointerdown was cancelled',
-  );
+
+  async function tapInput(page: Page, input: Locator) {
+    await expect(input).toHaveJSProperty('tagName', 'INPUT');
+    await input.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+    const box = await input.boundingBox();
+    if (!box) throw new Error('Combobox input has no box');
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(input).toBeFocused();
+    await expect(page.locator('.combobox-popup').locator('input')).toHaveCount(0);
+  }
+
+  async function chooseOption(page: Page, option: Locator, browserName: string) {
+    if (browserName === 'webkit') await option.click();
+    else {
+      const box = await option.boundingBox();
+      if (!box) throw new Error('Combobox option has no box');
+      await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    }
+  }
 
   // The last unselected option: commands such as View profile lead the list and are not values.
-  async function tapUnselected(page: Page, listbox: string) {
+  async function chooseUnselected(page: Page, listbox: string, browserName: string) {
     const option = page
       .getByRole('listbox', { name: listbox })
       .getByRole('option', { selected: false })
       .last();
     const name = (await option.locator('.picker-item-text').innerText()).trim();
-    await option.tap();
+    await chooseOption(page, option, browserName);
     return name;
   }
 
@@ -334,17 +367,18 @@ test.describe('touch phone', () => {
     expect(sent).toHaveLength(count);
   }
 
-  test('a tap chooses exactly one option in the row, property and label pickers', async ({
+  test('a touch opens the control input and chooses once in row, property and labels pickers', async ({
     page,
+    browserName,
   }) => {
     await login(page);
     const sent = requests(page, 'PATCH', /^\/api\/v1\/issues\//);
     const row = page.getByTestId('issue-row').first();
     const assignee = row.getByRole('combobox', { name: /^Assignee for / });
-    await assignee.tap();
-    // The popup's listbox shares the trigger's label.
+    await tapInput(page, assignee);
+    // The popup's listbox shares the input's label.
     const listbox = (await assignee.getAttribute('aria-label')) ?? '';
-    const person = await tapUnselected(page, listbox);
+    const person = await chooseUnselected(page, listbox, browserName);
     // `Assignee for UB-1: Jamie Chen` names the trigger after its current value, `Unassigned`
     // included (assignee.tsx), so the label always has one `: `; keys have no colon.
     await expect(assignee).toHaveAccessibleName(
@@ -356,25 +390,31 @@ test.describe('touch phone', () => {
     await page.locator('.issue-open').first().click();
     const status = page.getByRole('combobox', { name: 'Status', exact: true });
     await expect(status).toBeEnabled();
-    await status.tap();
-    const chosen = await tapUnselected(page, 'Status');
-    await expect(status).toHaveText(chosen);
+    await tapInput(page, status);
+    const chosen = await chooseUnselected(page, 'Status', browserName);
+    await expect(status).toHaveValue(chosen);
     await expect(page.getByRole('listbox')).toHaveCount(0);
     await expectSaves(page, sent, 2);
 
-    // Multiple choice stays open, and each tap toggles the label exactly once.
-    await page.getByRole('combobox', { name: 'Labels', exact: true }).tap();
-    const label = await tapUnselected(page, 'Labels');
+    // Multiple choice stays open, and each choice toggles the label exactly once.
+    const labels = page.getByRole('combobox', { name: 'Labels', exact: true });
+    await tapInput(page, labels);
+    const label = await chooseUnselected(page, 'Labels', browserName);
     const option = page.getByRole('option', { name: label, exact: true });
     await expect(option).toHaveAttribute('aria-selected', 'true');
     await expectSaves(page, sent, 3);
-    await option.tap();
+    await chooseOption(page, option, browserName);
     await expect(option).toHaveAttribute('aria-selected', 'false');
     await expectSaves(page, sent, 4);
+    await expect(labels).toBeFocused();
     await expect(page.getByRole('listbox', { name: 'Labels' })).toBeVisible();
   });
 
-  test('a swipe over the options scrolls the list and chooses nothing', async ({ page }) => {
+  test('a swipe over static Estimate options scrolls and chooses nothing', async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(browserName === 'webkit', 'CDP touch-scroll synthesis is Chromium-only');
     await openTask(page);
     const sent = requests(page, 'PATCH', /^\/api\/v1\/issues\//);
     const estimate = page.getByRole('combobox', { name: 'Estimate', exact: true });
@@ -402,9 +442,11 @@ test.describe('touch phone', () => {
     await expect(page.getByRole('option', { selected: true })).toHaveCount(1);
     expect(sent).toHaveLength(0);
 
-    // The list still takes a tap after the swipe.
-    const chosen = await tapUnselected(page, 'Estimate');
-    await expect(estimate).toHaveText(chosen);
+    // The list still takes a click after the swipe.
+    const chosen = page.getByRole('option', { selected: false }).last();
+    const chosenName = (await chosen.textContent())?.trim();
+    await chosen.click();
+    await expect(estimate).toHaveValue(chosenName ?? '');
     await expectSaves(page, sent, 1);
   });
 });

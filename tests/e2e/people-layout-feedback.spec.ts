@@ -37,7 +37,11 @@ test('assignee picker deduplicates one member/source pair without imported label
   const catalog = await (await page.request.get('/api/v1/catalog')).json();
   const member = catalog.people[0];
   await page.locator('.issue-open').first().click();
-  await page.getByRole('combobox', { name: 'Assignee', exact: true }).click();
+  const assignee = page.getByRole('combobox', { name: 'Assignee', exact: true });
+  await assignee.click();
+  await expect(assignee).toHaveJSProperty('tagName', 'INPUT');
+  await expect(assignee).toBeFocused();
+  await expect(page.locator('.combobox-popup').locator('input')).toHaveCount(0);
   await expect(page.getByRole('option').filter({ hasText: member.name })).toHaveCount(1);
   await expect(page.getByRole('option').filter({ hasText: '· imported' })).toHaveCount(0);
   await expect(
@@ -59,6 +63,62 @@ test('task row assignee is a keyboard-accessible picker, not an inert avatar or 
   await expect(page.getByRole('listbox')).toHaveCount(0);
   await expect(row.getByRole('combobox', { name: /Assignee/ })).toBeFocused();
 });
+test('phone property focus paints one rounded outer combobox highlight', async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const page = await context.newPage();
+  try {
+    await login(page);
+    await page.locator('.issue-open').first().click();
+    const input = page.getByRole('combobox', { name: 'Assignee', exact: true });
+    await expect(input).toHaveJSProperty('tagName', 'INPUT');
+    const picker = input.locator('xpath=ancestor::*[contains(@class, "picker")][1]');
+    const property = picker.locator('xpath=ancestor::*[contains(@class, "compact-property")][1]');
+    await expect(property).toBeVisible();
+    const before = {
+      innerBackground: await picker.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+      innerRadius: await picker.evaluate(
+        (element) => getComputedStyle(element).borderTopLeftRadius,
+      ),
+      outerBackground: await property.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+      outerRadius: await property.evaluate(
+        (element) => getComputedStyle(element).borderTopLeftRadius,
+      ),
+    };
+    await input.click();
+    await expect(input).toBeFocused();
+    await expect(page.getByRole('listbox', { name: 'Assignee' })).toBeVisible();
+    await expect(page.locator('.combobox-popup').locator('input')).toHaveCount(0);
+    const after = {
+      innerBackground: await picker.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+      innerRadius: await picker.evaluate(
+        (element) => getComputedStyle(element).borderTopLeftRadius,
+      ),
+      outerBackground: await property.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+      outerRadius: await property.evaluate(
+        (element) => getComputedStyle(element).borderTopLeftRadius,
+      ),
+    };
+    expect(after.outerRadius).not.toBe('0px');
+    expect(after.outerBackground).not.toBe(before.outerBackground);
+    expect(after.innerBackground).toBe(before.innerBackground);
+    expect(after.innerRadius).toBe(before.innerRadius);
+  } finally {
+    await context.close();
+  }
+});
+
 for (const width of [320, 393, 430])
   test(`task detail contains long people and links without horizontal drift at ${width}px`, async ({
     browser,

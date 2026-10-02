@@ -84,7 +84,8 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
     readOnly = me?.role === 'viewer';
   const propertyLock = useRef(false);
   const [propertyPending, setPropertyPending] = useState(false);
-  const propertiesDisabled = readOnly || busy || propertyPending;
+  const propertyReadOnly = busy || propertyPending,
+    propertiesDisabled = readOnly || propertyReadOnly;
   async function update(patch: Omit<IssuePatch, 'version'>) {
     if (propertiesDisabled || propertyLock.current) return;
     propertyLock.current = true;
@@ -503,7 +504,8 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
           <IssueProperties
             value={issue}
             onChange={(patch) => void update(patch)}
-            disabled={propertiesDisabled}
+            disabled={readOnly}
+            readOnly={propertyReadOnly}
           />
           <div className="property-section-title">More</div>
           <Button

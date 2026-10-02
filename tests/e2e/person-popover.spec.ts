@@ -57,8 +57,8 @@ test('the task Assignee value opens Jamie’s card on hover, and Enter/Escape ke
   await expect(card).toHaveCount(0);
   await expect(chip).toBeFocused();
   // The card never changes the assignment.
-  await expect(page.getByRole('combobox', { name: 'Assignee', exact: true })).toHaveText(
-    /Jamie Chen/,
+  await expect(page.getByRole('combobox', { name: 'Assignee', exact: true })).toHaveValue(
+    'Jamie Chen',
   );
 });
 test('View tasks opens the task list filtered by that person', async ({ page }) => {
@@ -262,7 +262,7 @@ test('People, project and initiative surfaces open the person’s card', async (
     'Jamie Chen',
     jamie.email,
   );
-  await expect(lead).toHaveText(/Jamie Chen/);
+  await expect(lead).toHaveValue('Jamie Chen');
   // Initiative page: the avatar beside the Owner picker.
   const initiative = await (
     await page.request.post('/api/v1/initiatives', {
@@ -281,7 +281,7 @@ test('People, project and initiative surfaces open the person’s card', async (
     'Jamie Chen',
     jamie.email,
   );
-  await expect(owner).toHaveText(/Jamie Chen/);
+  await expect(owner).toHaveValue('Jamie Chen');
 });
 test('on a phone the drawer profile opens the signed-in card and View tasks closes the drawer', async ({
   browser,
@@ -334,8 +334,11 @@ test('a list row avatar keeps assigning, and its View profile opens the card at 
   const { catalog, jamie, row, picker } = await jamieRow(page);
   const card = page.getByRole('dialog', { name: 'Jamie Chen', exact: true });
   const options = page.getByRole('listbox', { name: /^Assignee for / }).getByRole('option');
-  // Pointer: the avatar still opens the assignee picker, now led by View profile.
+  // Pointer: the avatar remains the input control and its picker leads with View profile.
   await picker.click();
+  await expect(picker).toHaveJSProperty('tagName', 'INPUT');
+  await expect(picker).toBeFocused();
+  await expect(page.locator('.combobox-popup').locator('input')).toHaveCount(0);
   await expect(options.first()).toHaveText('View profile');
   await expect(page.getByRole('option', { name: 'Unassigned', exact: true })).not.toHaveAttribute(
     'aria-disabled',
@@ -354,9 +357,8 @@ test('a list row avatar keeps assigning, and its View profile opens the card at 
   await page.keyboard.press('Escape');
   await expect(card).toHaveCount(0);
   await expect(picker).toBeFocused();
-  // Keyboard: Enter opens the picker in its search field on the current assignee; View profile
-  // leads the list above it, so ArrowUp reaches it, and Enter enters the card.
-  const search = page.getByRole('combobox', { name: 'Search people', exact: true });
+  // Enter opens the input's list; the leading View profile action still takes keyboard focus.
+  const search = picker;
   const viewProfile = async () => {
     await page.keyboard.press('Enter');
     await expect(search).toBeFocused();

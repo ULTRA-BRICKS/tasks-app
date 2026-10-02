@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Combobox as BaseCombobox } from '@base-ui/react/combobox';
-import { Check, ChevronDown, Plus } from 'lucide-react';
+import { Check, ChevronDown, Plus, X } from 'lucide-react';
 import { Avatar } from './avatar';
 import type { Option } from './select';
 import { cn } from '../lib/cn';
@@ -40,10 +40,11 @@ interface SharedProps {
   options: Option[];
   'aria-label': string;
   disabled?: boolean;
+  /** Locks selection while allowing the input to retain focus and browse its current list. */
+  readOnly?: boolean;
   className?: string;
-  triggerContent?: ReactNode;
-  /** Accessible name of the search field; defaults to `Search <field>`. */
-  searchLabel?: string;
+  /** Decoration shown before the control input, for example the row-assignee avatar. */
+  leadingContent?: ReactNode;
   create?: ComboboxCreate;
   /** Commands shown while the query is empty; choosing one runs it and keeps the value. */
   actions?: ComboboxAction[];
@@ -67,14 +68,14 @@ export function Combobox(props: SingleProps | MultipleProps) {
     options,
     'aria-label': label,
     disabled,
+    readOnly,
     className,
-    triggerContent,
-    searchLabel = 'Search ' + props['aria-label'].toLowerCase(),
+    leadingContent,
     create,
     actions,
   } = props;
   const [open, setOpen] = useState(false),
-    [query, setQuery] = useState(''),
+    [query, setQuery] = useState<string | null>(''),
     [pending, setPending] = useState(false),
     [feedback, setFeedback] = useState<{ alert: boolean; message: string } | null>(null);
   const collisionPadding = usePopupCollisionPadding();
@@ -85,8 +86,22 @@ export function Combobox(props: SingleProps | MultipleProps) {
   });
   // State updates are not visible within one tick (key repeat): this gate is synchronous.
   const inFlight = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const selected = props.multiple
+    ? undefined
+    : options.find((option) => option.value === props.value);
+  const selectedOptions = useMemo(() => {
+    if (!props.multiple) return [];
+    const optionsByValue = new Map(options.map((option) => [option.value, option]));
+    return props.value.map((value) => optionsByValue.get(value) ?? { value, label: value });
+  }, [options, props.multiple, props.value]);
+  useLayoutEffect(() => {
+    if (!open || disabled) return;
+    inputRef.current?.focus();
+    if (!props.multiple && query === null && selected?.label) inputRef.current?.select();
+  }, [disabled, open, props.multiple, query, selected?.label]);
   const { contains } = BaseCombobox.useFilter();
-  const typed = query.trim(),
+  const typed = (query ?? '').trim(),
     needle = typed.toLocaleLowerCase();
   const action =
     create &&
@@ -94,7 +109,7 @@ export function Combobox(props: SingleProps | MultipleProps) {
     !options.some((option) => option.label.trim().toLocaleLowerCase() === needle)
       ? create.label(typed)
       : null;
-  const unavailable = create?.unavailable;
+  const unavailable = readOnly ? (create?.unavailable ?? 'Saving…') : create?.unavailable;
   const items = useMemo<Item[]>(() => {
     const commands = (actions ?? []).map((command, index) => ({
       value: commandValue + index,
@@ -112,7 +127,42 @@ export function Combobox(props: SingleProps | MultipleProps) {
       }),
     [items],
   );
-  const selected = props.multiple ? undefined : options.find((o) => o.value === props.value);
+  const inputValue = props.multiple
+    ? (query ?? '')
+    : open
+      ? (query ?? selected?.label ?? '')
+      : (selected?.label ?? '');
+  const controlInput = (
+    <BaseCombobox.Input
+      ref={inputRef}
+      className="combobox-input"
+      aria-label={label}
+      aria-busy={readOnly || undefined}
+      placeholder={props.multiple ? 'Add labels' : undefined}
+      autoComplete="off"
+      onKeyDown={(event) => {
+        if ((event.key === 'Enter' || event.key === ' ') && !open) {
+          event.preventDefault();
+          setQuery(props.multiple ? '' : null);
+          setFeedback(null);
+          setOpen(true);
+          return;
+        }
+        if (
+          !props.multiple &&
+          query === null &&
+          !event.nativeEvent.isComposing &&
+          event.key.length === 1 &&
+          !event.altKey &&
+          !event.ctrlKey &&
+          !event.metaKey
+        ) {
+          event.currentTarget.select();
+          if (!pending) setFeedback(null);
+        }
+      }}
+    />
+  );
 
   function commit(value: string, notice?: string) {
     const current = latest.current;
@@ -155,13 +205,17 @@ export function Combobox(props: SingleProps | MultipleProps) {
       multiple={props.multiple}
       value={props.value}
       onValueChange={(next: string | string[] | null, details) => {
-        const values = Array.isArray(next) ? next : [next];
+        const values = Array.isArray(next) ? next : next === null ? [] : [next];
         const command = items.find((item) => item.command && values.includes(item.value))?.command;
         if (command) {
           // A command is never a value: cancel the change, close and run it.
           details.cancel();
           setOpen(false);
           command.onSelect();
+          return;
+        }
+        if (readOnly || next === null) {
+          details.cancel();
           return;
         }
         if (values.includes(createValue)) {
@@ -171,39 +225,76 @@ export function Combobox(props: SingleProps | MultipleProps) {
           return;
         }
         // Synchronous choices use this render's handler; async creation goes through `latest`.
-        if (props.multiple) props.onChange(Array.isArray(next) ? next : []);
-        else if (typeof next === 'string') props.onChange(next);
+        if (props.multiple) {
+          props.onChange(Array.isArray(next) ? next : []);
+          setQuery('');
+        } else if (typeof next === 'string') {
+          props.onChange(next);
+          setOpen(false);
+          setQuery(null);
+        }
       }}
-      inputValue={query}
+      inputValue={inputValue}
       onInputValueChange={(next) => {
         setQuery(next);
         if (!pending) setFeedback(null);
       }}
       open={open}
-      onOpenChange={(next) => {
+      onOpenChange={(next, details) => {
         setOpen(next);
-        if (next) {
-          setQuery('');
-          setFeedback(null);
+        if (!(next && details.reason === 'input-change')) {
+          setQuery(props.multiple ? '' : null);
         }
+        if (next) setFeedback(null);
       }}
       // Commands only lead an empty query, so Enter after typing always picks a match.
-      filter={(item: Item, search) =>
-        item.command
-          ? search.trim() === ''
+      filter={(item: Item, search) => {
+        const filterText = !props.multiple && query === null ? '' : search;
+        return item.command
+          ? filterText.trim() === ''
           : Boolean(item.action) ||
-            contains(item.label, search) ||
-            Boolean(item.keywords?.some((keyword) => contains(keyword, search)))
-      }
+              contains(item.label, filterText) ||
+              Boolean(item.keywords?.some((keyword) => contains(keyword, filterText)));
+      }}
       disabled={disabled}
       autoHighlight
+      openOnInputClick
     >
-      <BaseCombobox.Trigger aria-label={label} className={cn('picker', className)}>
-        {triggerContent ?? <span>{selected?.label ?? ''}</span>}
-        <BaseCombobox.Icon className="picker-chevron">
-          <ChevronDown size={12} />
-        </BaseCombobox.Icon>
-      </BaseCombobox.Trigger>
+      <BaseCombobox.InputGroup className={cn('picker', 'combobox-control', className)}>
+        {leadingContent}
+        {props.multiple ? (
+          <BaseCombobox.Chips className="combobox-chips">
+            {selectedOptions.map((option) => (
+              <BaseCombobox.Chip key={option.value} className="combobox-chip">
+                {option.color && (
+                  <span
+                    className="combobox-swatch"
+                    style={{ color: option.color }}
+                    aria-hidden="true"
+                  >
+                    ●
+                  </span>
+                )}
+                <span>{option.label}</span>
+                <BaseCombobox.ChipRemove
+                  className="combobox-chip-remove"
+                  aria-label={`Remove ${option.label}`}
+                >
+                  <X size={12} aria-hidden="true" />
+                </BaseCombobox.ChipRemove>
+              </BaseCombobox.Chip>
+            ))}
+            {controlInput}
+          </BaseCombobox.Chips>
+        ) : (
+          controlInput
+        )}
+        <BaseCombobox.Trigger className="combobox-trigger" aria-label={`Open ${label}`}>
+          <BaseCombobox.Icon className="picker-chevron">
+            <ChevronDown size={12} />
+          </BaseCombobox.Icon>
+        </BaseCombobox.Trigger>
+      </BaseCombobox.InputGroup>
       <BaseCombobox.Portal>
         <BaseCombobox.Positioner
           sideOffset={6}
@@ -212,12 +303,6 @@ export function Combobox(props: SingleProps | MultipleProps) {
           className="popover-positioner"
         >
           <BaseCombobox.Popup className="picker-popup combobox-popup" aria-label={label}>
-            <BaseCombobox.Input
-              className="input combobox-search"
-              aria-label={searchLabel}
-              placeholder="Search…"
-              autoComplete="off"
-            />
             <BaseCombobox.Empty className="combobox-empty">No matches</BaseCombobox.Empty>
             <BaseCombobox.List className="combobox-list" aria-label={label}>
               {(item: Item) =>
@@ -281,9 +366,9 @@ export function Combobox(props: SingleProps | MultipleProps) {
                 )
               }
             </BaseCombobox.List>
-            <output aria-live="polite" className="combobox-feedback">
+            <BaseCombobox.Status className="combobox-feedback">
               {feedback && !feedback.alert ? feedback.message : ''}
-            </output>
+            </BaseCombobox.Status>
             {feedback?.alert && (
               <p role="alert" className="combobox-feedback combobox-feedback-error">
                 {feedback.message}

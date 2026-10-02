@@ -2919,15 +2919,16 @@ kbd {
   color: var(--color-text);
   font-size: var(--font-size-14);
 }
-.detail-properties .picker:hover,
-.detail-properties .picker[data-popup-open] {
-  background: var(--color-hover);
-}
-.detail-properties .picker > svg:last-child {
+.detail-properties .picker .picker-chevron {
   opacity: 0;
 }
-.detail-properties .picker:hover > svg:last-child,
-.detail-properties .picker:focus-visible > svg:last-child {
+.detail-properties .picker:hover,
+.detail-properties .picker[data-popup-open],
+.detail-properties .picker:focus-within {
+  background: var(--color-hover);
+}
+.detail-properties .picker:hover .picker-chevron,
+.detail-properties .picker:focus-within .picker-chevron {
   opacity: 1;
 }
 .detail-properties .input {
@@ -3167,25 +3168,12 @@ kbd {
   gap: var(--space-10);
   color: var(--color-text);
 }
-/* The labels combobox trigger grows with its pills instead of the fixed picker height. */
+/* The labels combobox control grows with its chips instead of the fixed picker height. */
 .picker.property-label-trigger {
   height: auto;
   min-height: 32px;
   white-space: normal;
   text-align: left;
-}
-.property-label-values {
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-  flex-wrap: wrap;
-  min-width: 0;
-}
-.property-label-trigger .label-pill {
-  background: transparent;
-  border-radius: var(--radius-round);
-  gap: var(--space-6);
-  font-size: var(--font-size-12);
 }
 .date-property {
   padding: 0;
@@ -3892,15 +3880,29 @@ button,
     border-radius: var(--mobile-pill-radius);
     min-height: var(--mobile-tap);
     padding: 0 10px;
+    background: var(--color-panel);
   }
-  .detail-properties .compact-property .picker {
+  .detail-properties .compact-property:has(> .picker[data-popup-open]),
+  .detail-properties .compact-property:has(> .picker:focus-within) {
+    background: var(--color-hover);
+    border-color: var(--color-border-strong);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 28%, transparent);
+  }
+  .detail-properties .compact-property > .picker,
+  .detail-properties .compact-property > .picker:hover,
+  .detail-properties .compact-property > .picker[data-popup-open],
+  .detail-properties .compact-property > .picker:focus-within {
     min-width: 0;
     width: auto;
     max-width: 100%;
     padding-inline: 4px;
+    border-color: transparent;
+    border-radius: inherit;
+    background: transparent;
+    box-shadow: none;
   }
-  .property-section-title {
-    margin-top: var(--space-12);
+  .detail-properties .compact-property > .picker:focus-visible {
+    outline: 0;
   }
   .detail-properties .compact-property .property-icon {
     flex-shrink: 0;
@@ -4495,7 +4497,7 @@ button,
   background: transparent;
   border-radius: 50%;
 }
-.avatar-picker > .picker-chevron {
+.avatar-picker .combobox-trigger {
   display: none;
 }
 .avatar-picker:hover,

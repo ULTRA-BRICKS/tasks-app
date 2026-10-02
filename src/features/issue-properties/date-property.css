@@ -17,6 +17,11 @@
 }
 .date-inline:focus-within {
   border-color: var(--color-accent);
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 28%, transparent);
+}
+.date-inline input:focus-visible {
+  outline: 0;
 }
 .date-calendar-trigger {
   flex: 0 0 44px;
