@@ -1,3 +1,4 @@
+import { ImportedSourceLink } from '@/shared/ui';
 import { IssueProperties } from '@/features/issue-properties';
 import { useState, useRef } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
@@ -413,16 +414,10 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
             <section className="detail-section">
               <h3>External links</h3>
               {issue.links.map((l) => (
-                <a
-                  className="attachment-row"
-                  key={l.id}
-                  href={l.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <ImportedSourceLink className="attachment-row" key={l.id} url={l.url}>
                   <ExternalLink size={14} />
                   <span>{l.title}</span>
-                </a>
+                </ImportedSourceLink>
               ))}
             </section>
           )}
@@ -445,9 +440,16 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
               .map((a) => (
                 <div className="activity-event" key={a.id}>
                   <span className="activity-dot" />
-                  <span>
-                    <strong>{a.actor_name}</strong> {a.action}
-                  </span>
+                  <div className="activity-message">
+                    <div>
+                      <strong>{a.actor_name}</strong> {a.summary ?? 'updated the issue'}
+                    </div>
+                    {a.details?.map((detail, index) => (
+                      <div className="activity-detail" key={index}>
+                        {detail}
+                      </div>
+                    ))}
+                  </div>
                   <time dateTime={a.created_at}>{formatDate(a.created_at)}</time>
                 </div>
               ))}

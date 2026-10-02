@@ -1,3 +1,5 @@
+import { presentActivity } from './activity.mjs';
+import { resolvePerson } from '../../core/source-people.mjs';
 import { id, now, sha256, hmac, constantEqual } from '../../core/crypto.mjs';
 import { assert, missing, conflict, requirePermission } from '../../core/errors.mjs';
 import { assertModule } from '../../core/modules.mjs';
@@ -5,7 +7,7 @@ import { assertModule } from '../../core/modules.mjs';
 export async function getIssue(tx, actor, key, { includeDeleted = false } = {}) {
   requirePermission(actor, 'read');
   const issue = await tx.one(
-    `SELECT i.*,s.name AS status_name,s.category AS status_category,s.color AS status_color,u.name AS assignee_name,p.name AS project_name,t.key AS team_key FROM issues i JOIN statuses s ON s.id=i.status_id LEFT JOIN users u ON u.id=i.assignee_id LEFT JOIN projects p ON p.id=i.project_id JOIN teams t ON t.id=i.team_id WHERE i.workspace_id=? AND (i.id=? OR i.key=?) ${includeDeleted ? '' : 'AND i.deleted_at IS NULL'}`,
+    `SELECT i.*,s.name AS status_name,s.category AS status_category,s.color AS status_color,COALESCE(u.name,sp.name) AS assignee_name,p.name AS project_name,t.key AS team_key FROM issues i JOIN statuses s ON s.id=i.status_id LEFT JOIN users u ON u.id=i.assignee_id LEFT JOIN source_people sp ON sp.id=i.assignee_source_id AND sp.workspace_id=i.workspace_id LEFT JOIN projects p ON p.id=i.project_id JOIN teams t ON t.id=i.team_id WHERE i.workspace_id=? AND (i.id=? OR i.key=?) ${includeDeleted ? '' : 'AND i.deleted_at IS NULL'}`,
     [actor.workspace_id, key, key],
   );
   if (!issue) throw missing('Issue');
@@ -14,6 +16,8 @@ export async function getIssue(tx, actor, key, { includeDeleted = false } = {}) 
     [actor.workspace_id, issue.id],
   );
   issue.label_ids = issue.labels.map((l) => l.id);
+  issue.assignee_id ??= issue.assignee_source_id;
+  issue.creator_id = issue.creator_source_id ?? issue.creator_id;
   return issue;
 }
 async function workspaceRef(tx, actor, table, value, label = table) {
@@ -31,16 +35,9 @@ async function validateReferences(tx, actor, issue, labelIds) {
     [actor.workspace_id, issue.team_id, issue.status_id],
   );
   assert(status, 422, 'INVALID_STATUS', 'Status does not belong to the issue team');
-  if (issue.assignee_id)
-    assert(
-      await tx.one('SELECT user_id FROM memberships WHERE workspace_id=? AND user_id=?', [
-        actor.workspace_id,
-        issue.assignee_id,
-      ]),
-      422,
-      'INVALID_ASSIGNEE',
-      'Assignee must be a workspace member',
-    );
+  const assignee = await resolvePerson(tx, actor, issue.assignee_id ?? issue.assignee_source_id);
+  issue.assignee_id = assignee.member;
+  issue.assignee_source_id = assignee.source;
   if (issue.project_id) {
     await assertModule(tx, actor.workspace_id, 'planning');
     assert(
@@ -329,8 +326,9 @@ export async function updateIssue(tx, actor, key, input) {
       'Move or delete active sub-issues before deleting their parent',
     );
   }
+  if (Object.hasOwn(input, 'assignee_id')) updated.assignee_source_id = null;
   await validateReferences(tx, actor, updated, input.label_ids);
-  const fields = [...editable, 'archived_at', 'deleted_at'];
+  const fields = [...editable, 'assignee_source_id', 'archived_at', 'deleted_at'];
   const result = await tx.exec(
     `UPDATE issues SET ${fields.map((f) => f + '=?').join(',')},version=version+1,updated_at=? WHERE workspace_id=? AND id=? AND version=?`,
     [...fields.map((f) => updated[f]), now(), actor.workspace_id, current.id, input.version],
@@ -412,10 +410,12 @@ export async function listIssues(
       args.push(filters[field]);
     }
   if (filters.assignee_id) {
-    if (filters.assignee_id === 'unassigned') where.push('i.assignee_id IS NULL');
+    if (filters.assignee_id === 'unassigned')
+      where.push('i.assignee_id IS NULL AND i.assignee_source_id IS NULL');
     else {
-      where.push('i.assignee_id=?');
-      args.push(filters.assignee_id === 'me' ? actor.id : filters.assignee_id);
+      where.push('(i.assignee_id=? OR i.assignee_source_id=?)');
+      const person = filters.assignee_id === 'me' ? actor.id : filters.assignee_id;
+      args.push(person, person);
     }
   }
   if (filters.category) {
@@ -454,7 +454,7 @@ export async function listIssues(
     args.push(c.created_at, c.created_at, c.id);
   }
   const rows = await tx.all(
-    `SELECT i.*,s.name AS status_name,s.category AS status_category,s.color AS status_color,u.name AS assignee_name,p.name AS project_name FROM issues i JOIN statuses s ON s.id=i.status_id LEFT JOIN users u ON u.id=i.assignee_id LEFT JOIN projects p ON p.id=i.project_id WHERE ${where.join(' AND ')} ORDER BY i.created_at DESC,i.id DESC LIMIT ?`,
+    `SELECT i.*,s.name AS status_name,s.category AS status_category,s.color AS status_color,COALESCE(u.name,sp.name) AS assignee_name,p.name AS project_name FROM issues i JOIN statuses s ON s.id=i.status_id LEFT JOIN users u ON u.id=i.assignee_id LEFT JOIN source_people sp ON sp.id=i.assignee_source_id AND sp.workspace_id=i.workspace_id LEFT JOIN projects p ON p.id=i.project_id WHERE ${where.join(' AND ')} ORDER BY i.created_at DESC,i.id DESC LIMIT ?`,
     [...args, limit + 1],
   );
   const hasMore = rows.length > limit,
@@ -467,6 +467,8 @@ export async function listIssues(
       )
     : [];
   for (const row of data) {
+    row.assignee_id ??= row.assignee_source_id;
+    row.creator_id = row.creator_source_id ?? row.creator_id;
     row.labels = labels.filter((l) => l.issue_id === row.id);
     row.label_ids = row.labels.map((l) => l.id);
   }
@@ -556,11 +558,11 @@ export async function addComment(tx, actor, key, body) {
 export async function issueDetails(tx, actor, key) {
   const issue = await getIssue(tx, actor, key);
   const comments = await tx.all(
-    'SELECT c.*,u.name AS author_name FROM comments c JOIN users u ON u.id=c.author_id WHERE c.workspace_id=? AND c.issue_id=? ORDER BY c.created_at,c.id',
+    'SELECT c.*,COALESCE(sp.name,u.name) AS author_name FROM comments c JOIN users u ON u.id=c.author_id LEFT JOIN source_people sp ON sp.id=c.author_source_id AND sp.workspace_id=c.workspace_id WHERE c.workspace_id=? AND c.issue_id=? ORDER BY c.created_at,c.id',
     [actor.workspace_id, issue.id],
   );
   const activity = await tx.all(
-    'SELECT a.*,u.name AS actor_name FROM activity a JOIN users u ON u.id=a.actor_id WHERE a.workspace_id=? AND a.issue_id=? ORDER BY a.created_at DESC,a.id DESC LIMIT 200',
+    "SELECT a.*,CASE WHEN a.action='linear_imported_change' THEN COALESCE(sp.name,'Linear automation') ELSE u.name END AS actor_name FROM activity a JOIN users u ON u.id=a.actor_id LEFT JOIN source_people sp ON sp.id=a.actor_source_id AND sp.workspace_id=a.workspace_id WHERE a.workspace_id=? AND a.issue_id=? ORDER BY a.created_at DESC,a.id DESC LIMIT 200",
     [actor.workspace_id, issue.id],
   );
   const relations = await tx.all(
@@ -588,7 +590,7 @@ export async function issueDetails(tx, actor, key) {
   return {
     ...issue,
     comments,
-    activity: activity.map((a) => ({ ...a, data: JSON.parse(a.data) })),
+    activity: await presentActivity(tx, actor.workspace_id, issue.id, activity, links),
     relations,
     children,
     attachments,

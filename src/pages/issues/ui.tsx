@@ -202,6 +202,10 @@ export function IssuesPage() {
                 label: filterOpen ? 'Hide filters' : 'Show filters',
                 onSelect: () => setFilterOpen((o) => !o),
               },
+              ...(['auto', 'compact', 'comfortable'] as const).map((value) => ({
+                label: (prefs.density === value ? '✓ ' : '') + 'Density: ' + value,
+                onSelect: () => prefs.setDensity(value),
+              })),
               {
                 label: 'Select loaded issues',
                 onSelect: () => setSelected(new Set(issues.map((i) => i.id))),
@@ -281,6 +285,10 @@ export function IssuesPage() {
               { value: 'me', label: 'Assigned to me' },
               { value: 'unassigned', label: 'Unassigned' },
               ...(catalog?.people.map((p) => ({ value: p.id, label: p.name })) ?? []),
+              ...(catalog?.source_people?.map((p) => ({
+                value: p.id,
+                label: p.name + ' · imported',
+              })) ?? []),
             ]}
             onChange={(v) => setFilter('assignee_id', v)}
           />

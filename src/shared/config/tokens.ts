@@ -1478,6 +1478,54 @@ export const tokens = {
       "unit": "px"
     },
     "css": "28px"
+  },
+  "density.compact": {
+    "type": "dimension",
+    "value": {
+      "value": 36,
+      "unit": "px"
+    },
+    "css": "36px"
+  },
+  "density.desktop": {
+    "type": "dimension",
+    "value": {
+      "value": 42,
+      "unit": "px"
+    },
+    "css": "42px"
+  },
+  "density.touch": {
+    "type": "dimension",
+    "value": {
+      "value": 56,
+      "unit": "px"
+    },
+    "css": "56px"
+  },
+  "density.touchCompact": {
+    "type": "dimension",
+    "value": {
+      "value": 48,
+      "unit": "px"
+    },
+    "css": "48px"
+  },
+  "density.pointerAction": {
+    "type": "dimension",
+    "value": {
+      "value": 32,
+      "unit": "px"
+    },
+    "css": "32px"
+  },
+  "density.touchAction": {
+    "type": "dimension",
+    "value": {
+      "value": 44,
+      "unit": "px"
+    },
+    "css": "44px"
   }
 } as const;
 export type TokenName = keyof typeof tokens;

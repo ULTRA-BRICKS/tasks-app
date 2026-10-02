@@ -47,12 +47,27 @@ export interface Module {
   depends: string[];
   config: Record<string, unknown>;
 }
+export interface SourcePerson {
+  id: Id;
+  name: string;
+  email: string | null;
+  provider: string;
+  source_id: string;
+  avatar_url: string | null;
+}
 export interface Catalog {
   workspace: { id: Id; name: string; slug: string };
   teams: Team[];
   statuses: Status[];
   labels: Label[];
   people: Person[];
+  source_people?: SourcePerson[];
+  imported_files?: {
+    id: Id;
+    source_url: string;
+    status: 'ready' | 'source_unavailable';
+    source_status: number | null;
+  }[];
   modules: Module[];
 }
 export interface Issue {
@@ -116,6 +131,8 @@ export interface Attachment {
   created_at: string;
 }
 export interface Activity {
+  summary?: string;
+  details?: string[];
   id: Id;
   actor_name: string;
   action: string;

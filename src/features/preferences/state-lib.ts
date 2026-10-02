@@ -8,6 +8,7 @@ function browserStorage() {
     return undefined;
   }
 }
+// CSR-only singleton. SSR would require a separate store per request.
 const store = createPreferenceStore(browserStorage());
 export function usePreferences(): Preferences {
   return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);

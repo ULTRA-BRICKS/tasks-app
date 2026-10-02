@@ -1,3 +1,7 @@
+import * as importFiles from './modules/linear-import/files.mjs';
+import * as knowledge from './modules/knowledge/service.mjs';
+import * as linearImport from './modules/linear-import/service.mjs';
+import { listSourcePeople } from './core/source-people.mjs';
 import { PRODUCT_NAME, PRODUCT_VERSION } from '../config/product.mjs';
 import { requestPasswordReset, resetPassword } from './modules/identity/password-reset.mjs';
 import {
@@ -129,12 +133,15 @@ export function createApp({
         );
       }
       const credentials = { bearer, cookie: cookie(request) };
-      const run = (read, fn) =>
+      const run = (read, fn, importKey) =>
         db.transaction(
           async (tx) => {
             const actor = await identity.authenticate(tx, credentials);
             requirePermission(actor, 'read');
-            if (!read) await tx.lock(actor.workspace_id);
+            if (!read)
+              await tx.lock(
+                importKey ? actor.workspace_id + ':linear-import:' + importKey : actor.workspace_id,
+              );
             return fn(tx, actor);
           },
           { readOnly: read },
@@ -259,10 +266,151 @@ export function createApp({
               'SELECT u.id,u.name,u.email,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.workspace_id=? ORDER BY u.name',
               [actor.workspace_id],
             ),
+            source_people: await listSourcePeople(tx, actor.workspace_id),
+            imported_files: await tx.all(
+              "SELECT f.id,f.source_url,f.status,f.source_status FROM linear_import_files f JOIN linear_imports r ON r.id=f.import_id AND r.workspace_id=f.workspace_id WHERE f.workspace_id=? AND r.status='completed' AND f.status<>'pending' ORDER BY r.completed_at,f.id",
+              [actor.workspace_id],
+            ),
             modules: await listModules(tx, actor.workspace_id),
           })),
         );
-      else if (path === '/api/v1/teams' && method === 'POST') {
+      else if (/^\/api\/v1\/(documents|initiatives)(\/[^/]+)?$/.test(path)) {
+        const kind = path.split('/')[3],
+          key = path.split('/')[4];
+        if (method === 'GET')
+          response = json(
+            await run(true, (tx, a) =>
+              key
+                ? knowledge.getKnowledge(tx, a, kind, key)
+                : knowledge.listKnowledge(tx, a, kind, url.searchParams.get('archived') === 'true'),
+            ),
+          );
+        else if (method === 'POST' && !key) {
+          const input = await body(
+            request,
+            kind === 'documents' ? schemas.DocumentCreate : schemas.InitiativeCreate,
+          );
+          response = json(
+            await run(false, (tx, a) =>
+              createIdempotently(
+                tx,
+                a,
+                {
+                  key: request.headers.get('idempotency-key'),
+                  operation: kind + ':create',
+                  module: 'planning',
+                  input,
+                },
+                () => knowledge.createKnowledge(tx, a, kind, input),
+              ),
+            ),
+            201,
+          );
+        } else if (method === 'PATCH' && key) {
+          const input = await body(
+            request,
+            kind === 'documents' ? schemas.DocumentPatch : schemas.InitiativePatch,
+          );
+          response = json(
+            await run(false, (tx, a) => knowledge.updateKnowledge(tx, a, kind, key, input)),
+          );
+        } else throw missing('Route');
+      } else if (
+        /^\/api\/v1\/imports\/linear(?:\/[^/]+(?:\/(?:records|plan|apply))?)?$/.test(path)
+      ) {
+        const key = path.split('/')[5],
+          action = path.split('/')[6];
+        if (!key && method === 'POST') {
+          const input = await body(request, schemas.LinearImportCreate);
+          response = json(
+            await run(false, (tx, a) => linearImport.createImport(tx, a, input.manifest)),
+            201,
+          );
+        } else if (key && !action && method === 'GET')
+          response = json(await run(true, (tx, a) => linearImport.importStatus(tx, a, key)));
+        else if (key && method === 'POST' && action === 'records') {
+          const input = await body(request, schemas.LinearImportBatch);
+          response = json(
+            await run(
+              false,
+              (tx, a) => linearImport.stageRecords(tx, a, key, input.collection, input.records),
+              key,
+            ),
+          );
+        } else if (key && method === 'POST' && action === 'plan')
+          response = json(await run(false, (tx, a) => linearImport.planImport(tx, a, key), key));
+        else if (key && method === 'POST' && action === 'apply') {
+          const input = await body(request, schemas.LinearImportApply);
+          response = json(
+            await run(
+              false,
+              (tx, a) =>
+                linearImport.applyImport(tx, a, key, input.plan_hash, {
+                  acceptMissing: input.accept_missing_source_files === true,
+                }),
+              key,
+            ),
+          );
+        } else throw missing('Route');
+      } else if (
+        /^\/api\/v1\/imports\/linear\/[^/]+\/files\/[^/]+\/(content|unavailable)$/.test(path)
+      ) {
+        const runId = path.split('/')[5],
+          fileId = path.split('/')[7],
+          action = path.split('/')[8];
+        if (method === 'PUT' && action === 'content') {
+          const actor = await run(true, async (tx, a) => {
+            requirePermission(a, 'admin');
+            await linearImport.getImport(tx, a, runId);
+            return a;
+          });
+          const bytes = await rawBody(request, files.MAX_UPLOAD);
+          response = json(
+            await importFiles.uploadImportFile(db, store(), actor, runId, fileId, bytes, {
+              sha256: request.headers.get('x-file-sha256'),
+              mime: request.headers.get('content-type') ?? 'application/octet-stream',
+              filename: request.headers.get('x-file-name') ?? 'source-file.bin',
+            }),
+          );
+        } else if (method === 'POST' && action === 'unavailable') {
+          const input = await body(request, schemas.LinearFileUnavailable);
+          response = json(
+            await run(false, (tx, a) =>
+              importFiles.markUnavailable(tx, a, runId, fileId, input.source_status),
+            ),
+          );
+        } else throw missing('Route');
+      } else if (/^\/api\/v1\/imported-files\/[^/]+\/content$/.test(path) && method === 'GET') {
+        const file = await run(true, (tx, a) =>
+          importFiles.getImportedFile(tx, a, path.split('/')[4]),
+        );
+        const result = await store().download(
+          file.object_key,
+          'application/octet-stream',
+          file.filename ?? 'source-file.bin',
+        );
+        assert(
+          result.bytes &&
+            result.bytes.length === Number(file.bytes) &&
+            sha256(result.bytes) === file.sha256,
+          502,
+          'IMPORTED_FILE_UNAVAILABLE',
+          'Verified private file could not be read',
+        );
+        response = new Response(result.bytes, {
+          headers: {
+            'content-type': 'application/octet-stream',
+            'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(file.filename ?? 'source-file.bin')}`,
+            'content-security-policy': "sandbox; default-src 'none'",
+          },
+        });
+      } else if (/^\/api\/v1\/imported-source\/[^/]+\/[^/]+$/.test(path) && method === 'GET') {
+        response = json(
+          await run(true, (tx, a) =>
+            linearImport.sourceRecord(tx, a, path.split('/')[4], path.split('/')[5]),
+          ),
+        );
+      } else if (path === '/api/v1/teams' && method === 'POST') {
         const input = await body(request, schemas.Team);
         response = json(await run(false, (tx, a) => identity.createTeam(tx, a, input)), 201);
       } else if (path === '/api/v1/statuses' && method === 'POST') {

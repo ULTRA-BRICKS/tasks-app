@@ -128,6 +128,9 @@ const migrations = [
   { version: 2, path: './migrations/0002_avatar.sql' },
   { version: 3, path: './migrations/0003_workspace_policy.sql' },
   { version: 4, path: './migrations/0004_account_email.sql' },
+  { version: 5, path: './migrations/0005_linear_import.sql' },
+  { version: 6, path: './migrations/0006_source_people_query.sql' },
+  { version: 7, path: './migrations/0007_imported_files.sql' },
 ];
 export const CURRENT_SCHEMA_VERSION = migrations.at(-1).version;
 export async function migrate(db) {

@@ -34,3 +34,14 @@ Untracked feature work: src/features/draft-recovery/; src/shared/lib/draft-persi
 
 Targeted comment retry tests subsequently ran successfully: 2 passed, 0 failed, 7 assertions. Log: `/tmp/tickets-resume-comment-retry.log`. This does not supersede the full source/type-check failure above.
 The first notes review found only a missing exact base/head/dirty-path inventory; this section supplies it. No feature source is included in the notes-only commit.
+
+## 2026-09-18 — isolated state-lib pilot, not the older dirty feature worktree
+Current worktree: `/Users/ultra/work/hyper-canvas-draft-worktrees/tasks-app-state-lib-pilot`; branch `pilot/state-lib-HYP-1464`. Started at `39e21e9`, merging current origin/main `1d3ac4d`; the only conflict (preference entry) is resolved. New density behavior from main is preserved in both backends. Baseline preference implementation exactly matches current origin/main.
+
+Actual completed gates: density RED→GREEN (5 tests, 1500-operation comparison); full `bun run check` exit 0 (188 unit tests, lint, FSD, types, build); same 6 Chromium/WebKit browser scenarios passed for state-lib and 6 for baseline. Source review is running under the normal review-cli pool; log/PID are in the sibling evidence directory. No main merge or deployment authorized/performed.
+
+Blocked writes: the proposed Boards UI integration and Tasks document-controller creation were rejected before execution. Neither implementation should be assumed present. The proposed Tasks controller test was moved from the active unit suite to `docs/state-lib-pending/document-controller.contract.ts.txt`; it is a pending specification, not green evidence. Do not retry denied operations through another transport, an agent, staged fragments or renamed equivalents.
+
+Independent successful work is preserved. Reports: `docs/STATE-LIB-MIGRATION-REPORT.md`. Evidence directory: `../state-app-migrations-20260918/`. Codex delegation hit its usage limit and made no edits; no coding agent is active. Four additional issue creations were rejected as a batch and are not registered. Project state-lib, existing HYP-1464 and newly created child HYP-1497 were successfully written and read back in tasks-app, not Linear.
+
+Before resuming, inspect actual git/review/commit state. Preserve unrelated `.metadata_never_index` and all other worktrees. Never call this a complete domain migration or a performance win. Publish only reviewed, tested allowed changes with normal hooks; leave production unchanged.

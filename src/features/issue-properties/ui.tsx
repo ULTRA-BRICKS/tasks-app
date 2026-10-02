@@ -50,7 +50,9 @@ export function IssueProperties({
     cycles = useCycles(moduleEnabled(c, 'cycles')),
     milestones = useMilestones(moduleEnabled(c, 'planning'));
   const status = c?.statuses.find((s) => s.id === v.status_id),
-    person = c?.people.find((p) => p.id === v.assignee_id);
+    person = [...(c?.people ?? []), ...(c?.source_people ?? [])].find(
+      (p) => p.id === v.assignee_id,
+    );
   const row = (icon: ReactNode, child: ReactNode) => (
     <div className="compact-property">
       <span className="property-icon" aria-hidden="true">
@@ -105,6 +107,8 @@ export function IssueProperties({
           options={[
             { value: 'none', label: 'Unassigned' },
             ...(c?.people.map((p) => ({ value: p.id, label: p.name })) ?? []),
+            ...(c?.source_people?.map((p) => ({ value: p.id, label: p.name + ' · imported' })) ??
+              []),
           ]}
           onChange={(id) => onChange({ assignee_id: id === 'none' ? null : id })}
           disabled={disabled}

@@ -48,7 +48,7 @@ test('state-lib pilot: real preferences, reload and mobile navigation preserve t
   await expect(page.getByRole('dialog', { name: 'Navigation', exact: true })).not.toBeVisible();
   await page.screenshot({ path: info.outputPath(`${backend}-mobile.png`), animations: 'disabled' });
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('tickets-ui')!))).toEqual({
-    state: { theme: 'light', view: 'board' },
+    state: { theme: 'light', view: 'board', density: 'auto' },
     version: 0,
   });
   expect(errors).toEqual([]);

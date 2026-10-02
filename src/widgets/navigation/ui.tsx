@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Inbox,
+  FileText,
+  Flag,
   Layers,
   Plus,
   Search,
@@ -127,6 +129,18 @@ export function Navigation({ onCreate, onSearch }: { onCreate: () => void; onSea
             <CalendarRange size={16} />
             <span>Cycles</span>
           </NavLink>
+        )}
+        {moduleEnabled(catalog, 'planning') && (
+          <>
+            <NavLink onClick={close} to="/initiatives" className={navClass}>
+              <Flag size={16} />
+              <span>Initiatives</span>
+            </NavLink>
+            <NavLink onClick={close} to="/documents" className={navClass}>
+              <FileText size={16} />
+              <span>Documents</span>
+            </NavLink>
+          </>
         )}
         <div className="nav-section-label">Your teams</div>
         {catalog?.teams.map((t) => (

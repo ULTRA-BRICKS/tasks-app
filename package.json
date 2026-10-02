@@ -50,7 +50,8 @@
     "test:postgres": "bun test --timeout 30000 tests/postgres",
     "screenshots": "bun --bun playwright test --project=visual --update-snapshots",
     "check": "bun run prepare:generated && bun run lint && bun run typecheck && bun run test && bun run build",
-    "typecheck:tsc": "tsc --noEmit"
+    "typecheck:tsc": "tsc --noEmit",
+    "test:state-lib:ab": "bun scripts/verify-state-lib-ab.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.800.0",

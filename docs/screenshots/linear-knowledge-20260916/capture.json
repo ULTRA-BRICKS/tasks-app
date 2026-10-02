@@ -1,0 +1,78 @@
+{
+  "source": "Actual React/API flow using imported synthetic records, no production login or real emails",
+  "capturedAt": "2026-09-17T10:25:54.183Z",
+  "captures": [
+    {
+      "engine": "chromium",
+      "kind": "documents",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "horizontalOverflow": false
+    },
+    {
+      "engine": "chromium",
+      "kind": "initiatives",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "horizontalOverflow": false
+    },
+    {
+      "engine": "chromium",
+      "kind": "documents",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "horizontalOverflow": false
+    },
+    {
+      "engine": "chromium",
+      "kind": "initiatives",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "horizontalOverflow": false
+    },
+    {
+      "engine": "webkit",
+      "kind": "documents",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "horizontalOverflow": false
+    },
+    {
+      "engine": "webkit",
+      "kind": "initiatives",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "horizontalOverflow": false
+    },
+    {
+      "engine": "webkit",
+      "kind": "documents",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "horizontalOverflow": false
+    },
+    {
+      "engine": "webkit",
+      "kind": "initiatives",
+      "viewport": {
+        "width": 393,
+        "height": 852
+      },
+      "horizontalOverflow": false
+    }
+  ]
+}
