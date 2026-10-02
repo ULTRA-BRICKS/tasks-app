@@ -1,3 +1,4 @@
+import { slackStatus } from './modules/slack/settings.mjs';
 import * as importFiles from './modules/linear-import/files.mjs';
 import * as knowledge from './modules/knowledge/service.mjs';
 import * as linearImport from './modules/linear-import/service.mjs';
@@ -850,6 +851,8 @@ export function createApp({
             return { ok: true, object_retained_for_cleanup: true };
           }),
         );
+      else if (path === '/api/v1/integrations/slack/status' && method === 'GET')
+        response = json(await run(true, (tx, actor) => slackStatus(tx, actor, env)));
       else if (path === '/api/v1/integrations' && method === 'GET')
         response = json(
           await run(true, async (tx, a) => {
