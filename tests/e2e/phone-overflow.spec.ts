@@ -37,6 +37,10 @@ const PHONES = [
   [393, 852],
   [430, 932],
 ] as const;
+// A phone with side insets leaves the cycle hint less room than the hint's 320px design width:
+// at a 320/375px viewport it shrinks to Base UI's --available-width instead of running into the
+// inset.
+const HINT_WIDTHS = [320, 375];
 
 // Real overflow sources must be measured, so any root-level clipping is switched off first.
 const UNMASK = 'html, body { overflow-x: visible !important; }';
@@ -155,6 +159,14 @@ async function expectNoDrift(page: Page, step: string) {
   expect(forced, `${step}: sideways scroll`).toEqual({ scrollX: 0, pageLeft: 0 });
 }
 
+/** Safe-area insets in px; a missing side has none. */
+interface Inset {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+
 /**
  * A popup lies inside the visual viewport minus the given safe-area insets and, unless it is
  * drawn over the dock itself (the task preview), above the phone dock: a popup reaching into
@@ -163,7 +175,7 @@ async function expectNoDrift(page: Page, step: string) {
 async function expectInside(
   popup: Locator,
   step: string,
-  { inset = { top: 0, bottom: 0 }, clearOfDock = true } = {},
+  { inset = {}, clearOfDock = true }: { inset?: Inset; clearOfDock?: boolean } = {},
 ) {
   await expect(popup, step).toBeVisible();
   const box = await popup.evaluate((el) => {
@@ -179,11 +191,12 @@ async function expectInside(
       dockTop: dock && dock.height > 0 ? dock.top : Infinity,
     };
   });
-  const message = `${step}: ${JSON.stringify({ ...box, inset })}`;
-  expect(box.left, message).toBeGreaterThanOrEqual(0);
-  expect(box.right, message).toBeLessThanOrEqual(box.width);
-  expect(box.top, message).toBeGreaterThanOrEqual(inset.top);
-  expect(box.bottom, message).toBeLessThanOrEqual(box.height - inset.bottom);
+  const { top = 0, right = 0, bottom = 0, left = 0 } = inset;
+  const message = `${step}: ${JSON.stringify({ ...box, inset: { top, right, bottom, left } })}`;
+  expect(box.left, message).toBeGreaterThanOrEqual(left);
+  expect(box.right, message).toBeLessThanOrEqual(box.width - right);
+  expect(box.top, message).toBeGreaterThanOrEqual(top);
+  expect(box.bottom, message).toBeLessThanOrEqual(box.height - bottom);
   if (clearOfDock)
     expect(box.bottom, `${message}: clear of the dock`).toBeLessThanOrEqual(box.dockTop);
 }
@@ -497,15 +510,50 @@ test('a page that cannot load shows its error without waiting for the editor chu
   await expect(page.getByRole('alert')).toContainText('This item was not found in your workspace.');
 });
 
+/**
+ * Safe-area insets. Chromium overrides `env(safe-area-inset-*)` through CDP. WebKit has no such
+ * override (and side insets only — a top/bottom request is refused), so there the insets are
+ * given to what reads them: the safe-area probes (the `usePopupCollisionPadding()` probe in
+ * src/shared/lib/safe-area.ts, and the task preview's own in src/shared/ui/press-preview.tsx),
+ * whose inline `env()` padding an `!important` rule replaces. The dispatched resize makes the
+ * probe re-measure in case a subscriber mounted before DOMContentLoaded. Base UI's placement,
+ * `--available-width` and the popup CSS stay real; if the probes change, the popup keeps its 8px
+ * edge and the inset assertions fail.
+ */
+async function emulateInsets(page: Page, browserName: string, inset: Inset) {
+  if (browserName === 'chromium') {
+    const insets = Object.fromEntries(
+      Object.entries(inset).flatMap(([side, value]) => [
+        [side, value],
+        [`${side}Max`, value],
+      ]),
+    );
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets });
+    return;
+  }
+  const { top, bottom, left = 0, right = 0 } = inset;
+  if (top || bottom)
+    throw new Error('WebKit cannot emulate safe-area insets; only left/right are faked');
+  await page.addInitScript(
+    ({ left, right }) => {
+      document.addEventListener('DOMContentLoaded', () => {
+        const style = document.createElement('style');
+        style.textContent = `div[style*="safe-area-inset-left"] { padding-left: ${left}px !important; padding-right: ${right}px !important; }`;
+        document.head.append(style);
+        window.dispatchEvent(new Event('resize'));
+      });
+    },
+    { left, right },
+  );
+}
+
 test('popups respect the notch and home-indicator safe areas', async ({ browser, browserName }) => {
   test.skip(browserName !== 'chromium', 'Only Chromium can emulate safe-area insets (CDP).');
   const inset = { top: 47, bottom: 34 };
   const { context, page } = await phone(browser, 390, 600);
   try {
-    const cdp = await context.newCDPSession(page);
-    await cdp.send('Emulation.setSafeAreaInsetsOverride', {
-      insets: { top: inset.top, topMax: inset.top, bottom: inset.bottom, bottomMax: inset.bottom },
-    });
+    await emulateInsets(page, browserName, inset);
     await openLongTask(page);
     // Centred triggers leave too little room on either side, so each popup meets an edge.
     for (const name of ['Status', 'Assignee', 'Labels']) {
@@ -546,3 +594,26 @@ test('popups respect the notch and home-indicator safe areas', async ({ browser,
     await context.close();
   }
 });
+
+// The cycle hint shrinks to Base UI's --available-width between the side insets (HINT_WIDTHS).
+for (const width of HINT_WIDTHS) {
+  test(`the cycle hint stays between the left and right safe areas at ${width}px`, async ({
+    browser,
+    browserName,
+  }) => {
+    const inset = { left: 44, right: 44 };
+    const { context, page } = await phone(browser, width);
+    try {
+      await emulateInsets(page, browserName, inset);
+      await openLongTask(page);
+      const cycleHelp = page.getByRole('button', { name: 'About cycles', exact: true });
+      await cycleHelp.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      await cycleHelp.click();
+      const hint = page.getByRole('dialog', { name: 'What is a cycle?', exact: true });
+      await expectInside(hint, 'cycle help', { inset });
+      await expectNoDrift(page, 'cycle help open');
+    } finally {
+      await context.close();
+    }
+  });
+}

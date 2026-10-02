@@ -3157,7 +3157,9 @@ kbd {
 }
 .property-popup {
   width: 260px;
-  max-width: calc(100vw - 32px);
+  /* Base UI's --available-width already excludes the safe-area insets (docs/PHONE-OVERFLOW.md);
+     the fallback is the pre-inset cap for .property-popup usage with no measuring positioner. */
+  max-width: var(--available-width, calc(100vw - 32px));
   padding: var(--space-12);
   background: var(--color-elevated);
   border: 1px solid var(--color-border-strong);
