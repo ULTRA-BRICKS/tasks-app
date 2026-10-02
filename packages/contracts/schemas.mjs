@@ -94,6 +94,14 @@ export const schemas = {
     },
     ['collection', 'records'],
   ),
+  LinearSyncConflictResolve: object(
+    {
+      resolution: enumeration('kept_local', 'applied_remote'),
+      expected_version: { type: 'integer', minimum: 1 },
+    },
+    ['resolution', 'expected_version'],
+  ),
+  LinearSyncRetry: object({ inbox_id: uuid }, ['inbox_id']),
   LinearImportApply: object(
     {
       plan_hash: { type: 'string', pattern: '^[a-f0-9]{64}$' },

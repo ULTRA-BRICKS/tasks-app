@@ -4640,6 +4640,40 @@
         ],
         "additionalProperties": false
       },
+      "LinearSyncConflictResolve": {
+        "type": "object",
+        "properties": {
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "kept_local",
+              "applied_remote"
+            ]
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "resolution",
+          "expected_version"
+        ],
+        "additionalProperties": false
+      },
+      "LinearSyncRetry": {
+        "type": "object",
+        "properties": {
+          "inbox_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "inbox_id"
+        ],
+        "additionalProperties": false
+      },
       "LinearImportApply": {
         "type": "object",
         "properties": {

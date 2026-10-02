@@ -29,7 +29,7 @@ async function workspaceRef(tx, actor, table, value, label = table) {
   ]);
   assert(found, 422, 'INVALID_REFERENCE', `${label} is not in this workspace`);
 }
-async function validateReferences(tx, actor, issue, labelIds) {
+export async function validateReferences(tx, actor, issue, labelIds) {
   const status = await tx.one(
     'SELECT * FROM statuses WHERE workspace_id=? AND team_id=? AND id=?',
     [actor.workspace_id, issue.team_id, issue.status_id],
@@ -170,7 +170,7 @@ export async function recordActivity(tx, actor, issue, action, data = {}) {
       );
     }
 }
-async function replaceLabels(tx, actor, issueId, labels) {
+export async function replaceLabels(tx, actor, issueId, labels) {
   await tx.exec('DELETE FROM issue_labels WHERE workspace_id=? AND issue_id=?', [
     actor.workspace_id,
     issueId,

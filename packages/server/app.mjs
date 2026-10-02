@@ -23,6 +23,13 @@ import * as tickets from './modules/tickets/service.mjs';
 import * as planning from './modules/planning/service.mjs';
 import * as files from './modules/attachments/service.mjs';
 import * as integrations from './modules/integrations/service.mjs';
+import {
+  verifyLinearWebhookRequest,
+  receiveLinearWebhook,
+} from './modules/linear-sync/webhook.mjs';
+import { runLinearSyncWorker } from './modules/linear-sync/worker.mjs';
+import { reconcileLinearWorkspace } from './modules/linear-sync/reconcile.mjs';
+import * as linearSync from './modules/linear-sync/service.mjs';
 import { readFile } from 'node:fs/promises';
 
 const json = (value, status = 200, headers = {}) =>
@@ -100,6 +107,21 @@ export function createApp({
       defer(
         deliverAccountEmails(db, env, { transport: mailTransport, limit: 1 }).catch(() =>
           logger.error?.({ code: 'ACCOUNT_MAIL_WORKER_FAILED' }),
+        ),
+      );
+  };
+  // Linear expects a 2xx receipt promptly; the durable inbox row is already committed by
+  // the time this runs (receiveLinearWebhook's transaction has returned). Process ONE
+  // delivery inline, best-effort, within the request's own bounded lifetime via the same
+  // waitUntil-style `defer` hook account-email mail uses — never block the response on it.
+  // The daily reconciliation backstop (reconcileLinearWorkspace via /api/internal/linear-sync)
+  // and a manual retry (POST /api/v1/sync/linear/retry) remain the recovery path for
+  // anything this inline attempt doesn't finish or that fails.
+  const dispatchLinearSync = () => {
+    if (defer)
+      defer(
+        runLinearSyncWorker(db, env, { limit: 1 }).catch(() =>
+          logger.error?.({ code: 'LINEAR_SYNC_WORKER_FAILED' }),
         ),
       );
   };
@@ -936,6 +958,78 @@ export function createApp({
                 ...result,
               })
             : json(result, 202);
+      } else if (path === '/api/webhooks/linear' && method === 'POST') {
+        const raw = await rawBody(request);
+        // Verify BEFORE opening any db.transaction/connection checkout — an unsigned or
+        // malformed request must never pay for a Postgres connection+BEGIN, let alone
+        // touch a row.
+        const { payload, deliveryId } = verifyLinearWebhookRequest(request.headers, raw, env);
+        const result = await db.transaction((tx) =>
+          receiveLinearWebhook(tx, payload, deliveryId, env),
+        );
+        // The signed delivery is durably queued by the time this line runs (the
+        // transaction above already committed it); Linear only needs a prompt 2xx
+        // receipt. 200, not 202: this is not a fire-and-forget queue receipt like the
+        // GitHub/Slack webhooks — the durable row already exists and inline delivery is
+        // attempted before the response even returns.
+        response = json(result, 200);
+        dispatchLinearSync();
+      } else if (path === '/api/internal/linear-sync' && method === 'GET') {
+        assert(
+          env.CRON_SECRET && constantEqual(bearer ?? '', env.CRON_SECRET),
+          401,
+          'UNAUTHENTICATED',
+          'Worker credential required',
+        );
+        // ONE shared deadline for the whole route, with a safety margin under Vercel's
+        // 60s function budget. Reconcile receives whatever's left after the worker phase
+        // instead of a fresh, unaccounted-for budget of its own; the worker itself is
+        // bounded by the SAME deadline rather than a hardcoded limit of 10 (limit is now
+        // just a generous structural safety cap, not the real bound).
+        const routeDeadline = Date.now() + 55000;
+        const worker = await runLinearSyncWorker(db, env, {
+          limit: 500,
+          deadlineMs: routeDeadline,
+        });
+        const remainingMs = Math.max(0, routeDeadline - Date.now());
+        const reconcile = await reconcileLinearWorkspace(db, env, { budgetMs: remainingMs }).catch(
+          (error) => ({
+            configured: false,
+            error: error.code ?? 'LINEAR_SYNC_NOT_CONFIGURED',
+          }),
+        );
+        response = json({ worker, reconcile });
+      } else if (path === '/api/v1/sync/linear/status' && method === 'GET')
+        response = json(await run(true, (tx, a) => linearSync.linearSyncStatus(tx, a)));
+      else if (path === '/api/v1/sync/linear/conflicts' && method === 'GET')
+        response = json(
+          await run(true, (tx, a) =>
+            linearSync.listLinearSyncConflicts(tx, a, {
+              resolved: url.searchParams.get('resolved') === 'true',
+            }),
+          ),
+        );
+      else if (
+        /^\/api\/v1\/sync\/linear\/conflicts\/[^/]+\/resolve$/.test(path) &&
+        method === 'POST'
+      ) {
+        const input = await body(request, schemas.LinearSyncConflictResolve);
+        response = json(
+          await run(false, (tx, a) =>
+            linearSync.resolveLinearSyncConflict(
+              tx,
+              a,
+              path.split('/')[6],
+              input.resolution,
+              input.expected_version,
+            ),
+          ),
+        );
+      } else if (path === '/api/v1/sync/linear/retry' && method === 'POST') {
+        const input = await body(request, schemas.LinearSyncRetry);
+        response = json(
+          await run(false, (tx, a) => linearSync.retryLinearSyncEvent(tx, a, input.inbox_id)),
+        );
       } else if (path === '/api/internal/account-email' && method === 'GET') {
         assert(
           env.CRON_SECRET && constantEqual(bearer ?? '', env.CRON_SECRET),

@@ -115,6 +115,18 @@ export function describeImportedChange(raw, resolve = (collection) => unavailabl
   else if (event.archived === false) lines.push('restored the issue from the archive');
   if (event.trashed === true) lines.push('moved the issue to trash');
   else if (event.trashed === false) lines.push('restored the issue from trash');
+  // A verified Linear-side deletion/restore, distinct from the native trash/archive flags
+  // above: the item was removed/restored in Linear itself, not locally. sourceRemoved and
+  // sourceRestored can both be true in the SAME window (removed, then restored later) but
+  // never on the SAME activity row (see worker.mjs's applyRemove/handleImplicitRestore,
+  // which always insert them as separate rows).
+  if (event.sourceRemoved === true)
+    lines.push(
+      event.sourceRemovalConflict === true
+        ? 'was deleted in Linear (local changes were kept, flagged for review)'
+        : 'was deleted in Linear',
+    );
+  if (event.sourceRestored === true) lines.push('was restored in Linear');
   const unique = [...new Set(lines)];
   return { summary: unique[0] ?? 'updated the issue in Linear', details: unique.slice(1) };
 }
@@ -198,6 +210,31 @@ export async function presentActivity(tx, workspace, issueId, rows, links = []) 
               sourceName(record.collection, payload(record.payload)),
             );
       }
+  }
+  // Fallback for issues that appeared after the import (no linear_import_records row): the
+  // live sync worker caches every hydrated issue/comment payload it applies in
+  // linear_sync_records. Restricted to 'issues' (the only referenced collection the sync
+  // worker ever hydrates standalone) so this never adds a query for collection types that
+  // can never have a sync-record row (workflowStates, users, teams, issueLabels, ...).
+  if (refs.has('issues')) {
+    const unresolvedIssues = [...refs.get('issues')].filter(
+      (sourceId) => !lookup.has('issues:' + sourceId),
+    );
+    const stillMissing = unresolvedIssues.length
+      ? new Map([['issues', unresolvedIssues]])
+      : new Map();
+    for (const [collection, ids] of stillMissing) {
+      const rows = await tx.all(
+        `SELECT source_id,payload FROM linear_sync_records WHERE workspace_id=? AND collection=? AND source_id IN (${ids.map(() => '?').join(',')})`,
+        [workspace, collection, ...ids],
+      );
+      for (const record of rows)
+        if (Object.hasOwn(unavailable, collection))
+          lookup.set(
+            collection + ':' + record.source_id,
+            sourceName(collection, payload(record.payload)),
+          );
+    }
   }
   const resolve = (collection, key) =>
     lookup.get(collection + ':' + key) ?? unavailable[collection];
