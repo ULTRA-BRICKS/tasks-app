@@ -1,0 +1,1 @@
+export { NewIssuePage } from './ui';

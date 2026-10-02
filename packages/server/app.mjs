@@ -1,3 +1,6 @@
+import { createIdempotently } from './core/idempotency.mjs';
+import * as policy from './modules/workspace-policy/service.mjs';
+import { applicationOrigin, isAllowedOrigin } from '../config/development.mjs';
 import { AppError, assert, missing, conflict, requirePermission } from './core/errors.mjs';
 import { id, now, secret, sha256, constantEqual } from './core/crypto.mjs';
 import { schemas, filters as filterSchema } from '../contracts/schemas.mjs';
@@ -71,7 +74,7 @@ export function createApp({ db, env = process.env, storage, logger = console } =
     'Production AUTH_SECRET must contain at least 32 characters',
   );
   const signingKey = env.AUTH_SECRET || secret();
-  const origin = new URL(env.APP_URL || 'http://localhost:5173').origin;
+  const origin = applicationOrigin(env);
   const store = () => (storage ??= files.createStorage(env));
   async function handle(request) {
     const requestId = id(),
@@ -90,7 +93,7 @@ export function createApp({ db, env = process.env, storage, logger = console } =
         !bearer
       ) {
         assert(
-          !browserOrigin || browserOrigin === origin,
+          !browserOrigin || isAllowedOrigin(browserOrigin, env),
           403,
           'ORIGIN_NOT_ALLOWED',
           'Origin is not allowed',
@@ -129,7 +132,12 @@ export function createApp({ db, env = process.env, storage, logger = console } =
               })
             : json({ error: { code: 'ORIGIN_NOT_ALLOWED' } }, 403);
       else if (path === '/api/health' && method === 'GET')
-        response = json({ status: 'ok', service: 'tickets-app', version: '0.1.0' });
+        response = json({
+          status: 'ok',
+          service: 'tickets-app',
+          version: '0.2.0',
+          ...(env.DEV_INSTANCE_ID && !production ? { instance: env.DEV_INSTANCE_ID } : {}),
+        });
       else if (path === '/api/openapi.json' && method === 'GET')
         response = new Response(
           await readFile(new URL('../../docs/openapi.json', import.meta.url)),
@@ -169,7 +177,12 @@ export function createApp({ db, env = process.env, storage, logger = console } =
             return safe;
           }),
         );
-      else if (path === '/api/v1/catalog' && method === 'GET')
+      else if (path === '/api/v1/workspace/policy' && method === 'GET')
+        response = json(await run(true, (tx, a) => policy.getPolicy(tx, a.workspace_id)));
+      else if (path === '/api/v1/workspace/policy' && method === 'PATCH') {
+        const input = await body(request, schemas.WorkspacePolicyPatch);
+        response = json(await run(false, (tx, a) => policy.setPolicy(tx, a, input)));
+      } else if (path === '/api/v1/catalog' && method === 'GET')
         response = json(
           await run(true, async (tx, actor) => ({
             workspace: await tx.one('SELECT * FROM workspaces WHERE id=?', [actor.workspace_id]),
@@ -402,7 +415,22 @@ export function createApp({ db, env = process.env, storage, logger = console } =
         response = json(await run(true, planning.listProjects));
       else if (path === '/api/v1/projects' && method === 'POST') {
         const input = await body(request, schemas.ProjectCreate);
-        response = json(await run(false, (tx, a) => planning.createProject(tx, a, input)), 201);
+        response = json(
+          await run(false, (tx, a) =>
+            createIdempotently(
+              tx,
+              a,
+              {
+                key: request.headers.get('idempotency-key'),
+                operation: 'project:create',
+                module: 'planning',
+                input,
+              },
+              () => planning.createProject(tx, a, input),
+            ),
+          ),
+          201,
+        );
       } else if (/^\/api\/v1\/projects\/[^/]+$/.test(path) && method === 'PATCH') {
         const input = await body(request, schemas.ProjectPatch);
         response = json(
@@ -429,9 +457,31 @@ export function createApp({ db, env = process.env, storage, logger = console } =
             ]);
           }),
         );
-      else if (path === '/api/v1/cycles' && method === 'POST') {
+      else if (/^\/api\/v1\/cycles\/[^/]+$/.test(path) && method === 'PATCH') {
+        const input = await body(request, schemas.CyclePatch);
+        response = json(
+          await run(false, (tx, actor) =>
+            planning.updateCycle(tx, actor, decodeURIComponent(path.split('/').at(-1)), input),
+          ),
+        );
+      } else if (path === '/api/v1/cycles' && method === 'POST') {
         const input = await body(request, schemas.Cycle);
-        response = json(await run(false, (tx, a) => planning.createCycle(tx, a, input)), 201);
+        response = json(
+          await run(false, (tx, a) =>
+            createIdempotently(
+              tx,
+              a,
+              {
+                key: request.headers.get('idempotency-key'),
+                operation: 'cycle:create',
+                module: 'cycles',
+                input,
+              },
+              () => planning.createCycle(tx, a, input),
+            ),
+          ),
+          201,
+        );
       } else if (path === '/api/v1/views' && method === 'GET')
         response = json(
           await run(true, async (tx, a) => {

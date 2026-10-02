@@ -41,7 +41,7 @@ bun run setup -- --demo
 bun run dev
 ```
 
-Open **http://localhost:5173**. The API listens on port 8787 and Vite proxies requests to it. Local demo login: `demo@example.test` / `local-demo-password`. These credentials are only for the explicit, synthetic SQLite demo. Demo seeding refuses production or a configured cloud database.
+Open **<http://localhost:5173>**. The API listens on port 8888 and Vite proxies requests to it. Local demo login: `demo@example.test` / `local-demo-password`. These credentials are only for the explicit, synthetic SQLite demo. Demo seeding refuses production or a configured cloud database.
 
 Setup generates private random secrets in an ignored `.env.local` and preserves an existing file. The demo bootstrap is intended for a fresh database, not for repeatedly reseeding a workspace. `bun run setup` without `--demo` prepares the environment for your own owner account; use the private `BOOTSTRAP_*` variables and the explicit migration/bootstrap commands instead.
 

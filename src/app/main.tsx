@@ -1,3 +1,6 @@
+import { PlanningDocumentPage } from '@/pages/planning-document';
+import { WorkspaceKeyboard } from '@/features/keyboard';
+import { NewIssuePage } from '@/pages/issue-new';
 import React, { useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
@@ -59,32 +62,6 @@ function Workspace() {
   useEffect(() => {
     document.documentElement.dataset.theme = prefs.theme;
   }, [prefs.theme]);
-  useEffect(() => {
-    const listener = (e: KeyboardEvent) => {
-      const element = e.target as HTMLElement,
-        editing =
-          element.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName);
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setSearchOpen((o) => !o);
-        return;
-      }
-      if (
-        editing ||
-        e.metaKey ||
-        e.ctrlKey ||
-        e.altKey ||
-        document.querySelector('[role="dialog"]')
-      )
-        return;
-      if (e.key === 'c' && me.data?.role !== 'viewer') {
-        e.preventDefault();
-        setCreateOpen(true);
-      }
-    };
-    window.addEventListener('keydown', listener);
-    return () => window.removeEventListener('keydown', listener);
-  }, [me.data?.role]);
   if (me.isPending)
     return (
       <div className="app-loading">
@@ -109,14 +86,18 @@ function Workspace() {
           <Route path="/" element={<Navigate to="/issues" replace />} />
           <Route path="/login" element={<Navigate to="/issues" replace />} />
           <Route path="/issues" element={<IssuesPage />} />
+          <Route path="/issues/new" element={<NewIssuePage />} />
           <Route path="/issues/:issueId" element={<IssuesPage />} />
           <Route path="/my-issues" element={<IssuesPage />} />
           <Route path="/epics" element={<IssuesPage />} />
           <Route path="/archive" element={<IssuesPage />} />
           <Route path="/projects" element={<PlanningPage kind="projects" />} />
           <Route path="/cycles" element={<PlanningPage kind="cycles" />} />
+          <Route path="/projects/:id" element={<PlanningDocumentPage kind="projects" />} />
+          <Route path="/cycles/:id" element={<PlanningDocumentPage kind="cycles" />} />
           <Route path="/inbox" element={<InboxPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+
           <Route
             path="*"
             element={
@@ -131,6 +112,7 @@ function Workspace() {
         </Routes>
       </main>
       {createOpen && <CreateIssue open={createOpen} onOpenChange={setCreateOpen} />}
+      <WorkspaceKeyboard onSearch={() => setSearchOpen(true)} />
       <CommandMenu
         open={searchOpen}
         onOpenChange={setSearchOpen}

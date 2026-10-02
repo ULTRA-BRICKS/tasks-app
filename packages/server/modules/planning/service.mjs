@@ -24,6 +24,12 @@ export async function listProjects(tx, actor) {
 }
 async function checkProject(tx, actor, input) {
   assert(
+    typeof input.name === 'string' && input.name.trim(),
+    422,
+    'NAME_REQUIRED',
+    'Give this project a name',
+  );
+  assert(
     !input.start_date || !input.target_date || input.start_date <= input.target_date,
     422,
     'INVALID_DATES',
@@ -140,6 +146,7 @@ export async function createMilestone(tx, actor, input) {
   return result;
 }
 export async function createCycle(tx, actor, input) {
+  assert(input.name.trim(), 422, 'NAME_REQUIRED', 'Give this cycle a name');
   requirePermission(actor, 'write');
   await assertModule(tx, actor.workspace_id, 'cycles');
   assert(
@@ -171,4 +178,31 @@ export async function createCycle(tx, actor, input) {
     Object.values(result),
   );
   return result;
+}
+
+export async function updateCycle(tx, actor, cycleId, input) {
+  requirePermission(actor, 'write');
+  await assertModule(tx, actor.workspace_id, 'cycles');
+  const current = await tx.one('SELECT * FROM cycles WHERE workspace_id=? AND id=?', [
+    actor.workspace_id,
+    cycleId,
+  ]);
+  if (!current) throw missing('Cycle');
+  if (current.version !== input.version) conflict(current);
+  const next = { ...current };
+  for (const key of ['name', 'start_date', 'end_date'])
+    if (Object.hasOwn(input, key)) next[key] = input[key];
+  next.name = next.name.trim();
+  assert(next.name, 422, 'NAME_REQUIRED', 'Give this cycle a name');
+  assert(
+    next.start_date <= next.end_date,
+    422,
+    'INVALID_DATES',
+    'End date must not precede start date',
+  );
+  await tx.exec(
+    'UPDATE cycles SET name=?,start_date=?,end_date=?,version=version+1 WHERE workspace_id=? AND id=?',
+    [next.name, next.start_date, next.end_date, actor.workspace_id, cycleId],
+  );
+  return { ...next, version: current.version + 1 };
 }

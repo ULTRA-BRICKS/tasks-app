@@ -186,6 +186,10 @@ export interface SavedView {
   shared: number;
   owner_id: Id;
 }
+export interface WorkspacePolicy {
+  allowed_email_domains: string[];
+  version: number;
+}
 export interface Notification {
   id: Id;
   issue_id: Id;
@@ -196,3 +200,9 @@ export interface Notification {
   created_at: string;
 }
 export type { IssueCreate, IssuePatch, ProjectCreate, ProjectPatch } from './request-types';
+
+export interface WorkspacePolicy {
+  allowed_email_domains: string[];
+  version: number;
+  updated_at: string | null;
+}

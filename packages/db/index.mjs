@@ -1,4 +1,5 @@
 import { mkdir, readFile } from 'node:fs/promises';
+import { DEFAULT_SQLITE_PATH } from '../config/development.mjs';
 import { dirname } from 'node:path';
 
 // Values always remain bound parameters. This scanner skips quoted SQL literals.
@@ -23,7 +24,7 @@ export function postgresParameters(sql) {
 
 export async function createDatabase({
   url,
-  sqlitePath = '.data/tickets.sqlite',
+  sqlitePath = DEFAULT_SQLITE_PATH,
   production = false,
 } = {}) {
   if (url) {
@@ -120,6 +121,7 @@ export async function createDatabase({
 const migrations = [
   { version: 1, path: './migrations/0001.sql' },
   { version: 2, path: './migrations/0002_avatar.sql' },
+  { version: 3, path: './migrations/0003_workspace_policy.sql' },
 ];
 export async function migrate(db) {
   const sources = await Promise.all(

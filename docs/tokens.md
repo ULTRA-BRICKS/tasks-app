@@ -4,24 +4,24 @@ Source: `tokens/tickets.tokens.json`. Run `npm run tokens:build`.
 
 | Token | Type | CSS |
 |---|---|---|
-| `palette.dark.canvas` | color | `rgb(20 20 22 / 1)` |
-| `palette.dark.sidebar` | color | `rgb(24 24 27 / 1)` |
-| `palette.dark.panel` | color | `rgb(27 27 32 / 1)` |
-| `palette.dark.elevated` | color | `rgb(35 35 41 / 1)` |
-| `palette.dark.hover` | color | `rgb(38 38 45 / 1)` |
-| `palette.dark.selected` | color | `rgb(45 42 60 / 1)` |
-| `palette.dark.border` | color | `rgb(48 48 56 / 1)` |
-| `palette.dark.borderStrong` | color | `rgb(69 69 80 / 1)` |
-| `palette.dark.text` | color | `rgb(238 237 243 / 1)` |
-| `palette.dark.muted` | color | `rgb(163 162 175 / 1)` |
-| `palette.dark.subtle` | color | `rgb(118 117 129 / 1)` |
-| `palette.dark.accent` | color | `rgb(166 148 255 / 1)` |
-| `palette.dark.accentSolid` | color | `rgb(117 98 201 / 1)` |
+| `palette.dark.canvas` | color | `rgb(17 17 17 / 1)` |
+| `palette.dark.sidebar` | color | `rgb(8 8 8 / 1)` |
+| `palette.dark.panel` | color | `rgb(20 20 20 / 1)` |
+| `palette.dark.elevated` | color | `rgb(27 27 27 / 1)` |
+| `palette.dark.hover` | color | `rgb(35 35 35 / 1)` |
+| `palette.dark.selected` | color | `rgb(40 40 53 / 1)` |
+| `palette.dark.border` | color | `rgb(35 35 35 / 1)` |
+| `palette.dark.borderStrong` | color | `rgb(65 65 65 / 1)` |
+| `palette.dark.text` | color | `rgb(238 238 238 / 1)` |
+| `palette.dark.muted` | color | `rgb(160 160 160 / 1)` |
+| `palette.dark.subtle` | color | `rgb(139 139 139 / 1)` |
+| `palette.dark.accent` | color | `rgb(146 152 255 / 1)` |
+| `palette.dark.accentSolid` | color | `rgb(98 104 223 / 1)` |
 | `palette.dark.onAccent` | color | `rgb(255 255 255 / 1)` |
 | `palette.dark.danger` | color | `rgb(239 144 144 / 1)` |
 | `palette.dark.success` | color | `rgb(145 200 172 / 1)` |
 | `palette.dark.warning` | color | `rgb(223 197 121 / 1)` |
-| `palette.dark.overlay` | color | `rgb(8 8 13 / 1)` |
+| `palette.dark.overlay` | color | `rgb(8 8 8 / 1)` |
 | `palette.light.canvas` | color | `rgb(255 255 255 / 1)` |
 | `palette.light.sidebar` | color | `rgb(246 246 248 / 1)` |
 | `palette.light.panel` | color | `rgb(250 250 250 / 1)` |
@@ -40,24 +40,24 @@ Source: `tokens/tickets.tokens.json`. Run `npm run tokens:build`.
 | `palette.light.success` | color | `rgb(48 112 80 / 1)` |
 | `palette.light.warning` | color | `rgb(139 100 27 / 1)` |
 | `palette.light.overlay` | color | `rgb(21 19 32 / 1)` |
-| `theme.dark.canvas` | color | `rgb(20 20 22 / 1)` |
-| `theme.dark.sidebar` | color | `rgb(24 24 27 / 1)` |
-| `theme.dark.panel` | color | `rgb(27 27 32 / 1)` |
-| `theme.dark.elevated` | color | `rgb(35 35 41 / 1)` |
-| `theme.dark.hover` | color | `rgb(38 38 45 / 1)` |
-| `theme.dark.selected` | color | `rgb(45 42 60 / 1)` |
-| `theme.dark.border` | color | `rgb(48 48 56 / 1)` |
-| `theme.dark.borderStrong` | color | `rgb(69 69 80 / 1)` |
-| `theme.dark.text` | color | `rgb(238 237 243 / 1)` |
-| `theme.dark.muted` | color | `rgb(163 162 175 / 1)` |
-| `theme.dark.subtle` | color | `rgb(118 117 129 / 1)` |
-| `theme.dark.accent` | color | `rgb(166 148 255 / 1)` |
-| `theme.dark.accentSolid` | color | `rgb(117 98 201 / 1)` |
+| `theme.dark.canvas` | color | `rgb(17 17 17 / 1)` |
+| `theme.dark.sidebar` | color | `rgb(8 8 8 / 1)` |
+| `theme.dark.panel` | color | `rgb(20 20 20 / 1)` |
+| `theme.dark.elevated` | color | `rgb(27 27 27 / 1)` |
+| `theme.dark.hover` | color | `rgb(35 35 35 / 1)` |
+| `theme.dark.selected` | color | `rgb(40 40 53 / 1)` |
+| `theme.dark.border` | color | `rgb(35 35 35 / 1)` |
+| `theme.dark.borderStrong` | color | `rgb(65 65 65 / 1)` |
+| `theme.dark.text` | color | `rgb(238 238 238 / 1)` |
+| `theme.dark.muted` | color | `rgb(160 160 160 / 1)` |
+| `theme.dark.subtle` | color | `rgb(139 139 139 / 1)` |
+| `theme.dark.accent` | color | `rgb(146 152 255 / 1)` |
+| `theme.dark.accentSolid` | color | `rgb(98 104 223 / 1)` |
 | `theme.dark.onAccent` | color | `rgb(255 255 255 / 1)` |
 | `theme.dark.danger` | color | `rgb(239 144 144 / 1)` |
 | `theme.dark.success` | color | `rgb(145 200 172 / 1)` |
 | `theme.dark.warning` | color | `rgb(223 197 121 / 1)` |
-| `theme.dark.overlay` | color | `rgb(8 8 13 / 1)` |
+| `theme.dark.overlay` | color | `rgb(8 8 8 / 1)` |
 | `theme.light.canvas` | color | `rgb(255 255 255 / 1)` |
 | `theme.light.sidebar` | color | `rgb(246 246 248 / 1)` |
 | `theme.light.panel` | color | `rgb(250 250 250 / 1)` |
@@ -110,8 +110,8 @@ Source: `tokens/tickets.tokens.json`. Run `npm run tokens:build`.
 | `font.weight.semibold` | fontWeight | `600` |
 | `font.line.body` | number | `1.5` |
 | `font.line.tight` | number | `1.25` |
-| `size.sidebar` | dimension | `224px` |
-| `size.toolbar` | dimension | `52px` |
+| `size.sidebar` | dimension | `244px` |
+| `size.toolbar` | dimension | `46px` |
 | `size.row` | dimension | `42px` |
 | `size.control` | dimension | `32px` |
 | `size.icon` | dimension | `16px` |
