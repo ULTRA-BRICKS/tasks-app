@@ -129,7 +129,7 @@ export async function recordActivity(tx, actor, issue, action, data = {}) {
   if (notifications?.enabled !== 0)
     for (const user of recipients)
       await tx.exec(
-        'INSERT INTO notifications(id,workspace_id,user_id,issue_id,body,created_at) VALUES(?,?,?,?,?,?)',
+        'INSERT INTO notifications(id,workspace_id,user_id,issue_id,body,created_at) SELECT ?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM memberships WHERE workspace_id=? AND user_id=?)',
         [
           id(),
           actor.workspace_id,
@@ -137,6 +137,8 @@ export async function recordActivity(tx, actor, issue, action, data = {}) {
           issue.id,
           `${actor.name}: ${action} ${issue.key}`,
           created,
+          actor.workspace_id,
+          user,
         ],
       );
   const modules = await tx.all(
