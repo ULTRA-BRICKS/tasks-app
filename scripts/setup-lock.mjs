@@ -10,7 +10,7 @@ export async function acquireSetupLock(file) {
     if (!info.isFile() || info.isSymbolicLink())
       throw new Error('Setup lock is not a regular file');
     const pid = Number((await readFile(file, 'utf8')).trim());
-    let stale = false;
+    let stale = (!Number.isSafeInteger(pid) || pid <= 0) && Date.now() - info.mtimeMs > 60000;
     if (Number.isSafeInteger(pid) && pid > 0) {
       try {
         process.kill(pid, 0);

@@ -1,5 +1,18 @@
 # tickets-app
 
+> **Active source:** https://git.hyperide.ai/ultrabricks/tickets-app
+>
+> The `release/forgejo-20260912` worktree contains the inline-editor release.
+> Production configuration has been added to the existing Vercel project, but
+> database initialization and publishing still require verification. Do not
+> treat a successful build or a screenshot as a working production deployment.
+>
+> New issue and project editors open directly as document pages. The API default
+> is `8888`; `bun run setup -- --demo --port 8888` persists the local override.
+> Workspace invitation domains are managed in **Settings → Security**.
+> See `docs/screenshots/parity/` for the actual Linear 50% overlay and provenance.
+
+
 [![CI](https://github.com/alex-mextner/tickets-app/actions/workflows/ci.yml/badge.svg)](https://github.com/alex-mextner/tickets-app/actions/workflows/ci.yml)
 
 A modular, API-first issue tracker for a small team. React, owned Base UI components, executable DTCG tokens, PostgreSQL, a Bun CLI, and a **schema-checked subset of Linear's GraphQL API**.
@@ -41,7 +54,7 @@ bun run setup -- --demo
 bun run dev
 ```
 
-Open **http://localhost:5173**. The API listens on port 8787 and Vite proxies requests to it. Local demo login: `demo@example.test` / `local-demo-password`. These credentials are only for the explicit, synthetic SQLite demo. Demo seeding refuses production or a configured cloud database.
+Open **<http://localhost:5173>**. The API listens on port 8888 and Vite proxies requests to it. Local demo login: `demo@example.test` / `local-demo-password`. These credentials are only for the explicit, synthetic SQLite demo. Demo seeding refuses production or a configured cloud database.
 
 Setup generates private random secrets in an ignored `.env.local` and preserves an existing file. The demo bootstrap is intended for a fresh database, not for repeatedly reseeding a workspace. `bun run setup` without `--demo` prepares the environment for your own owner account; use the private `BOOTSTRAP_*` variables and the explicit migration/bootstrap commands instead.
 

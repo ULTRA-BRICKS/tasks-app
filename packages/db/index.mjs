@@ -33,7 +33,9 @@ export async function createDatabase({
       connectionString: url,
       max: 4,
       idleTimeoutMillis: 5000,
-      connectionTimeoutMillis: 10000,
+      // pg applies this bound to both establishing and waiting for a pooled
+      // connection. Small pools can legitimately queue a short burst of writes.
+      connectionTimeoutMillis: 30000,
     });
     if (process.env.VERCEL) {
       const { attachDatabasePool } = await import('@vercel/functions');

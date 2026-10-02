@@ -5,104 +5,104 @@ export const tokens = {
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.07843137,
-        0.07843137,
-        0.08627451
+        0.06666667,
+        0.06666667,
+        0.06666667
       ],
       "alpha": 1
     },
-    "css": "rgb(20 20 22 / 1)"
+    "css": "rgb(17 17 17 / 1)"
   },
   "palette.dark.sidebar": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.09411765,
-        0.09411765,
-        0.10588235
+        0.03137255,
+        0.03137255,
+        0.03137255
       ],
       "alpha": 1
     },
-    "css": "rgb(24 24 27 / 1)"
+    "css": "rgb(8 8 8 / 1)"
   },
   "palette.dark.panel": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.10588235,
-        0.10588235,
-        0.1254902
+        0.07843137,
+        0.07843137,
+        0.07843137
       ],
       "alpha": 1
     },
-    "css": "rgb(27 27 32 / 1)"
+    "css": "rgb(20 20 20 / 1)"
   },
   "palette.dark.elevated": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.1372549,
-        0.1372549,
-        0.16078431
+        0.10588235,
+        0.10588235,
+        0.10588235
       ],
       "alpha": 1
     },
-    "css": "rgb(35 35 41 / 1)"
+    "css": "rgb(27 27 27 / 1)"
   },
   "palette.dark.hover": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.14901961,
-        0.14901961,
-        0.17647059
+        0.1372549,
+        0.1372549,
+        0.1372549
       ],
       "alpha": 1
     },
-    "css": "rgb(38 38 45 / 1)"
+    "css": "rgb(35 35 35 / 1)"
   },
   "palette.dark.selected": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.17647059,
-        0.16470588,
-        0.23529412
+        0.15686275,
+        0.15686275,
+        0.20784314
       ],
       "alpha": 1
     },
-    "css": "rgb(45 42 60 / 1)"
+    "css": "rgb(40 40 53 / 1)"
   },
   "palette.dark.border": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.18823529,
-        0.18823529,
-        0.21960784
+        0.1372549,
+        0.1372549,
+        0.1372549
       ],
       "alpha": 1
     },
-    "css": "rgb(48 48 56 / 1)"
+    "css": "rgb(35 35 35 / 1)"
   },
   "palette.dark.borderStrong": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.27058824,
-        0.27058824,
-        0.31372549
+        0.25490196,
+        0.25490196,
+        0.25490196
       ],
       "alpha": 1
     },
-    "css": "rgb(69 69 80 / 1)"
+    "css": "rgb(65 65 65 / 1)"
   },
   "palette.dark.text": {
     "type": "color",
@@ -110,64 +110,64 @@ export const tokens = {
       "colorSpace": "srgb",
       "components": [
         0.93333333,
-        0.92941176,
-        0.95294118
+        0.93333333,
+        0.93333333
       ],
       "alpha": 1
     },
-    "css": "rgb(238 237 243 / 1)"
+    "css": "rgb(238 238 238 / 1)"
   },
   "palette.dark.muted": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.63921569,
-        0.63529412,
-        0.68627451
+        0.62745098,
+        0.62745098,
+        0.62745098
       ],
       "alpha": 1
     },
-    "css": "rgb(163 162 175 / 1)"
+    "css": "rgb(160 160 160 / 1)"
   },
   "palette.dark.subtle": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.4627451,
-        0.45882353,
-        0.50588235
+        0.54509804,
+        0.54509804,
+        0.54509804
       ],
       "alpha": 1
     },
-    "css": "rgb(118 117 129 / 1)"
+    "css": "rgb(139 139 139 / 1)"
   },
   "palette.dark.accent": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.65098039,
-        0.58039216,
+        0.57254902,
+        0.59607843,
         1
       ],
       "alpha": 1
     },
-    "css": "rgb(166 148 255 / 1)"
+    "css": "rgb(146 152 255 / 1)"
   },
   "palette.dark.accentSolid": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.45882353,
         0.38431373,
-        0.78823529
+        0.40784314,
+        0.8745098
       ],
       "alpha": 1
     },
-    "css": "rgb(117 98 201 / 1)"
+    "css": "rgb(98 104 223 / 1)"
   },
   "palette.dark.onAccent": {
     "type": "color",
@@ -228,11 +228,11 @@ export const tokens = {
       "components": [
         0.03137255,
         0.03137255,
-        0.05098039
+        0.03137255
       ],
       "alpha": 1
     },
-    "css": "rgb(8 8 13 / 1)"
+    "css": "rgb(8 8 8 / 1)"
   },
   "palette.light.canvas": {
     "type": "color",
@@ -473,104 +473,104 @@ export const tokens = {
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.07843137,
-        0.07843137,
-        0.08627451
+        0.06666667,
+        0.06666667,
+        0.06666667
       ],
       "alpha": 1
     },
-    "css": "rgb(20 20 22 / 1)"
+    "css": "rgb(17 17 17 / 1)"
   },
   "theme.dark.sidebar": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.09411765,
-        0.09411765,
-        0.10588235
+        0.03137255,
+        0.03137255,
+        0.03137255
       ],
       "alpha": 1
     },
-    "css": "rgb(24 24 27 / 1)"
+    "css": "rgb(8 8 8 / 1)"
   },
   "theme.dark.panel": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.10588235,
-        0.10588235,
-        0.1254902
+        0.07843137,
+        0.07843137,
+        0.07843137
       ],
       "alpha": 1
     },
-    "css": "rgb(27 27 32 / 1)"
+    "css": "rgb(20 20 20 / 1)"
   },
   "theme.dark.elevated": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.1372549,
-        0.1372549,
-        0.16078431
+        0.10588235,
+        0.10588235,
+        0.10588235
       ],
       "alpha": 1
     },
-    "css": "rgb(35 35 41 / 1)"
+    "css": "rgb(27 27 27 / 1)"
   },
   "theme.dark.hover": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.14901961,
-        0.14901961,
-        0.17647059
+        0.1372549,
+        0.1372549,
+        0.1372549
       ],
       "alpha": 1
     },
-    "css": "rgb(38 38 45 / 1)"
+    "css": "rgb(35 35 35 / 1)"
   },
   "theme.dark.selected": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.17647059,
-        0.16470588,
-        0.23529412
+        0.15686275,
+        0.15686275,
+        0.20784314
       ],
       "alpha": 1
     },
-    "css": "rgb(45 42 60 / 1)"
+    "css": "rgb(40 40 53 / 1)"
   },
   "theme.dark.border": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.18823529,
-        0.18823529,
-        0.21960784
+        0.1372549,
+        0.1372549,
+        0.1372549
       ],
       "alpha": 1
     },
-    "css": "rgb(48 48 56 / 1)"
+    "css": "rgb(35 35 35 / 1)"
   },
   "theme.dark.borderStrong": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.27058824,
-        0.27058824,
-        0.31372549
+        0.25490196,
+        0.25490196,
+        0.25490196
       ],
       "alpha": 1
     },
-    "css": "rgb(69 69 80 / 1)"
+    "css": "rgb(65 65 65 / 1)"
   },
   "theme.dark.text": {
     "type": "color",
@@ -578,64 +578,64 @@ export const tokens = {
       "colorSpace": "srgb",
       "components": [
         0.93333333,
-        0.92941176,
-        0.95294118
+        0.93333333,
+        0.93333333
       ],
       "alpha": 1
     },
-    "css": "rgb(238 237 243 / 1)"
+    "css": "rgb(238 238 238 / 1)"
   },
   "theme.dark.muted": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.63921569,
-        0.63529412,
-        0.68627451
+        0.62745098,
+        0.62745098,
+        0.62745098
       ],
       "alpha": 1
     },
-    "css": "rgb(163 162 175 / 1)"
+    "css": "rgb(160 160 160 / 1)"
   },
   "theme.dark.subtle": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.4627451,
-        0.45882353,
-        0.50588235
+        0.54509804,
+        0.54509804,
+        0.54509804
       ],
       "alpha": 1
     },
-    "css": "rgb(118 117 129 / 1)"
+    "css": "rgb(139 139 139 / 1)"
   },
   "theme.dark.accent": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.65098039,
-        0.58039216,
+        0.57254902,
+        0.59607843,
         1
       ],
       "alpha": 1
     },
-    "css": "rgb(166 148 255 / 1)"
+    "css": "rgb(146 152 255 / 1)"
   },
   "theme.dark.accentSolid": {
     "type": "color",
     "value": {
       "colorSpace": "srgb",
       "components": [
-        0.45882353,
         0.38431373,
-        0.78823529
+        0.40784314,
+        0.8745098
       ],
       "alpha": 1
     },
-    "css": "rgb(117 98 201 / 1)"
+    "css": "rgb(98 104 223 / 1)"
   },
   "theme.dark.onAccent": {
     "type": "color",
@@ -696,11 +696,11 @@ export const tokens = {
       "components": [
         0.03137255,
         0.03137255,
-        0.05098039
+        0.03137255
       ],
       "alpha": 1
     },
-    "css": "rgb(8 8 13 / 1)"
+    "css": "rgb(8 8 8 / 1)"
   },
   "theme.light.canvas": {
     "type": "color",
@@ -1200,18 +1200,18 @@ export const tokens = {
   "size.sidebar": {
     "type": "dimension",
     "value": {
-      "value": 224,
+      "value": 244,
       "unit": "px"
     },
-    "css": "224px"
+    "css": "244px"
   },
   "size.toolbar": {
     "type": "dimension",
     "value": {
-      "value": 52,
+      "value": 46,
       "unit": "px"
     },
-    "css": "52px"
+    "css": "46px"
   },
   "size.row": {
     "type": "dimension",

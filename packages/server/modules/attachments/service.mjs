@@ -1,3 +1,4 @@
+import { createBlobStorage } from './blob.mjs';
 import { mkdir, writeFile, readFile, rename } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { id, now } from '../../core/crypto.mjs';
@@ -42,6 +43,7 @@ function filename(value) {
   return value.replace(/[\x00-\x1f\x7f/\\]/g, '_').slice(0, 180);
 }
 export function createStorage(env = process.env) {
+  if (env.STORAGE_DRIVER === 'blob') return createBlobStorage(env, { maxBytes: MAX_UPLOAD });
   if (env.STORAGE_DRIVER === 's3') {
     let promise;
     const client = () =>

@@ -67,9 +67,10 @@ export function CommandMenu({
             setIndex(0);
           }}
           onKeyDown={(e) => {
+            if (e.nativeEvent.isComposing) return;
             if (e.key === 'ArrowDown') {
               e.preventDefault();
-              setIndex((i) => Math.min(i + 1, results.length - 1));
+              setIndex((i) => Math.max(0, Math.min(i + 1, results.length - 1)));
             }
             if (e.key === 'ArrowUp') {
               e.preventDefault();

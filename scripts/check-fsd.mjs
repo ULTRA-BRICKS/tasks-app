@@ -18,12 +18,25 @@ for (const file of files) {
   const source = relative(root, file).split('/'),
     layer = source[0],
     text = await readFile(file, 'utf8');
+  // HyperIDE generates this untracked canvas harness outside the shipped app.
+  // A tracked file or application import is still an error; never hide app slices.
+  if (
+    file === resolve(root, '__canvas_preview__.tsx') &&
+    text.startsWith('// @ts-nocheck\n// @hyperide-preview-schema:') &&
+    Bun.spawnSync(['git', 'ls-files', '--error-unmatch', '--', file], {
+      stdout: 'ignore',
+      stderr: 'ignore',
+    }).exitCode === 1
+  )
+    continue;
   if (!layers.includes(layer)) {
     errors.push(`${file}: unknown FSD layer`);
     continue;
   }
   for (const match of text.matchAll(/(?:from\s*|import\s*\()(['"])([^'"\n]+)\1/g)) {
     const specifier = match[2];
+    if (specifier.includes('__canvas_preview__'))
+      errors.push(`${file}: production code must not import the IDE preview harness`);
     if (!specifier.startsWith('@/') && !specifier.startsWith('.')) continue;
     const target = specifier.startsWith('@/')
       ? resolve(root, specifier.slice(2))
