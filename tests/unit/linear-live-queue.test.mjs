@@ -16,9 +16,8 @@ import {
   receiveSourceWebhook,
 } from '../../packages/server/modules/linear-live/webhook.mjs';
 import { runWorker } from '../../packages/server/modules/integrations/service.mjs';
-export async function configured() {
-  const f = await fixture(),
-    source = sourceFixture();
+export async function configured(source = sourceFixture()) {
+  const f = await fixture();
   const run = (await f.request('POST', '/api/v1/imports/linear', { manifest: source.manifest }))
     .data.id;
   for (const [collection, records] of Object.entries(source.data))

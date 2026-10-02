@@ -86,7 +86,8 @@ export async function referenceResolver(tx, config, collection, remote, original
   for (const id of native?.team_ids ?? []) add(targets, 'teams', id);
   for (const id of native?.project_ids ?? []) add(targets, 'projects', id);
   const bySource = new Map(),
-    byTarget = new Map();
+    byTarget = new Map(),
+    labelScopes = new Map();
   for (const kind of new Set([...sources.keys(), ...targets.keys()])) {
     const s = [...(sources.get(kind) ?? [])],
       t = [...(targets.get(kind) ?? [])];
@@ -102,14 +103,28 @@ export async function referenceResolver(tx, config, collection, remote, original
     ]
       .filter(Boolean)
       .join(' OR ');
+    const scopeQuery = kind === 'issueLabels' && collection === 'issues';
     const rows = await tx.all(
-      'SELECT source_id,target_id FROM linear_source_map WHERE workspace_id=? AND source_workspace_id=? AND collection=? AND (' +
+      (scopeQuery
+        ? 'SELECT source_id,target_id,(SELECT r.payload FROM linear_import_records r WHERE r.workspace_id=linear_source_map.workspace_id AND r.import_id=linear_source_map.import_id AND r.collection=linear_source_map.collection AND r.source_id=linear_source_map.source_id) AS source_payload'
+        : 'SELECT source_id,target_id') +
+        ' FROM linear_source_map WHERE workspace_id=? AND source_workspace_id=? AND collection=? AND (' +
         where +
         ')',
       [config.workspaceId, config.organizationId, kind, ...s, ...t],
     );
     for (const row of rows) {
       bySource.set(kind + ':' + row.source_id, row.target_id);
+      if (scopeQuery) {
+        const variants = labelScopes.get(row.target_id) ?? [];
+        const record = row.source_payload ? JSON.parse(row.source_payload) : {};
+        variants.push({
+          id: row.source_id,
+          team: record.team,
+          archived: Boolean(record.archivedAt),
+        });
+        labelScopes.set(row.target_id, variants);
+      }
       if (!byTarget.has(kind + ':' + row.target_id))
         byTarget.set(kind + ':' + row.target_id, row.source_id);
     }
@@ -124,6 +139,22 @@ export async function referenceResolver(tx, config, collection, remote, original
   };
   const reverse = (kind, id) => {
     if (id === null) return null;
+    if (kind === 'issueLabels' && collection === 'issues') {
+      const teamId = remote?.team?.id ?? byTarget.get('teams:' + native?.team_id);
+      const variants = (labelScopes.get(id) ?? []).filter((label) => !label.archived);
+      const teamLabels = variants.filter((label) => teamId && label.team?.id === teamId);
+      const candidates = teamLabels.length
+        ? teamLabels
+        : variants.filter((label) => label.team === null);
+      assert(
+        candidates.length === 1,
+        409,
+        candidates.length > 1 ? 'SYNC_SOURCE_ALIAS_AMBIGUOUS' : 'SYNC_LABEL_SCOPE_PENDING',
+        'No unique source label is available in this task team',
+        { collection: kind, targetId: id, sourceTeamId: teamId ?? null },
+      );
+      return candidates[0].id;
+    }
     const value = byTarget.get(kind + ':' + id);
     assert(value, 409, 'SYNC_REFERENCE_PENDING', 'A native reference is not exported', {
       collection: kind,

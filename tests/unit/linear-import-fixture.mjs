@@ -39,7 +39,9 @@ export function sourceFixture() {
       ...time,
     },
   ];
-  data.issueLabels = [{ id: ids.label, name: 'Imported fixture', color: '#123456', ...time }];
+  data.issueLabels = [
+    { id: ids.label, name: 'Imported fixture', color: '#123456', team: null, ...time },
+  ];
   data.projects = [
     {
       id: ids.project,
