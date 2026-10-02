@@ -26,6 +26,13 @@ export function toType(schema) {
 }
 const operations = [
   [
+    '/v1/sync/linear/status',
+    'get',
+    null,
+    'Read capture-only Linear receipt status; automatic application is not enabled',
+    'admin',
+  ],
+  [
     '/v1/sync/linear/numbering/graph',
     'get',
     null,

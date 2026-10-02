@@ -9,6 +9,11 @@ import * as knowledge from './modules/knowledge/service.mjs';
 import * as linearImport from './modules/linear-import/service.mjs';
 import { appendLinearRecords } from './modules/linear-import/append.mjs';
 import { bindLinearSources } from './modules/linear-import/bind.mjs';
+import {
+  verifyCaptureRequest,
+  captureLinearEvent,
+  captureStatus,
+} from './modules/linear-import/capture.mjs';
 import { listSourcePeople } from './core/source-people.mjs';
 import { PRODUCT_NAME, PRODUCT_VERSION } from '../config/product.mjs';
 import { requestPasswordReset, resetPassword } from './modules/identity/password-reset.mjs';
@@ -324,6 +329,11 @@ export function createApp({
             await run(false, (tx, a) => knowledge.updateKnowledge(tx, a, kind, key, input)),
           );
         } else throw missing('Route');
+      } else if (path === '/api/webhooks/linear' && method === 'POST') {
+        const verified = await verifyCaptureRequest(request, env);
+        response = json(await db.transaction((tx) => captureLinearEvent(tx, verified)));
+      } else if (path === '/api/v1/sync/linear/status' && method === 'GET') {
+        response = json(await run(true, (tx, a) => captureStatus(tx, a, env)));
       } else if (path === '/api/v1/sync/linear/numbering/graph' && method === 'GET') {
         response = json(
           await run(true, (tx, a) =>
