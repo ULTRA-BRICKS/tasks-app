@@ -1,0 +1,31 @@
+{
+  "reference": "https://linear.app/demo/issue/ENG-128/fix-css-in-payment-history",
+  "viewport": [
+    1440,
+    1000
+  ],
+  "dpr": 1,
+  "referenceCapture": "2026-09-12T09:21:40.684Z",
+  "overlayOpacity": 0.5,
+  "alignment": "native viewport coordinates, no warp, scale or translation",
+  "comparableDocumentRegion": [
+    244,
+    80,
+    990,
+    240
+  ],
+  "diffDisplayGain": 4,
+  "limitations": [
+    "Different fonts (system font versus Linear Inter Variable), fixture identifiers, people and activity.",
+    "Overall images are not expected to be identical; no parity percentage is claimed.",
+    "Native mobile application screenshots were not used as desktop references."
+  ],
+  "files": {
+    "issue-detail.png": "0ef9acdfda5880759b5bae95c15b2c8420bf8b222792d6f1b9a74a37b6a711e3",
+    "document-overlay.png": "04c75345da2ee59c8f8c9db4c270e536786e90236de4f0600419a37025cf130e",
+    "new-issue.png": "5cfdaf31febb8378e50cca5970c5b7ff3d77276b09211878a7caf261d8743e23",
+    "issue-mobile.png": "be153ecfea2f1aff9436889e656d8ad35923ea8826719d4125dbb74256cd0889",
+    "issue-detail-overlay.png": "48f9b5f3eabfc49c469be7fdb46a13ece3b2ab32ad2a96a1f6d1c3ca595974b1",
+    "document-diff-x4.png": "a63d379566b937004ba3765fa2d2db3575e08e58d3b6b61c75d5a8bc795a8a84"
+  }
+}

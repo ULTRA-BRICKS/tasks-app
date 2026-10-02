@@ -33,7 +33,9 @@ export async function createDatabase({
       connectionString: url,
       max: 4,
       idleTimeoutMillis: 5000,
-      connectionTimeoutMillis: 10000,
+      // pg applies this bound to both establishing and waiting for a pooled
+      // connection. Small pools can legitimately queue a short burst of writes.
+      connectionTimeoutMillis: 30000,
     });
     if (process.env.VERCEL) {
       const { attachDatabasePool } = await import('@vercel/functions');
@@ -123,6 +125,7 @@ const migrations = [
   { version: 2, path: './migrations/0002_avatar.sql' },
   { version: 3, path: './migrations/0003_workspace_policy.sql' },
 ];
+export const CURRENT_SCHEMA_VERSION = migrations.at(-1).version;
 export async function migrate(db) {
   const sources = await Promise.all(
     migrations.map(async (m) => ({

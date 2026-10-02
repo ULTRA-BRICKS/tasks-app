@@ -75,16 +75,22 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
     mutation = useIssueUpdate(),
     busy = useIssueWriteBusy(),
     readOnly = me?.role === 'viewer';
-  const propertiesDisabled = readOnly || busy;
+  const propertyLock = useRef(false);
+  const [propertyPending, setPropertyPending] = useState(false);
+  const propertiesDisabled = readOnly || busy || propertyPending;
   async function update(patch: Omit<IssuePatch, 'version'>) {
-    if (propertiesDisabled) return;
+    if (propertiesDisabled || propertyLock.current) return;
+    propertyLock.current = true;
+    setPropertyPending(true);
     setLocalError(null);
-    const current = await document.flush();
-    if (!current) return;
     try {
-      await mutation.mutateAsync({ issue: current, patch });
+      const current = await document.flush();
+      if (current) await mutation.mutateAsync({ issue: current, patch });
     } catch (e) {
       setLocalError(errorMessage(e));
+    } finally {
+      propertyLock.current = false;
+      setPropertyPending(false);
     }
   }
   function discard() {
@@ -94,7 +100,10 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
   const action = useMutation({
     mutationFn: async (input: { kind: string; data?: unknown }) => {
       if (input.kind === 'comment')
-        return api(`/v1/issues/${issue.id}/comments`, { method: 'POST', json: { body: comment } });
+        return api(`/v1/issues/${issue.id}/comments`, {
+          method: 'POST',
+          json: { body: input.data },
+        });
       if (input.kind === 'subscription')
         return api(`/v1/issues/${issue.id}/subscription`, {
           method: issue.subscribed ? 'DELETE' : 'POST',
@@ -113,7 +122,8 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
     onSuccess: (_result, variables) => {
       void client.invalidateQueries({ queryKey: ['issue', issue.id] });
       void client.invalidateQueries({ queryKey: ['notifications'] });
-      if (variables.kind === 'comment') setComment('');
+      if (variables.kind === 'comment')
+        setComment((current) => (current === variables.data ? '' : current));
       if (variables.kind === 'relation') {
         setRelationOpen(false);
         setTarget('');
@@ -216,15 +226,49 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
               {document.error && (
                 <>
                   <ErrorState message={document.error} />
-                  <Button variant="ghost" size="sm" onClick={document.retry}>
-                    Retry save
-                  </Button>
+                  {!document.conflict && (
+                    <Button
+                      disabled={readOnly || document.busy}
+                      variant="ghost"
+                      size="sm"
+                      onClick={document.retry}
+                    >
+                      Retry save
+                    </Button>
+                  )}
                 </>
               )}
               {document.storageError && (
                 <ErrorState message="Browser storage is unavailable. Keep this page open until your edits are saved." />
               )}
             </div>
+          )}
+          {document.conflict && (
+            <section className="document-feedback" aria-label="Resolve issue conflict">
+              <h3>A newer server version exists</h3>
+              <p>
+                Your draft is kept. Server version {document.conflict.version}:{' '}
+                <strong>{document.conflict.title}</strong>
+              </p>
+              <Markdown>{document.conflict.description}</Markdown>
+              <Button disabled={document.busy} onClick={discard}>
+                Use server version
+              </Button>
+              <Button
+                disabled={readOnly || document.busy}
+                variant="ghost"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'Replace the server title and description with your local draft? Newer concurrent edits will still cause a conflict.',
+                    )
+                  )
+                    document.resolveConflict();
+                }}
+              >
+                Keep my issue draft
+              </Button>
+            </section>
           )}
           {mutation.error && <ErrorState message={errorMessage(mutation.error)} />}{' '}
           {localError && <ErrorState message={localError} />}
@@ -421,7 +465,7 @@ function Editor({ issue, onClose }: { issue: IssueDetail; onClose: () => void })
                 className="comment-form"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (comment.trim()) action.mutate({ kind: 'comment' });
+                  if (comment.trim()) action.mutate({ kind: 'comment', data: comment });
                 }}
               >
                 <Textarea

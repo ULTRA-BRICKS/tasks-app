@@ -1,3 +1,4 @@
+import { mergeVersioned } from '@/shared/lib/versioned';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { IssueDetail } from '@tickets/contracts';
 import { useIssueUpdate } from './model';
@@ -8,6 +9,7 @@ import {
   acceptDocument,
   restoreDocument,
   type DocumentDraft,
+  type ServerDocument,
 } from '@/shared/lib/draft';
 import { ApiError, errorMessage } from '@/shared/api/client';
 export function useInlineDocument(issue: IssueDetail, storageKey: string) {
@@ -25,8 +27,10 @@ export function useInlineDocument(issue: IssueDetail, storageKey: string) {
     requested = useRef(false),
     paused = useRef(false);
   const inFlight = useRef<Promise<IssueDetail | null> | null>(null);
+  const [serverConflict, setServerConflict] = useState<IssueDetail | null>(null);
   const [error, setError] = useState<string | null>(null),
-    [storageError, setStorageError] = useState(false);
+    [storageError, setStorageError] = useState(false),
+    [conflict, setConflict] = useState<ServerDocument | null>(null);
   const mutation = useIssueUpdate();
   const publish = useCallback(
     (next: DocumentDraft) => {
@@ -74,9 +78,12 @@ export function useInlineDocument(issue: IssueDetail, storageKey: string) {
             issue: { ...latest.current, version: sent.version },
             patch: { title: sent.title, description: sent.description },
           });
-          latest.current = { ...latest.current, ...result };
-          publish(acceptDocument(current.current, sent, result));
+          latest.current = mergeVersioned(latest.current, result);
+          const accepted = acceptDocument(current.current, sent, result);
+          publish(editing.current ? accepted : observeDocument(accepted, latest.current));
+          setServerConflict(null);
           setError(null);
+          setConflict(null);
         } catch (failure) {
           if (failure instanceof ApiError && failure.details?.current) {
             const incoming = failure.details.current as Partial<IssueDetail>;
@@ -84,8 +91,14 @@ export function useInlineDocument(issue: IssueDetail, storageKey: string) {
               typeof incoming.title === 'string' &&
               typeof incoming.description === 'string' &&
               typeof incoming.version === 'number'
-            )
+            ) {
               latest.current = { ...latest.current, ...incoming };
+              setConflict({
+                title: incoming.title,
+                description: incoming.description,
+                version: incoming.version,
+              });
+            }
           }
           paused.current = true;
           setError(errorMessage(failure));
@@ -124,6 +137,20 @@ export function useInlineDocument(issue: IssueDetail, storageKey: string) {
     busy: mutation.isPending,
     error,
     storageError,
+    conflict,
+    resolveConflict: () => {
+      if (!conflict || running.current) return;
+      publish({
+        ...current.current,
+        version: conflict.version,
+        baseTitle: conflict.title,
+        baseDescription: conflict.description,
+      });
+      paused.current = false;
+      setConflict(null);
+      setError(null);
+      void commit();
+    },
     change: (field: 'title' | 'description', value: string) =>
       publish({ ...current.current, [field]: value }),
     commit: () => {
@@ -135,12 +162,15 @@ export function useInlineDocument(issue: IssueDetail, storageKey: string) {
       return result;
     },
     retry: () => {
+      if (conflict) return;
       paused.current = false;
       void commit();
     },
     discard: () => {
+      setConflict(null);
       paused.current = false;
       setError(null);
+      setServerConflict(null);
       publish(freshDraft(latest.current));
     },
   };

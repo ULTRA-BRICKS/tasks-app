@@ -1,3 +1,4 @@
+import { SourceEditor } from './source';
 import { useEffect, useRef } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -37,32 +38,13 @@ export default function RichDescription(props: DescriptionProps) {
     <SupportedDescription {...props} />
   );
 }
-function SourceDescription({
-  value,
-  onChange,
-  onCommit,
-  readOnly,
-  onEditStart,
-  onEditEnd,
-}: DescriptionProps) {
+function SourceDescription(props: DescriptionProps) {
   return (
     <div className="source-preserved">
       <p className="section-hint">
         This description contains extended Markdown. Source editing preserves every element.
       </p>
-      <textarea
-        className="document-source"
-        aria-label="Description"
-        value={value}
-        readOnly={readOnly}
-        maxLength={100000}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={onEditStart}
-        onBlur={() => {
-          onCommit?.();
-          onEditEnd?.();
-        }}
-      />
+      <SourceEditor {...props} />
     </div>
   );
 }
@@ -140,16 +122,42 @@ function SupportedDescription({
   useEffect(() => {
     const root = container.current;
     if (!root) return;
-    const labelTasks = () =>
-      root.querySelectorAll('li[data-type="taskItem"]').forEach((li) => {
+    const pending = new Set<Element>();
+    let frame = 0;
+    const flush = () => {
+      frame = 0;
+      for (const li of pending) {
+        if (!root.contains(li)) continue;
         const input = li.querySelector(':scope > label input');
         const text = li.querySelector(':scope > div > p')?.textContent?.trim() || 'Task';
         if (input?.getAttribute('aria-label') !== text) input?.setAttribute('aria-label', text);
-      });
-    const observer = new MutationObserver(labelTasks);
+      }
+      pending.clear();
+    };
+    const collect = (node: Node) => {
+      const element = node instanceof Element ? node : node.parentElement;
+      if (!element) return;
+      const parent = element.closest('li[data-type="taskItem"]');
+      if (parent) pending.add(parent);
+    };
+    const observer = new MutationObserver((records) => {
+      for (const r of records) {
+        collect(r.target);
+        for (const node of r.addedNodes) {
+          collect(node);
+          if (node instanceof Element)
+            node.querySelectorAll('li[data-type="taskItem"]').forEach((li) => pending.add(li));
+        }
+      }
+      if (pending.size && !frame) frame = requestAnimationFrame(flush);
+    });
     observer.observe(root, { childList: true, subtree: true, characterData: true });
-    labelTasks();
-    return () => observer.disconnect();
+    root.querySelectorAll('li[data-type="taskItem"]').forEach((li) => pending.add(li));
+    flush();
+    return () => {
+      observer.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [editor]);
   return (
     <div ref={container} className="document-editor">

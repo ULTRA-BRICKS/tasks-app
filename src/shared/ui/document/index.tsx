@@ -1,3 +1,4 @@
+import { SourceEditor } from './source';
 import { lazy, Suspense } from 'react';
 import { InlineTitle } from './title';
 const RichDescription = lazy(() => import('./rich-description'));
@@ -10,6 +11,7 @@ export function DocumentText({
   onEditEnd,
   readOnly,
   titlePlaceholder,
+  titleMaxLength,
 }: {
   title: string;
   description: string;
@@ -19,6 +21,7 @@ export function DocumentText({
   onEditEnd?: () => void;
   readOnly?: boolean;
   titlePlaceholder?: string;
+  titleMaxLength?: number;
 }) {
   return (
     <div className="document-text">
@@ -30,22 +33,13 @@ export function DocumentText({
         onEditEnd={onEditEnd}
         readOnly={readOnly}
         placeholder={titlePlaceholder}
+        maxLength={titleMaxLength}
       />
       <Suspense
         fallback={
-          <textarea
-            className="document-source"
-            aria-label="Description"
-            placeholder="Add description…"
-            value={description}
-            readOnly={readOnly}
-            onChange={(e) => onChange('description', e.target.value)}
-            onFocus={onEditStart}
-            onBlur={() => {
-              onCommit?.();
-              onEditEnd?.();
-            }}
-          />
+          <div className="document-description" role="status" aria-busy="true">
+            Loading description editor…
+          </div>
         }
       >
         <RichDescription

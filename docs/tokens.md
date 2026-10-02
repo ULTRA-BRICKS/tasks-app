@@ -1,6 +1,6 @@
 # Generated token reference
 
-Source: `tokens/tickets.tokens.json`. Run `npm run tokens:build`.
+Source: `tokens/tickets.tokens.json`. Run `bun run tokens:build`.
 
 | Token | Type | CSS |
 |---|---|---|

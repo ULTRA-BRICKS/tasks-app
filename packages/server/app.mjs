@@ -1,3 +1,4 @@
+import { inspectReadiness } from './readiness.mjs';
 import { createIdempotently } from './core/idempotency.mjs';
 import * as workspacePolicy from './modules/identity/policy.mjs';
 import { applicationOrigin, isAllowedOrigin } from '../config/development.mjs';
@@ -131,7 +132,10 @@ export function createApp({ db, env = process.env, storage, logger = console } =
                 },
               })
             : json({ error: { code: 'ORIGIN_NOT_ALLOWED' } }, 403);
-      else if (path === '/api/health' && method === 'GET')
+      else if (path === '/api/ready' && method === 'GET') {
+        const state = await inspectReadiness(db);
+        response = json(state, state.status === 'ready' ? 200 : 503);
+      } else if (path === '/api/health' && method === 'GET')
         response = json({
           status: 'ok',
           service: 'tickets-app',
