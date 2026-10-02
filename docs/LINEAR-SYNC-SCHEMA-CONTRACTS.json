@@ -1,0 +1,4998 @@
+{
+  "source": "Pinned vendor/linear/schema.graphql; schema metadata only, not private source data",
+  "resources": [
+    {
+      "type": "Team",
+      "single": {
+        "name": "team",
+        "type": "Team!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "teams",
+        "type": "TeamConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "filter",
+            "type": "TeamFilter"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "activeCycle",
+          "type": "Cycle",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "aiDiscussionSummariesEnabled",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "aiThreadSummariesEnabled",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "allMembersCanJoin",
+          "type": "Boolean",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "ancestors",
+          "type": "[Team!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "autoArchivePeriod",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "autoCloseChildIssues",
+          "type": "Boolean",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "autoCloseParentIssues",
+          "type": "Boolean",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "autoClosePeriod",
+          "type": "Float",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "autoCloseStateId",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "children",
+          "type": "[Team!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "color",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "currentProgress",
+          "type": "JSONObject!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "cycleCalenderUrl",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "cycleCooldownTime",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "cycleDuration",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "cycleIssueAutoAssignCompleted",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "cycleIssueAutoAssignStarted",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "cycleLockToActive",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "cycleStartDay",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "cycles",
+          "type": "CycleConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "CycleFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "cyclesEnabled",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "defaultIssueEstimate",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "defaultIssueState",
+          "type": "WorkflowState",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "defaultProjectTemplate",
+          "type": "Template",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "defaultTemplateForMembers",
+          "type": "Template",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "defaultTemplateForMembersId",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "defaultTemplateForNonMembers",
+          "type": "Template",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "defaultTemplateForNonMembersId",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "displayName",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "draftWorkflowState",
+          "type": "WorkflowState",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "facets",
+          "type": "[Facet!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "gitAutomationStates",
+          "type": "GitAutomationStateConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "groupIssueHistory",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "icon",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inheritIssueEstimation",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inheritProjectStatuses",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inheritSlackAutoCreateProjectChannel",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inheritWorkflowStatuses",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "initiativesEnabled",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "integrationsSettings",
+          "type": "IntegrationsSettings",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inviteHash",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issueCount",
+          "type": "Int!",
+          "connection": false,
+          "arguments": [
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            }
+          ]
+        },
+        {
+          "name": "issueEstimationAllowZero",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issueEstimationExtended",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issueEstimationType",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issueOrderingNoPriorityFirst",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issueSortOrderDefaultToBottom",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issues",
+          "type": "IssueConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "IssueFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "includeSubTeams",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "joinByDefault",
+          "type": "Boolean",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "key",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "labels",
+          "type": "IssueLabelConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "IssueLabelFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "ledInitiativeCount",
+          "type": "Int!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "markedAsDuplicateWorkflowState",
+          "type": "WorkflowState",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "members",
+          "type": "UserConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "UserFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "includeDisabled",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            },
+            {
+              "name": "sort",
+              "type": "[UserSortInput!]"
+            }
+          ]
+        },
+        {
+          "name": "membership",
+          "type": "TeamMembership",
+          "connection": false,
+          "arguments": [
+            {
+              "name": "userId",
+              "type": "String!"
+            }
+          ]
+        },
+        {
+          "name": "memberships",
+          "type": "TeamMembershipConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "mergeWorkflowState",
+          "type": "WorkflowState",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "mergeableWorkflowState",
+          "type": "WorkflowState",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "name",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "organization",
+          "type": "Organization!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "parent",
+          "type": "Team",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "pinnedResources",
+          "type": "[TeamPinnedResource!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "posts",
+          "type": "[Post!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "private",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "progressHistory",
+          "type": "JSONObject!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "projects",
+          "type": "ProjectConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "ProjectFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "includeSubTeams",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            },
+            {
+              "name": "sort",
+              "type": "[ProjectSortInput!]"
+            }
+          ]
+        },
+        {
+          "name": "protectedBy",
+          "type": "Team",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "protectedById",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "releasePipelines",
+          "type": "ReleasePipelineConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "ReleasePipelineFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "requirePriorityToLeaveTriage",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "resourceSections",
+          "type": "[TeamResourceSection!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "restrictedBy",
+          "type": "Team",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "restrictedById",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "retiredAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "reviewWorkflowState",
+          "type": "WorkflowState",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "scimGroupName",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "scimManaged",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "securitySettings",
+          "type": "JSONObject!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "setIssueSortOrderOnStateChange",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "slackAutoCreateProjectChannel",
+          "type": "Boolean",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "slackIssueComments",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "slackIssueStatuses",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "slackNewIssue",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "startWorkflowState",
+          "type": "WorkflowState",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "states",
+          "type": "WorkflowStateConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "WorkflowStateFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "templates",
+          "type": "TemplateConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "NullableTemplateFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "timezone",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "triageEnabled",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "triageIssueState",
+          "type": "WorkflowState",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "triageResponsibility",
+          "type": "TriageResponsibility",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "upcomingCycleCount",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "visibility",
+          "type": "TeamVisibility!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "webhooks",
+          "type": "WebhookConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "User",
+      "single": {
+        "name": "user",
+        "type": "User!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "users",
+        "type": "UserConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "filter",
+            "type": "UserFilter"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "includeDisabled",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          },
+          {
+            "name": "sort",
+            "type": "[UserSortInput!]"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "active",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "admin",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "app",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "assignedIssues",
+          "type": "IssueConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "IssueFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "avatarBackgroundColor",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "avatarUrl",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "calendarHash",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "canAccessAnyPublicTeam",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdIssueCount",
+          "type": "Int!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdIssues",
+          "type": "IssueConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "IssueFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "delegatedIssues",
+          "type": "IssueConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "IssueFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "disableReason",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "displayName",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "drafts",
+          "type": "DraftConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "email",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "feedFacets",
+          "type": "FacetConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "gitHubUserId",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "guest",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "hasGitHubCodeAccess",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "identityProvider",
+          "type": "IdentityProvider",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "initials",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inviteHash",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isAssignable",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isMe",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isMentionable",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issueDrafts",
+          "type": "IssueDraftConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "lastSeen",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "name",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "organization",
+          "type": "Organization!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "owner",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "statusEmoji",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "statusLabel",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "statusUntilAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "supportsAgentSessions",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "teamMemberships",
+          "type": "TeamMembershipConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "teams",
+          "type": "TeamConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "TeamFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "timezone",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "title",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "url",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "type": "WorkflowState",
+      "single": {
+        "name": "workflowState",
+        "type": "WorkflowState!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "workflowStates",
+        "type": "WorkflowStateConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "filter",
+            "type": "WorkflowStateFilter"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "color",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inheritedFrom",
+          "type": "WorkflowState",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issues",
+          "type": "IssueConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "IssueFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "name",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "position",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "team",
+          "type": "Team!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "type",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "type": "IssueLabel",
+      "single": {
+        "name": "issueLabel",
+        "type": "IssueLabel!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "issueLabels",
+        "type": "IssueLabelConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "filter",
+            "type": "IssueLabelFilter"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "children",
+          "type": "IssueLabelConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "IssueLabelFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "color",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "creator",
+          "type": "User",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inheritedFrom",
+          "type": "IssueLabel",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isGroup",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issues",
+          "type": "IssueConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "IssueFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "lastAppliedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "name",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "organization",
+          "type": "Organization!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "parent",
+          "type": "IssueLabel",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "retiredAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "retiredBy",
+          "type": "User",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "team",
+          "type": "Team",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "type": "ProjectStatus",
+      "single": {
+        "name": "projectStatus",
+        "type": "ProjectStatus!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "projectStatuses",
+        "type": "ProjectStatusConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "color",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "indefinite",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inheritedFrom",
+          "type": "ProjectStatus",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "name",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "position",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "team",
+          "type": "Team",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "type",
+          "type": "ProjectStatusType!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "type": "Project",
+      "single": {
+        "name": "project",
+        "type": "Project!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "projects",
+        "type": "ProjectConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "filter",
+            "type": "ProjectFilter"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          },
+          {
+            "name": "sort",
+            "type": "[ProjectSortInput!]"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "attachments",
+          "type": "ProjectAttachmentConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "autoArchivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "canceledAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "color",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "comments",
+          "type": "CommentConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "CommentFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "completedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "completedIssueCountHistory",
+          "type": "[Float!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "completedScopeHistory",
+          "type": "[Float!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "content",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "contentState",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "convertedFromIssue",
+          "type": "Issue",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "creator",
+          "type": "User",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "currentProgress",
+          "type": "JSONObject!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "description",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "documentContent",
+          "type": "DocumentContent",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "documents",
+          "type": "DocumentConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "DocumentFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "externalLinks",
+          "type": "EntityExternalLinkConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "facets",
+          "type": "[Facet!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "favorite",
+          "type": "Favorite",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "frequencyResolution",
+          "type": "FrequencyResolutionType!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "health",
+          "type": "ProjectUpdateHealthType",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "healthUpdatedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "history",
+          "type": "ProjectHistoryConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "icon",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "identifier",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inProgressScopeHistory",
+          "type": "[Float!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "initiativeToProjects",
+          "type": "InitiativeToProjectConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "initiatives",
+          "type": "InitiativeConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "integrationsSettings",
+          "type": "IntegrationsSettings",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inverseRelations",
+          "type": "ProjectRelationConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "issueCountHistory",
+          "type": "[Float!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issues",
+          "type": "IssueConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "IssueFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "labelIds",
+          "type": "[String!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "labels",
+          "type": "ProjectLabelConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "ProjectLabelFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "lastAppliedTemplate",
+          "type": "Template",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "lastUpdate",
+          "type": "ProjectUpdate",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "lead",
+          "type": "User",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "leadTeam",
+          "type": "Team",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "members",
+          "type": "UserConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "UserFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "includeDisabled",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "microsoftTeamsChannelId",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "name",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "needs",
+          "type": "CustomerNeedConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "CustomerNeedFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "previousIdentifiers",
+          "type": "[String!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "priority",
+          "type": "Int!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "priorityLabel",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "prioritySortOrder",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "progress",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "progressHistory",
+          "type": "JSONObject!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "projectMilestones",
+          "type": "ProjectMilestoneConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "ProjectMilestoneFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "projectUpdateRemindersPausedUntilAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "projectUpdates",
+          "type": "ProjectUpdateConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "relations",
+          "type": "ProjectRelationConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "resourceCount",
+          "type": "Int!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "scope",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "scopeHistory",
+          "type": "[Float!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "slackChannelId",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "slackIssueComments",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "slackIssueStatuses",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "slackNewIssue",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "slugId",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "sortOrder",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "startDate",
+          "type": "TimelessDate",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "startDateResolution",
+          "type": "DateResolutionType",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "startedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "state",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "status",
+          "type": "ProjectStatus!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "syncedWith",
+          "type": "[ExternalEntityInfo!]",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "targetDate",
+          "type": "TimelessDate",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "targetDateResolution",
+          "type": "DateResolutionType",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "teams",
+          "type": "TeamConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "TeamFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "trashed",
+          "type": "Boolean",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updateReminderFrequency",
+          "type": "Float",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updateReminderFrequencyInWeeks",
+          "type": "Float",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updateRemindersDay",
+          "type": "Day",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updateRemindersHour",
+          "type": "Float",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "url",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "type": "ProjectMilestone",
+      "single": {
+        "name": "projectMilestone",
+        "type": "ProjectMilestone!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "projectMilestones",
+        "type": "ProjectMilestoneConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "filter",
+            "type": "ProjectMilestoneFilter"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "currentProgress",
+          "type": "JSONObject!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "descriptionState",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "documentContent",
+          "type": "DocumentContent",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issues",
+          "type": "IssueConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "IssueFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "name",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "progress",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "progressHistory",
+          "type": "JSONObject!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "project",
+          "type": "Project!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "sortOrder",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "status",
+          "type": "ProjectMilestoneStatus!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "targetDate",
+          "type": "TimelessDate",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "type": "Cycle",
+      "single": {
+        "name": "cycle",
+        "type": "Cycle!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "cycles",
+        "type": "CycleConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "filter",
+            "type": "CycleFilter"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "autoArchivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "completedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "completedIssueCountHistory",
+          "type": "[Float!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "completedScopeHistory",
+          "type": "[Float!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "currentProgress",
+          "type": "JSONObject!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "documents",
+          "type": "DocumentConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "DocumentFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "endsAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inProgressScopeHistory",
+          "type": "[Float!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "inheritedFrom",
+          "type": "Cycle",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isActive",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isFuture",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isNext",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isPast",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isPrevious",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issueCountHistory",
+          "type": "[Float!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issues",
+          "type": "IssueConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "IssueFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "links",
+          "type": "EntityExternalLinkConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "number",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "progress",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "progressHistory",
+          "type": "JSONObject!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "scopeHistory",
+          "type": "[Float!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "startsAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "team",
+          "type": "Team!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "uncompletedIssuesUponClose",
+          "type": "IssueConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "IssueFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "type": "Initiative",
+      "single": {
+        "name": "initiative",
+        "type": "Initiative!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "initiatives",
+        "type": "InitiativeConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "filter",
+            "type": "InitiativeFilter"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          },
+          {
+            "name": "sort",
+            "type": "[InitiativeSortInput!]"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "canceledAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "color",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "completedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "content",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "creator",
+          "type": "User",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "description",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "documentContent",
+          "type": "DocumentContent",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "documents",
+          "type": "DocumentConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "DocumentFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "facets",
+          "type": "[Facet!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "frequencyResolution",
+          "type": "FrequencyResolutionType!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "health",
+          "type": "InitiativeUpdateHealthType",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "healthUpdatedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "history",
+          "type": "InitiativeHistoryConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "icon",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "identifier",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "initiativeUpdates",
+          "type": "InitiativeUpdateConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "integrationsSettings",
+          "type": "IntegrationsSettings",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "labelIds",
+          "type": "[String!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "labels",
+          "type": "InitiativeLabelConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "InitiativeLabelFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "lastUpdate",
+          "type": "InitiativeUpdate",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "leadTeam",
+          "type": "Team",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "links",
+          "type": "EntityExternalLinkConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "name",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "organization",
+          "type": "Organization!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "owner",
+          "type": "User",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "parentInitiative",
+          "type": "Initiative",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "parentInitiatives",
+          "type": "InitiativeConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "InitiativeFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            },
+            {
+              "name": "sort",
+              "type": "[InitiativeSortInput!]"
+            }
+          ]
+        },
+        {
+          "name": "previousIdentifiers",
+          "type": "[String!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "priority",
+          "type": "Int!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "prioritySortOrder",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "projects",
+          "type": "ProjectConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "ProjectFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "includeSubInitiatives",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            },
+            {
+              "name": "sort",
+              "type": "[ProjectSortInput!]"
+            }
+          ]
+        },
+        {
+          "name": "slugId",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "sortOrder",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "startedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "status",
+          "type": "InitiativeStatus!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "subInitiatives",
+          "type": "InitiativeConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "InitiativeFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            },
+            {
+              "name": "sort",
+              "type": "[InitiativeSortInput!]"
+            }
+          ]
+        },
+        {
+          "name": "targetDate",
+          "type": "TimelessDate",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "targetDateResolution",
+          "type": "DateResolutionType",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "trashed",
+          "type": "Boolean",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updateReminderFrequency",
+          "type": "Float",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updateReminderFrequencyInWeeks",
+          "type": "Float",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updateRemindersDay",
+          "type": "Day",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updateRemindersHour",
+          "type": "Float",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "url",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "visibility",
+          "type": "InitiativeVisibility!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "type": "Document",
+      "single": {
+        "name": "document",
+        "type": "Document!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "documents",
+        "type": "DocumentConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "filter",
+            "type": "DocumentFilter"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          },
+          {
+            "name": "sort",
+            "type": "[DocumentSortInput!]"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "color",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "comments",
+          "type": "CommentConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "CommentFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "content",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "contentState",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "creator",
+          "type": "User",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "cycle",
+          "type": "Cycle",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "documentContentId",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "hiddenAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "icon",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "initiative",
+          "type": "Initiative",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issue",
+          "type": "Issue",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "lastAppliedTemplate",
+          "type": "Template",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "owner",
+          "type": "User",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "project",
+          "type": "Project",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "release",
+          "type": "Release",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "slugId",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "sortOrder",
+          "type": "Float!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "subscribers",
+          "type": "UserConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "UserFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "includeDisabled",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "summary",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "team",
+          "type": "Team",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "title",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "trashed",
+          "type": "Boolean",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedBy",
+          "type": "User",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "url",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "type": "Attachment",
+      "single": {
+        "name": "attachment",
+        "type": "Attachment!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "attachments",
+        "type": "AttachmentConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "filter",
+            "type": "AttachmentFilter"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "bodyData",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "creator",
+          "type": "User",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "externalUserCreator",
+          "type": "ExternalUser",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "groupBySource",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issue",
+          "type": "Issue!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "metadata",
+          "type": "JSONObject!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "originalIssue",
+          "type": "Issue",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "source",
+          "type": "JSONObject",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "sourceType",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "subtitle",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "title",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "url",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "type": "IssueRelation",
+      "single": {
+        "name": "issueRelation",
+        "type": "IssueRelation!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "issueRelations",
+        "type": "IssueRelationConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "issue",
+          "type": "Issue!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "relatedIssue",
+          "type": "Issue!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "type",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "type": "ProjectUpdate",
+      "single": {
+        "name": "projectUpdate",
+        "type": "ProjectUpdate!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          },
+          {
+            "name": "projectId",
+            "type": "String"
+          }
+        ]
+      },
+      "many": {
+        "name": "projectUpdates",
+        "type": "ProjectUpdateConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "filter",
+            "type": "ProjectUpdateFilter"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "body",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "bodyData",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "commentCount",
+          "type": "Int!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "comments",
+          "type": "CommentConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "CommentFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "diff",
+          "type": "JSONObject",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "diffMarkdown",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "editedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "health",
+          "type": "ProjectUpdateHealthType!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "infoSnapshot",
+          "type": "JSONObject",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isDiffHidden",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isStale",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "project",
+          "type": "Project!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "reactionData",
+          "type": "JSONObject!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "reactions",
+          "type": "[Reaction!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "slugId",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "url",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "user",
+          "type": "User!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "type": "InitiativeUpdate",
+      "single": {
+        "name": "initiativeUpdate",
+        "type": "InitiativeUpdate!",
+        "arguments": [
+          {
+            "name": "id",
+            "type": "String!"
+          }
+        ]
+      },
+      "many": {
+        "name": "initiativeUpdates",
+        "type": "InitiativeUpdateConnection!",
+        "arguments": [
+          {
+            "name": "after",
+            "type": "String"
+          },
+          {
+            "name": "before",
+            "type": "String"
+          },
+          {
+            "name": "filter",
+            "type": "InitiativeUpdateFilter"
+          },
+          {
+            "name": "first",
+            "type": "Int"
+          },
+          {
+            "name": "includeArchived",
+            "type": "Boolean"
+          },
+          {
+            "name": "last",
+            "type": "Int"
+          },
+          {
+            "name": "orderBy",
+            "type": "PaginationOrderBy"
+          }
+        ]
+      },
+      "fields": [
+        {
+          "name": "archivedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "body",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "bodyData",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "commentCount",
+          "type": "Int!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "comments",
+          "type": "CommentConnection!",
+          "connection": true,
+          "arguments": [
+            {
+              "name": "after",
+              "type": "String"
+            },
+            {
+              "name": "before",
+              "type": "String"
+            },
+            {
+              "name": "filter",
+              "type": "CommentFilter"
+            },
+            {
+              "name": "first",
+              "type": "Int"
+            },
+            {
+              "name": "includeArchived",
+              "type": "Boolean"
+            },
+            {
+              "name": "last",
+              "type": "Int"
+            },
+            {
+              "name": "orderBy",
+              "type": "PaginationOrderBy"
+            }
+          ]
+        },
+        {
+          "name": "createdAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "diff",
+          "type": "JSONObject",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "diffMarkdown",
+          "type": "String",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "editedAt",
+          "type": "DateTime",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "health",
+          "type": "InitiativeUpdateHealthType!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "id",
+          "type": "ID!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "infoSnapshot",
+          "type": "JSONObject",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "initiative",
+          "type": "Initiative!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isDiffHidden",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "isStale",
+          "type": "Boolean!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "reactionData",
+          "type": "JSONObject!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "reactions",
+          "type": "[Reaction!]!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "slugId",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "updatedAt",
+          "type": "DateTime!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "url",
+          "type": "String!",
+          "connection": false,
+          "arguments": []
+        },
+        {
+          "name": "user",
+          "type": "User!",
+          "connection": false,
+          "arguments": []
+        }
+      ]
+    }
+  ]
+}
