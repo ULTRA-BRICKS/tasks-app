@@ -510,6 +510,7 @@ test('synthetic: unrelated, no-op and rolled-back concurrent HTTP requests do no
 
 test('synthetic: actor projection reads bounded mapped rows rather than the full imported identity directory', async () => {
   const f = await setup();
+  f.env.SLACK_TEAM_ID = 'T1';
   try {
     const issue = (await f.create()).data;
     await f.db.transaction(async (tx) => {
@@ -566,6 +567,134 @@ test('synthetic: actor projection reads bounded mapped rows rather than the full
       JSON.parse((await jobs(f)).find((job) => !oldIds.has(job.id)).payload).actor,
       'Slack Owner',
     );
+  } finally {
+    await f.close();
+  }
+});
+
+test('synthetic: actor projection seeks the complete Slack identity index and never borrows another team', async () => {
+  const f = await setup();
+  f.env.SLACK_TEAM_ID = 'T1';
+  try {
+    const issue = (await f.create()).data;
+    await f.db.transaction(async (tx) => {
+      await tx.exec(
+        "WITH RECURSIVE profiles(n) AS (SELECT 0 UNION ALL SELECT n+1 FROM profiles WHERE n<1999) INSERT INTO source_people(id,workspace_id,provider,source_id,name) SELECT 'index-person-'||n,?,'slack','T1:UX'||n,'Unrelated Slack '||n FROM profiles",
+        [f.init.workspace_id],
+      );
+      await tx.exec(
+        "INSERT INTO source_people(id,workspace_id,provider,source_id,name) VALUES('index-owner',?,'slack','T1:U1','Slack Owner')",
+        [f.init.workspace_id],
+      );
+      if (tx.dialect === 'postgres') await tx.exec('ANALYZE source_people');
+    });
+    const configure = (user_map, extra = {}) =>
+      f.request('PATCH', '/api/v1/integrations/slack', {
+        team_id: f.init.team_id,
+        user_map,
+        ...extra,
+      });
+    assert.equal((await configure({ U1: f.init.user_id }, { notify: true })).status, 200);
+    const activation = () =>
+      f.db.transaction((tx) =>
+        tx.one("SELECT * FROM outbox WHERE provider='slack' AND event='activation'"),
+      );
+    const activated = await activation();
+    assert.equal((await configure({ U1: f.init.user_id }, { notify: true })).status, 200);
+    assert.deepEqual(await activation(), activated, 'explicit re-save cannot reset activation');
+    assert.equal((await configure({ U1: f.init.user_id }, { team: 'T2' })).status, 422);
+    assert.deepEqual(await activation(), activated, 'client input cannot set server team identity');
+    assert.equal(
+      (await runSlackDelivery(f.db, f.env, { fetcher: async () => receipt() })).processed,
+      1,
+    );
+    const receipts = (await jobs(f)).filter((job) => job.status === 'done');
+    assert.equal(receipts.length, 1);
+    async function capture(expected, lookup) {
+      const oldIds = new Set((await jobs(f)).map((job) => job.id));
+      const queries = [];
+      await f.db.transaction(async (tx) => {
+        const measured = { ...tx };
+        for (const method of ['one', 'all'])
+          measured[method] = async (sql, args) => {
+            if (/FROM source_people/.test(sql)) queries.push({ sql, args });
+            return tx[method](sql, args);
+          };
+        await captureSlackNotification(
+          measured,
+          { id: f.init.user_id, name: 'Owner', workspace_id: f.init.workspace_id },
+          issue,
+          'created',
+          {},
+          new Date().toISOString(),
+        );
+        assert.equal(queries.length, lookup ? 1 : 0);
+        for (const { sql, args } of queries) {
+          const plan = await tx.all(
+            (tx.dialect === 'postgres' ? 'EXPLAIN (FORMAT JSON) ' : 'EXPLAIN QUERY PLAN ') + sql,
+            args,
+          );
+          const detail = JSON.stringify(plan);
+          assert.match(detail, /source_id[ =]+(?:\\?\?|=)/);
+          if (tx.dialect === 'postgres') {
+            assert.match(detail, /Index (?:Only )?Scan/);
+            assert.match(detail, /Index Cond/);
+            assert.match(detail, /workspace_id.*provider.*source_id/);
+          } else {
+            assert.match(detail, /USING INDEX/);
+            assert.match(detail, /workspace_id=\? AND provider=\? AND source_id=\?/);
+          }
+          assert.deepEqual(args, [f.init.workspace_id, `T1:${lookup}`]);
+        }
+      });
+      assert.equal(
+        JSON.parse((await jobs(f)).find((job) => !oldIds.has(job.id)).payload).actor,
+        expected,
+      );
+    }
+    await capture('Slack Owner', 'U1');
+    await f.db.transaction((tx) =>
+      tx.exec(
+        "INSERT INTO source_people(id,workspace_id,provider,source_id,name) VALUES('foreign-owner',?,'slack','T2:U1','Foreign Owner'),('foreign-missing',?,'slack','T2:UMISSING','Foreign Missing')",
+        [f.init.workspace_id, f.init.workspace_id],
+      ),
+    );
+    await capture('Slack Owner', 'U1');
+    await configure({ UMISSING: f.init.user_id });
+    await capture('Owner', 'UMISSING');
+    assert.deepEqual(await activation(), activated, 'map-only edits must preserve activation');
+    await f.db.transaction(async (tx) => {
+      const payload = JSON.parse(activated.payload);
+      delete payload.team;
+      await tx.exec('UPDATE outbox SET payload=? WHERE id=?', [
+        JSON.stringify(payload),
+        activated.id,
+      ]);
+    });
+    const legacy = await activation();
+    await configure({ U1: f.init.user_id });
+    assert.deepEqual(await activation(), legacy, 'map-only edits cannot hydrate legacy activation');
+    await capture('Owner', null);
+    await configure({ U1: f.init.user_id }, { notify: true });
+    const hydrated = await activation();
+    assert.deepEqual(JSON.parse(hydrated.payload), { ...JSON.parse(legacy.payload), team: 'T1' });
+    assert.equal(hydrated.created_at, legacy.created_at);
+    assert.equal(hydrated.next_attempt_at, legacy.next_attempt_at);
+    assert.deepEqual(
+      (await jobs(f)).filter((job) => job.status === 'done'),
+      receipts,
+    );
+    await capture('Slack Owner', 'U1');
+    await configure({ U1: f.init.user_id, U2: f.init.user_id });
+    await capture('Owner', null);
+    await configure({ U1: f.init.user_id });
+    await f.db.transaction((tx) =>
+      tx.exec(
+        "INSERT INTO module_settings(workspace_id,module,enabled,config) VALUES(?,'slack-profiles',1,?) ON CONFLICT(workspace_id,module) DO UPDATE SET config=excluded.config",
+        [f.init.workspace_id, JSON.stringify({ profiles: { 'T1:U1': { bot: true } } })],
+      ),
+    );
+    await capture('Owner', 'U1');
   } finally {
     await f.close();
   }

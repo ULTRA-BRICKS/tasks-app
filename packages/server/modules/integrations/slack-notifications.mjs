@@ -23,23 +23,22 @@ const fieldLabels = {
   label_ids: 'Labels',
 };
 
-async function mappedActorName(tx, actor, config) {
+async function mappedActorName(tx, actor, config, team) {
   const users = Object.entries(config.user_map ?? {})
     .filter(([, member]) => member === actor.id)
     .map(([user]) => user);
   if (
+    !team ||
     users.length !== 1 ||
     Object.hasOwn(config.source_person_map ?? {}, users[0]) ||
     isBotProfile(actor)
   )
     return actor.name;
-  const suffix = users[0].replace(/[!%_]/g, (character) => '!' + character);
-  const profiles = await tx.all(
-    "SELECT id,name,email,source_id FROM source_people WHERE workspace_id=? AND provider='slack' AND source_id LIKE ? ESCAPE '!' LIMIT 2",
-    [actor.workspace_id, `%:${suffix}`],
+  const profile = await tx.one(
+    "SELECT id,name,email,source_id FROM source_people WHERE workspace_id=? AND provider='slack' AND source_id=?",
+    [actor.workspace_id, `${team}:${users[0]}`],
   );
-  if (profiles.length !== 1 || isBotProfile(profiles[0])) return actor.name;
-  const profile = profiles[0];
+  if (!profile || isBotProfile(profile)) return actor.name;
   const flags =
     tx.dialect === 'postgres'
       ? await tx.one(
@@ -58,14 +57,30 @@ export async function syncSlackActivation(tx, workspace, input, env) {
   if (!input.notify) return tx.exec('DELETE FROM outbox WHERE id=?', [key]);
   if (workspace !== env.INTEGRATIONS_WORKSPACE_ID || !env.SLACK_CHANNEL_ID) return;
   const row = await tx.one('SELECT payload FROM outbox WHERE id=?', [key]);
-  if (row && JSON.parse(row.payload).channel === env.SLACK_CHANNEL_ID) return;
+  if (row) {
+    const active = JSON.parse(row.payload);
+    if (active.channel === env.SLACK_CHANNEL_ID) {
+      // Explicit notify configuration may refresh server identity without replaying activation.
+      if (env.SLACK_TEAM_ID && active.team !== env.SLACK_TEAM_ID)
+        await tx.exec('UPDATE outbox SET payload=? WHERE id=?', [
+          JSON.stringify({ ...active, team: env.SLACK_TEAM_ID }),
+          key,
+        ]);
+      return;
+    }
+  }
   const time = new Date().toISOString();
   await tx.exec(
     "INSERT INTO outbox(id,workspace_id,provider,event,payload,status,attempts,next_attempt_at,created_at) VALUES(?,?,'slack','activation',?,'state',0,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload",
     [
       key,
       workspace,
-      JSON.stringify({ activated_at: time, channel: env.SLACK_CHANNEL_ID, generation: id() }),
+      JSON.stringify({
+        activated_at: time,
+        channel: env.SLACK_CHANNEL_ID,
+        generation: id(),
+        team: env.SLACK_TEAM_ID || undefined,
+      }),
       time,
       time,
     ],
@@ -83,6 +98,7 @@ export async function captureSlackNotification(tx, actor, issue, action, changes
   ]);
   const config = JSON.parse(setting?.config ?? '{}');
   if (!setting?.enabled || !config.notify || !activation) return;
+  const active = JSON.parse(activation.payload);
   const meaningful = [
     'title',
     'description',
@@ -150,7 +166,7 @@ export async function captureSlackNotification(tx, actor, issue, action, changes
     key: issue.key,
     title: issue.title,
     kind: issue.kind,
-    actor: await mappedActorName(tx, actor, config),
+    actor: await mappedActorName(tx, actor, config, active.team),
     team,
     status,
     project: project?.name,
@@ -159,8 +175,8 @@ export async function captureSlackNotification(tx, actor, issue, action, changes
     body: event === 'created' ? issue.description : comment?.body,
     fields: [...new Set(fields.map((field) => fieldLabels[field]))],
     occurred_at: time,
-    channel: JSON.parse(activation.payload).channel,
-    activation_generation: JSON.parse(activation.payload).generation,
+    channel: active.channel,
+    activation_generation: active.generation,
   };
   const jobId = id();
   await tx.exec(
