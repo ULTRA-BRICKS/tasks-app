@@ -1,3 +1,6 @@
+import { noteSlackJob } from './slack-wake.mjs';
+import { syncSlackActivation } from './slack-notifications.mjs';
+import { runSlackDelivery } from './slack-delivery.mjs';
 import { id, now, sha256, hmac, constantEqual } from '../../core/crypto.mjs';
 import { assert, requirePermission } from '../../core/errors.mjs';
 import { assertModule } from '../../core/modules.mjs';
@@ -267,21 +270,31 @@ async function handleSlack(tx, job) {
       `https://app.slack.com/archives/${encodeURIComponent(channel)}/p${ts.replace('.', '')}`,
       'Slack source message',
     );
+  const confirmationId = id();
   await tx.exec(
-    "INSERT INTO outbox(id,workspace_id,provider,event,payload,status,attempts,next_attempt_at,created_at) VALUES(?,?,?,'created',?,'pending',0,?,?)",
+    "INSERT INTO outbox(id,workspace_id,provider,event,payload,status,attempts,next_attempt_at,created_at) VALUES(?,?,?,'confirmation',?,'pending',0,?,?)",
     [
-      id(),
+      confirmationId,
       job.workspace_id,
       'slack',
-      JSON.stringify({ issue_id: issue.id, key: issue.key, title: issue.title, actor: actor.name }),
+      JSON.stringify({
+        issue_id: issue.id,
+        key: issue.key,
+        title: issue.title,
+        actor: actor.name,
+        channel,
+      }),
       now(),
       now(),
     ],
   );
+  noteSlackJob(tx, confirmationId);
 }
-export async function setIntegrationConfig(tx, actor, provider, input) {
+export async function setIntegrationConfig(tx, actor, provider, input, env = {}) {
   requirePermission(actor, 'admin');
   await assertModule(tx, actor.workspace_id, provider);
+  const activationIntent = Object.hasOwn(input, 'notify') ? { notify: input.notify } : null;
+  input = { ...(await config(tx, actor.workspace_id, provider)), ...input };
   if (provider === 'slack') {
     assert(
       await tx.one('SELECT id FROM teams WHERE workspace_id=? AND id=?', [
@@ -350,22 +363,29 @@ export async function setIntegrationConfig(tx, actor, provider, input) {
     'INSERT INTO module_settings(workspace_id,module,enabled,config) VALUES(?,?,1,?) ON CONFLICT(workspace_id,module) DO UPDATE SET config=excluded.config',
     [actor.workspace_id, provider, JSON.stringify(input)],
   );
+  if (provider === 'slack' && activationIntent)
+    await syncSlackActivation(tx, actor.workspace_id, activationIntent, env);
   return { provider, config: input };
 }
-async function processIncoming(db, job) {
-  await db.transaction(async (tx) => {
-    await tx.lock(job.workspace_id);
-    await assertModule(tx, job.workspace_id, job.provider);
-    const live = await tx.one('SELECT status FROM webhook_deliveries WHERE id=?', [job.id]);
-    if (live?.status !== 'processing') return;
-    if (job.provider === 'github') await handleGitHub(tx, job);
-    else await handleSlack(tx, job);
-    await tx.exec("UPDATE webhook_deliveries SET status='done',last_error=NULL WHERE id=?", [
-      job.id,
-    ]);
-  });
+async function processIncoming(db, job, { clock, deadline }) {
+  await db.transaction(
+    async (tx) => {
+      if (clock() >= deadline)
+        throw Object.assign(Error('Worker budget expired'), { code: 'DB_TRANSACTION_TIMEOUT' });
+      await tx.lock(job.workspace_id);
+      await assertModule(tx, job.workspace_id, job.provider);
+      const live = await tx.one('SELECT status FROM webhook_deliveries WHERE id=?', [job.id]);
+      if (live?.status !== 'processing') return;
+      if (job.provider === 'github') await handleGitHub(tx, job);
+      else await handleSlack(tx, job);
+      await tx.exec("UPDATE webhook_deliveries SET status='done',last_error=NULL WHERE id=?", [
+        job.id,
+      ]);
+    },
+    { timeoutMs: Math.max(1, deadline - clock()) },
+  );
 }
-async function sendOutgoing(job, env, fetcher) {
+async function postGitHub(job, env, fetcher, signal) {
   assert(
     job.workspace_id === env.INTEGRATIONS_WORKSPACE_ID,
     403,
@@ -373,31 +393,7 @@ async function sendOutgoing(job, env, fetcher) {
     'Refusing to deliver data from an unconfigured workspace',
   );
   const data = JSON.parse(job.payload);
-  if (job.provider === 'slack') {
-    assert(
-      env.SLACK_BOT_TOKEN && env.SLACK_CHANNEL_ID,
-      503,
-      'SLACK_NOT_CONFIGURED',
-      'Slack bot token and channel are required',
-    );
-    const response = await fetcher('https://slack.com/api/chat.postMessage', {
-      method: 'POST',
-      signal: AbortSignal.timeout(10000),
-      headers: {
-        authorization: `Bearer ${env.SLACK_BOT_TOKEN}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        channel: env.SLACK_CHANNEL_ID,
-        client_msg_id: job.id,
-        text: `${data.key}: ${data.title}\n${env.APP_URL}/tasks/${data.issue_id}`,
-        unfurl_links: false,
-        unfurl_media: false,
-      }),
-    });
-    const body = await response.json();
-    assert(response.ok && body.ok, 502, 'SLACK_DELIVERY_FAILED', 'Slack refused the message');
-  } else if (job.event === 'export') {
+  if (job.event === 'export') {
     assert(
       env.GITHUB_TOKEN && /^[\w.-]+\/[\w.-]+$/.test(env.GITHUB_REPOSITORY ?? ''),
       503,
@@ -415,7 +411,7 @@ async function sendOutgoing(job, env, fetcher) {
     const response = await fetcher(endpoint, {
       method: 'POST',
       headers,
-      signal: AbortSignal.timeout(10000),
+      signal,
       body: JSON.stringify({
         title: `[${data.key}] ${data.title}`,
         body: `${data.description ?? ''}\n\n<!-- tickets-outbox:${job.id} -->\n${env.APP_URL}/tasks/${data.issue_id}`,
@@ -425,63 +421,110 @@ async function sendOutgoing(job, env, fetcher) {
     return await response.json();
   }
 }
-export async function runWorker(db, env, { limit = 20, fetcher = fetch } = {}) {
+async function sendOutgoing(job, env, fetcher, { clock, deadline }) {
+  const signal = AbortSignal.timeout(Math.max(1, Math.min(10000, deadline - clock() - 100)));
+  let aborted;
+  const timeout = new Promise((_, reject) => {
+    aborted = () =>
+      reject(Object.assign(Error('GitHub request timed out'), { code: 'GITHUB_UNREACHABLE' }));
+    signal.addEventListener('abort', aborted, { once: true });
+  });
+  try {
+    return await Promise.race([postGitHub(job, env, fetcher, signal), timeout]);
+  } finally {
+    signal.removeEventListener('abort', aborted);
+  }
+}
+export async function runWorker(
+  db,
+  env,
+  { limit = 20, fetcher = fetch, clock = Date.now, sleep, deadline = clock() + 55000 } = {},
+) {
   const results = { processed: 0, failed: 0 };
+  // Incoming Slack jobs stay here; Slack outbox delivery owns its separate leases and pacing.
   for (const table of ['webhook_deliveries', 'outbox']) {
-    for (let n = 0; n < limit; n++) {
-      const job = await db.transaction(async (tx) => {
-        await tx.lock('tickets-app:worker:' + table);
-        const row = await tx.one(
-          `SELECT * FROM ${table} WHERE provider IN ('github','slack') AND (status='pending' OR status='processing') AND next_attempt_at<=? AND attempts<5 ORDER BY created_at,id LIMIT 1`,
-          [now()],
-        );
-        if (!row) return null;
-        await tx.exec(
-          `UPDATE ${table} SET status='processing',attempts=attempts+1,next_attempt_at=? WHERE id=?`,
-          [new Date(Date.now() + 60000).toISOString(), row.id],
-        );
-        return { ...row, attempts: row.attempts + 1 };
-      });
+    for (let n = 0; n < limit && clock() < deadline; n++) {
+      const job = await db
+        .transaction(
+          async (tx) => {
+            if (clock() >= deadline) return null;
+            await tx.lock('tickets-app:worker:' + table);
+            const row = await tx.one(
+              `SELECT * FROM ${table} WHERE ${table === 'outbox' ? "provider='github'" : "provider IN ('github','slack')"} AND (status='pending' OR status='processing') AND next_attempt_at<=? AND attempts<5 ORDER BY created_at,id LIMIT 1`,
+              [now()],
+            );
+            if (!row) return null;
+            await tx.exec(
+              `UPDATE ${table} SET status='processing',attempts=attempts+1,next_attempt_at=? WHERE id=?`,
+              [new Date(Date.now() + 60000).toISOString(), row.id],
+            );
+            return { ...row, attempts: row.attempts + 1 };
+          },
+          { timeoutMs: Math.max(1, deadline - clock()) },
+        )
+        .catch((error) => {
+          if (error.code === 'DB_TRANSACTION_TIMEOUT') return null;
+          throw error;
+        });
       if (!job) break;
       try {
-        if (table === 'webhook_deliveries') await processIncoming(db, job);
+        if (table === 'webhook_deliveries') await processIncoming(db, job, { clock, deadline });
         else {
-          await db.transaction(async (tx) => {
-            await assertModule(tx, job.workspace_id, job.provider);
-          });
-          const external = await sendOutgoing(job, env, fetcher);
-          await db.transaction(async (tx) => {
-            await tx.lock(job.workspace_id);
-            if (external?.html_url) {
-              const actor = await actorFor(tx, job.workspace_id);
-              const issue = await getIssue(tx, actor, JSON.parse(job.payload).issue_id);
-              await addExternalLink(
-                tx,
-                actor,
-                issue,
-                'github',
-                `issue:${env.GITHUB_REPOSITORY}:${external.number}`,
-                external.html_url,
-                `#${external.number} ${external.title}`,
-              );
-            }
-            await tx.exec("UPDATE outbox SET status='done',last_error=NULL WHERE id=?", [job.id]);
-          });
+          await db.transaction(
+            async (tx) => {
+              await assertModule(tx, job.workspace_id, job.provider);
+            },
+            { timeoutMs: Math.max(1, deadline - clock()) },
+          );
+          const external = await sendOutgoing(job, env, fetcher, { clock, deadline });
+          await db.transaction(
+            async (tx) => {
+              await tx.lock(job.workspace_id);
+              if (external?.html_url) {
+                const actor = await actorFor(tx, job.workspace_id);
+                const issue = await getIssue(tx, actor, JSON.parse(job.payload).issue_id);
+                await addExternalLink(
+                  tx,
+                  actor,
+                  issue,
+                  'github',
+                  `issue:${env.GITHUB_REPOSITORY}:${external.number}`,
+                  external.html_url,
+                  `#${external.number} ${external.title}`,
+                );
+              }
+              await tx.exec("UPDATE outbox SET status='done',last_error=NULL WHERE id=?", [job.id]);
+            },
+            { timeoutMs: Math.max(1, deadline - clock()) },
+          );
         }
         results.processed++;
       } catch (error) {
+        if (clock() >= deadline || error.code === 'DB_TRANSACTION_TIMEOUT') break;
         // Log only machine error codes; provider responses can contain credentials or private text.
-        await db.transaction((tx) =>
-          tx.exec(`UPDATE ${table} SET status=?,next_attempt_at=?,last_error=? WHERE id=?`, [
-            job.attempts >= 5 ? 'failed' : 'pending',
-            new Date(Date.now() + Math.min(3600, 2 ** job.attempts * 15) * 1000).toISOString(),
-            error.code ?? 'DELIVERY_FAILED',
-            job.id,
-          ]),
+        await db.transaction(
+          (tx) =>
+            tx.exec(`UPDATE ${table} SET status=?,next_attempt_at=?,last_error=? WHERE id=?`, [
+              job.attempts >= 5 ? 'failed' : 'pending',
+              new Date(Date.now() + Math.min(3600, 2 ** job.attempts * 15) * 1000).toISOString(),
+              error.code ?? 'DELIVERY_FAILED',
+              job.id,
+            ]),
+          { timeoutMs: Math.max(1, deadline - clock()) },
         );
         results.failed++;
       }
     }
   }
+  const slack = await runSlackDelivery(db, env, {
+    limit,
+    fetcher,
+    clock,
+    sleep,
+    deadline,
+    waitForPacing: true,
+  });
+  results.processed += slack.processed;
+  results.failed += slack.failed;
   return results;
 }

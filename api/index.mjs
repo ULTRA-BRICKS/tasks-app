@@ -1,9 +1,26 @@
+import { trackSlackTransactions } from '../packages/server/modules/integrations/slack-wake.mjs';
+import { withSlackWake } from '../packages/server/modules/integrations/slack-delivery.mjs';
 import { withMcp } from '../packages/mcp/handler.mjs';
 import { waitUntil } from '@vercel/functions';
 import { createDatabase } from '../packages/db/index.mjs';
 import { applicationOrigin } from '../packages/config/development.mjs';
 import { createApp } from '../packages/server/app.mjs';
 import { withLinear } from '../packages/linear/handler.mjs';
+// This assembly is shared by the deployed initializer and isolated HTTP acceptance tests.
+export function createApplication({ db, env, ...options }) {
+  db = trackSlackTransactions(db);
+  return withSlackWake(
+    withMcp(withLinear(createApp({ db, env, ...options }), { db, env }), { db, env }),
+    {
+      db,
+      env,
+      defer: options.defer,
+      send: options.slackQueueSend,
+      clock: options.slackDeliveryClock,
+      logger: options.logger,
+    },
+  );
+}
 async function initialize(environment) {
   const env = { ...environment, NODE_ENV: 'production' };
   applicationOrigin(env);
@@ -11,7 +28,7 @@ async function initialize(environment) {
     throw new Error('Production configuration incomplete');
   const db = await createDatabase({ url: env.DATABASE_URL, production: true });
   try {
-    return withMcp(withLinear(createApp({ db, env, defer: waitUntil }), { db, env }), { db, env });
+    return createApplication({ db, env, defer: waitUntil });
   } catch (error) {
     await db.close();
     throw error;

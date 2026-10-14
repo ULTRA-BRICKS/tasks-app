@@ -1,3 +1,4 @@
+import { captureSlackNotification } from '../integrations/slack-notifications.mjs';
 import { withSourceState } from '../linear-live/presentation.mjs';
 import { presentActivity } from './activity.mjs';
 import { queueNativeLinearChange } from '../../core/linear-events.mjs';
@@ -162,36 +163,7 @@ export async function recordActivity(tx, actor, issue, action, data = {}) {
           created,
         ],
       );
-  const modules = await tx.all(
-    "SELECT module,enabled,config FROM module_settings WHERE workspace_id=? AND module IN ('slack','github')",
-    [actor.workspace_id],
-  );
-  for (const module of modules)
-    if (
-      module.module === 'slack' &&
-      module.enabled &&
-      JSON.parse(module.config).notify &&
-      !actor.integration
-    ) {
-      await tx.exec(
-        "INSERT INTO outbox(id,workspace_id,provider,event,payload,status,attempts,next_attempt_at,created_at) VALUES(?,?,?,?,?,'pending',0,?,?)",
-        [
-          id(),
-          actor.workspace_id,
-          module.module,
-          action,
-          JSON.stringify({
-            issue_id: issue.id,
-            key: issue.key,
-            title: issue.title,
-            status_id: issue.status_id,
-            actor: actor.name,
-          }),
-          created,
-          created,
-        ],
-      );
-    }
+  await captureSlackNotification(tx, actor, issue, action, data, created);
 }
 async function replaceLabels(tx, actor, issueId, labels) {
   await tx.exec('DELETE FROM issue_labels WHERE workspace_id=? AND issue_id=?', [

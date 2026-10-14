@@ -1,0 +1,5 @@
+{
+  "display_information": { "name": "Tasks notifications" },
+  "features": { "bot_user": { "display_name": "Tasks", "always_online": false } },
+  "oauth_config": { "scopes": { "bot": ["chat:write"] } }
+}

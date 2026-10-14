@@ -6,6 +6,7 @@ test('the account-mail schedule is deployable on the existing daily-cron plan', 
   expect(config.crons).toEqual([
     { path: '/api/internal/account-email', schedule: '0 0 * * *' },
     { path: '/api/internal/linear-sync', schedule: '30 4 * * *' },
+    { path: '/api/internal/slack-notifications', schedule: '0 5 * * *' },
   ]);
   expect(config.functions['api/index.mjs'].maxDuration).toBe(60);
 });

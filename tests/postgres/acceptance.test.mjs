@@ -10,6 +10,12 @@ await import('../unit/readiness.test.mjs');
 await import('../unit/regressions.test.mjs');
 await import('../unit/linear.test.mjs');
 await import('../unit/transport.test.mjs');
+await import('../unit/slack-notifications.test.mjs');
+await import('../unit/slack-delivery.test.mjs');
+await import('../unit/slack-followup.test.mjs');
+await import('../unit/slack-review-fixes.test.mjs');
+await import('../unit/slack-profiles.test.mjs');
+await import('../unit/mcp.test.mjs');
 test('PostgreSQL acceptance cannot silently use SQLite', async () => {
   const f = await fixture();
   try {

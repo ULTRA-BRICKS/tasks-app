@@ -89,7 +89,7 @@ test('an early GitHub webhook echo of our export links the original instead of i
     await f.close();
   }
 });
-test('outgoing jobs cannot leak one workspace into another workspace provider credentials', async () => {
+test('Slack outgoing selection leaves an unconfigured workspace entirely untouched', async () => {
   const f = await fixture({
     SLACK_BOT_TOKEN: 'unit-only-token',
     SLACK_CHANNEL_ID: 'C1',
@@ -108,6 +108,7 @@ test('outgoing jobs cannot leak one workspace into another workspace provider cr
         ],
       ),
     );
+    const before = await f.db.transaction((tx) => tx.all('SELECT * FROM outbox ORDER BY id'));
     let called = false;
     const result = await runWorker(f.db, f.env, {
       fetcher: async () => {
@@ -116,9 +117,12 @@ test('outgoing jobs cannot leak one workspace into another workspace provider cr
       },
     });
     assert.equal(called, false);
-    assert.equal(result.failed, 1);
-    const job = await f.db.transaction((tx) => tx.one('SELECT last_error FROM outbox LIMIT 1'));
-    assert.equal(job.last_error, 'WORKSPACE_NOT_CONFIGURED');
+    assert.equal(result.failed, 0);
+    assert.equal(result.processed, 0);
+    assert.deepEqual(
+      await f.db.transaction((tx) => tx.all('SELECT * FROM outbox ORDER BY id')),
+      before,
+    );
   } finally {
     await f.close();
   }

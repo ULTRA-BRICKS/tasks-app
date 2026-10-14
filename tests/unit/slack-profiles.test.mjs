@@ -530,6 +530,26 @@ test('a sync that succeeds while another sync recorded a Slack rate limit keeps 
   }
 });
 
+test('saving notification settings without maps preserves both existing mapping kinds', async () => {
+  const { f, api } = await setup();
+  try {
+    const before = (await f.request('GET', '/api/v1/integrations')).data.slack.config;
+    const saved = await f.request('PATCH', '/api/v1/integrations/slack', {
+      team_id: f.init.team_id,
+      notify: false,
+    });
+    expect(saved.status).toBe(200);
+    const after = (await f.request('GET', '/api/v1/integrations')).data.slack.config;
+    expect(after.user_map).toEqual(before.user_map);
+    expect(after.source_person_map).toEqual(before.source_person_map);
+    expect(after.user_map).toEqual({ U1: f.init.user_id, U2: ids.teammate });
+    expect(after.source_person_map).toEqual({ U3: ids.linearOnly });
+    expect(api.calls).toEqual([]);
+  } finally {
+    await f.close();
+  }
+});
+
 test('only administrators can run the sync; configuration problems are explicit', async () => {
   const { f, api } = await setup();
   try {
@@ -577,6 +597,7 @@ test('only administrators can run the sync; configuration problems are explicit'
       team_id: f.init.team_id,
       notify: false,
       user_map: {},
+      source_person_map: {},
     });
     expect(saved.status).toBe(200);
     const empty = await f.request('POST', SYNC);

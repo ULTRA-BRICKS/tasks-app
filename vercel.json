@@ -21,6 +21,17 @@
           "retryAfterSeconds": 30
         }
       ]
+    },
+    "api/slack-consumer.mjs": {
+      "maxDuration": 60,
+      "includeFiles": "{packages/db/migrations/*.sql,packages/linear/schema.graphql,packages/generated/server-markdown.mjs,docs/openapi.json}",
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "tasks-slack-notifications",
+          "retryAfterSeconds": 30
+        }
+      ]
     }
   },
   "rewrites": [
@@ -53,6 +64,10 @@
     {
       "path": "/api/internal/linear-sync",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/internal/slack-notifications",
+      "schedule": "0 5 * * *"
     }
   ]
 }

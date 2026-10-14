@@ -1,6 +1,13 @@
+/** Native database transactions used by server, CLI and workers.
+ * Optional worker budgets bound checkout and transaction lifetime; late canceled connections
+ * cannot execute a callback, and expired sessions roll back rather than commit delayed work.
+ */
 import { mkdir, readFile } from 'node:fs/promises';
 import { DEFAULT_SQLITE_PATH } from '../config/development.mjs';
 import { dirname } from 'node:path';
+
+const transactionTimeout = () =>
+  Object.assign(Error('Database transaction budget expired'), { code: 'DB_TRANSACTION_TIMEOUT' });
 
 // Values always remain bound parameters. This scanner skips quoted SQL literals.
 export function postgresParameters(sql) {
@@ -46,36 +53,83 @@ export async function createDatabase({
     }
     return {
       dialect: 'postgres',
-      async transaction(fn, { readOnly = false } = {}) {
-        const connection = await pool.connect();
-        try {
-          await connection.query(
-            readOnly ? 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY' : 'BEGIN',
+      async transaction(fn, { readOnly = false, timeoutMs } = {}) {
+        const expires = timeoutMs === undefined ? null : Date.now() + Math.max(1, timeoutMs);
+        let expired = false,
+          connection,
+          released = false,
+          timer;
+        const check = () => {
+          if (expired || (expires !== null && Date.now() >= expires)) throw transactionTimeout();
+        };
+        const work = (async () => {
+          connection = await pool.connect();
+          if (expired || (expires !== null && Date.now() >= expires)) {
+            released = true;
+            connection.release();
+            throw transactionTimeout();
+          }
+          try {
+            // A canceled checkout must release its late connection without beginning domain work.
+            check();
+            await connection.query(
+              readOnly ? 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY' : 'BEGIN',
+            );
+            if (expires !== null)
+              await connection.query(
+                "SELECT set_config('statement_timeout',$1,true),set_config('lock_timeout',$1,true)",
+                [String(Math.max(1, expires - Date.now()))],
+              );
+            const query = (sql, args = []) => {
+              check();
+              return connection.query(postgresParameters(sql), args);
+            };
+            const tx = {
+              dialect: 'postgres',
+              all: async (sql, args = []) => (await query(sql, args)).rows,
+              one: async (sql, args = []) => (await query(sql, args)).rows[0] ?? null,
+              exec: async (sql, args = []) => ({ changes: (await query(sql, args)).rowCount }),
+              script: async (sql) => {
+                await query(sql);
+              },
+              lock: async (workspace) => {
+                await query('SELECT pg_advisory_xact_lock(hashtext(?))', [workspace]);
+              },
+            };
+            check();
+            const result = await fn(tx);
+            check();
+            await connection.query('COMMIT');
+            return result;
+          } catch (error) {
+            if (!released) await connection.query('ROLLBACK').catch(() => {});
+            throw error;
+          } finally {
+            if (!released) {
+              released = true;
+              connection.release();
+            }
+          }
+        })();
+        if (expires === null) return work;
+        const timeout = new Promise((_, reject) => {
+          timer = setTimeout(
+            () => {
+              expired = true;
+              // Destroying an expired session rolls back SQL and releases advisory locks immediately.
+              if (connection && !released) {
+                released = true;
+                connection.release(true);
+              }
+              reject(transactionTimeout());
+            },
+            Math.max(1, expires - Date.now()),
           );
-          const tx = {
-            dialect: 'postgres',
-            all: async (sql, args = []) =>
-              (await connection.query(postgresParameters(sql), args)).rows,
-            one: async (sql, args = []) =>
-              (await connection.query(postgresParameters(sql), args)).rows[0] ?? null,
-            exec: async (sql, args = []) => ({
-              changes: (await connection.query(postgresParameters(sql), args)).rowCount,
-            }),
-            script: async (sql) => {
-              await connection.query(sql);
-            },
-            lock: async (workspace) => {
-              await connection.query('SELECT pg_advisory_xact_lock(hashtext($1))', [workspace]);
-            },
-          };
-          const result = await fn(tx);
-          await connection.query('COMMIT');
-          return result;
-        } catch (error) {
-          await connection.query('ROLLBACK').catch(() => {});
-          throw error;
+        });
+        try {
+          return await Promise.race([work, timeout]);
         } finally {
-          connection.release();
+          clearTimeout(timer);
         }
       },
       close: () => pool.end(),
@@ -90,20 +144,55 @@ export async function createDatabase({
   let queue = Promise.resolve();
   return {
     dialect: 'sqlite',
-    transaction(fn) {
+    transaction(fn, { timeoutMs } = {}) {
+      const expires = timeoutMs === undefined ? null : Date.now() + Math.max(1, timeoutMs);
+      let expired = false,
+        timer;
+      const check = () => {
+        if (expired || (expires !== null && Date.now() >= expires)) throw transactionTimeout();
+      };
+      const timeout =
+        expires === null
+          ? null
+          : new Promise((_, reject) => {
+              timer = setTimeout(
+                () => {
+                  expired = true;
+                  reject(transactionTimeout());
+                },
+                Math.max(1, expires - Date.now()),
+              );
+            });
       // Reads use the same mutex: no read can observe a partially committed mutation.
       const result = queue.then(async () => {
+        check();
         connection.exec('BEGIN IMMEDIATE');
         const tx = {
           dialect: 'sqlite',
-          all: async (sql, args = []) => connection.prepare(sql).all(...args),
-          one: async (sql, args = []) => connection.prepare(sql).get(...args) ?? null,
-          exec: async (sql, args = []) => connection.prepare(sql).run(...args),
-          script: async (sql) => connection.exec(sql),
-          lock: async () => {},
+          all: async (sql, args = []) => {
+            check();
+            return connection.prepare(sql).all(...args);
+          },
+          one: async (sql, args = []) => {
+            check();
+            return connection.prepare(sql).get(...args) ?? null;
+          },
+          exec: async (sql, args = []) => {
+            check();
+            return connection.prepare(sql).run(...args);
+          },
+          script: async (sql) => {
+            check();
+            return connection.exec(sql);
+          },
+          lock: async () => {
+            check();
+          },
         };
         try {
-          const value = await fn(tx);
+          const execution = Promise.resolve(fn(tx));
+          const value = timeout ? await Promise.race([execution, timeout]) : await execution;
+          check();
           connection.exec('COMMIT');
           return value;
         } catch (error) {
@@ -115,7 +204,10 @@ export async function createDatabase({
         () => {},
         () => {},
       );
-      return result;
+      const bounded = timeout ? Promise.race([result, timeout]) : result;
+      return bounded.finally(() => {
+        clearTimeout(timer);
+      });
     },
     async close() {
       await queue;

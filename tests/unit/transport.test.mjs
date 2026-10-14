@@ -120,7 +120,10 @@ test('signed Slack slash command maps a member, creates once and sends via injec
     const result = await runWorker(f.db, f.env, {
       fetcher: async (url, options) => {
         calls.push({ url, options });
-        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        return new Response(
+          JSON.stringify({ ok: true, channel: 'C123', ts: '1234567890.123456' }),
+          { status: 200 },
+        );
       },
     });
     assert.equal(result.failed, 0);

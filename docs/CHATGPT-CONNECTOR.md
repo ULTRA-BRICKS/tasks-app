@@ -4,10 +4,17 @@ The Tasks connector uses the existing workspace identity and task services. Publ
 
 ## Connect
 
-After schema migration 8 and deployment, add an OAuth MCP server at:
-https://tasks-ultrabricks.vercel.app/api/mcp
+The existing canonical OAuth MCP endpoint is `https://tasks-ultrabricks.vercel.app/api/mcp`.
 
-Choose dynamic client registration. The default exact callback allowlist contains https://chatgpt.com/connector_platform_oauth_redirect. The server advertises issuer identification and returns the issuer in authorization responses. If the ChatGPT management page displays a different callback, copy that exact HTTPS URI into MCP_REDIRECT_URIS (comma-separated). Wildcards and arbitrary callback hosts are intentionally unsupported.
+1. Open ChatGPT **Plugins** → **plus** → **Add custom MCP server**.
+2. Name the connection Tasks, enter the canonical endpoint and choose OAuth/dynamic client registration.
+3. Complete Tasks sign-in and consent, review the risk warning, and select **Create as a plugin**.
+4. Install the resulting personal plugin with **plus**.
+5. Open a new **Work** chat and invoke `@Tasks`.
+
+The stable exact callback is `https://chatgpt.com/connector_platform_oauth_redirect`. The live DCR server advertises issuer identification and returns the issuer in authorization responses. Keep the existing callback allowlist and authentication semantics; do not enable anonymous access or invent a registered app ID. Documentation alone does not install the plugin or activate a user's account. Public directory publication is a separate process.
+
+Sources: [OpenAI quickstart](https://developers.openai.com/plugins/quickstart), [plugin packaging](https://developers.openai.com/plugins/build/plugins).
 
 Sign in to Tasks in the same browser and explicitly approve the requested read/write scopes. A viewer can connect read-only. Each member connects their own identity. The connector cannot grant administrator permissions, manage membership, or delete issues.
 

@@ -1,3 +1,8 @@
+import {
+  syncSlackActivation,
+  slackActivationStatus,
+} from './modules/integrations/slack-notifications.mjs';
+import { recoverSlackNotifications } from './modules/integrations/slack-delivery.mjs';
 import { numberingGraphPage } from './modules/linear-numbering/graph-page.mjs';
 import { listInvitations } from './modules/identity/invitation-list.mjs';
 import * as teamManagement from './modules/identity/teams.mjs';
@@ -109,6 +114,9 @@ export function createApp({
   mailTransport,
   /** Transport for Slack profile reads (docs/SLACK-PROFILES.md); tests inject a fake. */
   slackFetch = fetch,
+  slackDeliveryClock = Date.now,
+  slackDeliverySleep,
+  slackQueueSend,
   defer,
 } = {}) {
   assert(db, 500, 'CONFIG', 'Database is required');
@@ -386,6 +394,22 @@ export function createApp({
               'Workspace mismatch',
             );
             return { jobs: await startReconciliation(tx, config) };
+          }),
+        );
+      } else if (path === '/api/internal/slack-notifications' && method === 'GET') {
+        assert(
+          env.CRON_SECRET && constantEqual(bearer ?? '', env.CRON_SECRET),
+          401,
+          'UNAUTHORIZED',
+          'Cron authorization required',
+        );
+        response = json(
+          await recoverSlackNotifications(db, env, {
+            deadline: slackDeliveryClock() + 40000,
+            fetcher: slackFetch,
+            clock: slackDeliveryClock,
+            sleep: slackDeliverySleep,
+            send: slackQueueSend,
           }),
         );
       } else if (path === '/api/internal/linear-sync' && method === 'GET') {
@@ -993,7 +1017,13 @@ export function createApp({
       else if (/^\/api\/v1\/modules\/[^/]+$/.test(path) && method === 'PATCH') {
         const input = await body(request, schemas.Module);
         response = json(
-          await run(false, (tx, a) => setModule(tx, a, path.split('/').at(-1), input.enabled)),
+          await run(false, async (tx, a) => {
+            const module = path.split('/').at(-1);
+            const result = await setModule(tx, a, module, input.enabled);
+            if (module === 'slack' && !input.enabled)
+              await syncSlackActivation(tx, a.workspace_id, { notify: false }, env);
+            return result;
+          }),
         );
       } else if (/^\/api\/v1\/issues\/[^/]+\/attachments$/.test(path) && method === 'POST') {
         const input = await body(request, schemas.Attachment);
@@ -1068,6 +1098,7 @@ export function createApp({
                 ),
                 outbound_configured: Boolean(env.SLACK_BOT_TOKEN),
                 profiles_configured: slackProfilesConfigured(env, a.workspace_id),
+                notifications: await slackActivationStatus(tx, a.workspace_id, env),
                 profile_sync: await slackProfileSyncStatus(tx, a.workspace_id),
                 config: configs.find((m) => m.id === 'slack')?.config,
               },
@@ -1091,7 +1122,9 @@ export function createApp({
             provider === 'github' ? schemas.GitHubConfig : schemas.SlackConfig,
           );
         response = json(
-          await run(false, (tx, a) => integrations.setIntegrationConfig(tx, a, provider, input)),
+          await run(false, (tx, a) =>
+            integrations.setIntegrationConfig(tx, a, provider, input, env),
+          ),
         );
       } else if (/^\/api\/v1\/issues\/[^/]+\/export\/github$/.test(path) && method === 'POST')
         response = json(
