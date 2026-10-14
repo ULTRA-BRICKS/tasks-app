@@ -1,3 +1,4 @@
+import { scheduleMigrationNotice } from './notice-scheduling.mjs';
 import { assert, AppError, requirePermission } from '../../core/errors.mjs';
 import { id, now } from '../../core/crypto.mjs';
 import { canonical, targetId, uuid } from '../../../imports/linear-source.mjs';
@@ -176,6 +177,49 @@ export async function claimSyncJob(db, env, jobId, generation) {
       );
       if (mappings.length === 1) data.sourceId = mappings[0].source_id;
       else if (mappings.length > 1) {
+        if (data.kind === 'entity' && data.collection === 'issueLabels' && !data.action) {
+          assert(
+            mappings.length <= 100,
+            422,
+            'SYNC_REFERENCE_BUDGET',
+            'Too many source label aliases',
+          );
+          const delegatedTo = [];
+          for (const mapping of mappings) {
+            const child = await enqueueSyncJob(
+              tx,
+              config.workspaceId,
+              {
+                kind: 'entity',
+                collection: 'issueLabels',
+                side: 'source',
+                sourceId: mapping.source_id,
+                targetId: data.targetId,
+                _parentJobId: row.id,
+              },
+              'label-alias:' +
+                row.id +
+                ':' +
+                (data._dispatchToken ?? row.created_at) +
+                ':' +
+                mapping.source_id,
+            );
+            delegatedTo.push(child.id);
+          }
+          // Delegation is not a claim that the source changes succeeded. Each alias keeps
+          // its own ordinary source lease, merge/conflict handling and final outcome.
+          await tx.exec(
+            "UPDATE outbox SET status='superseded',last_error=NULL,payload=? WHERE id=? AND workspace_id=? AND status=? AND attempts=?",
+            [
+              canonical({ ...data, result: { delegatedTo, reason: 'verified-label-aliases' } }),
+              row.id,
+              config.workspaceId,
+              row.status,
+              row.attempts,
+            ],
+          );
+          return null;
+        }
         // Generic native events carry no independent source provenance. Preserve
         // the job as an inspectable block rather than guessing a source alias.
         await tx.exec(
@@ -325,7 +369,10 @@ export async function finishSyncJob(tx, job, result) {
   );
   // A decided outcome of a job this worker still owns (asserted above). A re-queued dirty edit or
   // an ignored run (stale read, older event, out of scope) says nothing new about the entity.
-  if (!dirty && !result?.ignored) await supersedeProblems(tx, job.workspace_id, job.data, job.id);
+  if (!dirty && !result?.ignored) {
+    await supersedeProblems(tx, job.workspace_id, job.data, job.id);
+    await scheduleMigrationNotice(tx, job, result, enqueueSyncJob, readEntityState);
+  }
 }
 // Every reconcile pass, webhook delivery and native edit enqueues its own job for an entity, so a
 // persistent rejection used to add another blocked row per pass. Only the most recently finished
@@ -335,7 +382,7 @@ export async function finishSyncJob(tx, job, result) {
 // for native-side rows (an ambiguous alias has no single source UUID). A removal outcome retires
 // earlier rows too (no later job would); removal rows carry delivery proof and are never retired.
 async function supersedeProblems(tx, workspace, data, keepId) {
-  if (data.kind !== 'entity' || !data.sourceId) return;
+  if (data.kind !== 'entity' || !data.sourceId || data.action === 'migration-notice') return;
   const keys = [['sourceId', data.sourceId]];
   if (data.targetId) keys.push(['targetId', data.targetId]);
   // canonical() writes "key":value without spaces, so LIKE only preselects; the parsed check decides.
@@ -350,8 +397,15 @@ async function supersedeProblems(tx, workspace, data, keepId) {
     if (
       payload.kind !== 'entity' ||
       payload.action === 'remove' ||
+      payload.action === 'migration-notice' ||
       payload.collection !== data.collection ||
-      !keys.some(([k, v]) => payload[k] === v)
+      !(
+        payload.sourceId === data.sourceId ||
+        (data.targetId &&
+          payload.side === 'native' &&
+          payload.targetId === data.targetId &&
+          (!payload.sourceId || payload.sourceId === payload.targetId))
+      )
     )
       continue;
     await tx.exec(

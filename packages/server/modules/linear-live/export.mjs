@@ -1,3 +1,4 @@
+import { ensureIssueLabels } from './provision-labels.mjs';
 import { assert } from '../../core/errors.mjs';
 import { digest, targetId } from '../../../imports/linear-source.mjs';
 import { markdownEquivalent } from '../linear-import/source-contract.mjs';
@@ -33,6 +34,7 @@ async function beginSourceCreate(db, job, collection, target, native, input, fin
 }
 export async function exportNativeIssue(db, env, job, options) {
   const target = job.data.targetId ?? job.data.sourceId;
+  await ensureIssueLabels(db, env, job, target, options);
   const prepared = await db.transaction(async (tx) => {
     await assertJobFence(tx, job);
     const native = await loadNative(tx, job.config, 'issues', target);

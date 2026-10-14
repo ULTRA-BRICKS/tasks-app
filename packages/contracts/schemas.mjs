@@ -100,6 +100,12 @@ export const schemas = {
     },
     ['source_workspace_id', 'records'],
   ),
+  LinearNoticeBackfill: object({
+    apply: { type: 'boolean' },
+    passId: uuid,
+    cursor: nullable(uuid),
+    limit: { type: 'integer', minimum: 1, maximum: 50 },
+  }),
   LinearSyncRetry: object(
     { jobIds: { type: 'array', minItems: 1, maxItems: 100, uniqueItems: true, items: uuid } },
     ['jobIds'],

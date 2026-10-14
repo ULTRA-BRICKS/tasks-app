@@ -1,3 +1,4 @@
+import { createMigrationNotice, normalizeMigrationNotices } from './migration-notice.mjs';
 import { AppError, assert } from '../../core/errors.mjs';
 import { uuid } from '../../../imports/linear-source.mjs';
 const model = (one, many, fields, connections = []) => ({ one, many, fields, connections });
@@ -80,6 +81,25 @@ export async function requestLinear(env, query, variables = {}, options = {}) {
     AbortSignal.timeout(Math.max(1, Math.min(12000, remaining))),
     ...(options.signal ? [options.signal] : []),
   ]);
+  if (options.migrationNotice && typeof variables.input?.description === 'string') {
+    assert(
+      variables.id === options.migrationNotice.sourceId,
+      409,
+      'SYNC_MIGRATION_NOTICE_INVALID',
+      'Notice identity does not match the source write',
+    );
+    variables = {
+      ...variables,
+      input: {
+        ...variables.input,
+        description: createMigrationNotice(variables.input.description, {
+          ...options.migrationNotice,
+          appOrigin: env.APP_URL,
+          secret: env.LINEAR_WEBHOOK_SECRET,
+        }),
+      },
+    };
+  }
   const response = await (options.fetcher ?? fetch)('https://api.linear.app/graphql', {
     method: 'POST',
     redirect: 'error',
@@ -129,7 +149,7 @@ export async function requestLinear(env, query, variables = {}, options = {}) {
     'SOURCE_INVALID_RESPONSE',
     'Source response was not confirmed',
   );
-  return result.data;
+  return normalizeMigrationNotices(result.data, env, options.verifyMigrationNotices);
 }
 function checkRecord(record, id) {
   if (record === null) return null;
