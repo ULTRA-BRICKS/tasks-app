@@ -1,3 +1,6 @@
+import { mappedNoticeVerifier } from './migration-notice.mjs';
+import { applyMigrationNotice } from './notice-backfill.mjs';
+import { ensureIssueLabels } from './provision-labels.mjs';
 import { sameField as same } from './merge-fields.mjs';
 import { sourceInScope, nativeInScope } from './scope.mjs';
 import { exportNativeIssue, exportNativeComment } from './export.mjs';
@@ -265,7 +268,9 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
     io = { ...options, deadline };
   const job = await claimSyncJob(db, env, jobId, generation);
   if (!job) return { status: 'not-claimed' };
+  io.verifyMigrationNotices = mappedNoticeVerifier(db, job.config);
   try {
+    if (job.data.action === 'migration-notice') return await applyMigrationNotice(db, env, job, io);
     if (job.data.action === 'remove') return await markRemoval(db, env, job, io);
     await verifySourceOrganization(env, job.config.organizationId, io);
     if (job.data.side === 'native' && NATIVE_EXPORT_COLLECTIONS.includes(job.data.collection)) {
@@ -379,6 +384,7 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
           sourceId: remote.id,
           targetId: row.id,
           sourceUpdatedAt: remote.updatedAt,
+          migrationNotice: remote._migrationNotice ?? null,
           baseNative: fresh.source,
           baseSource: fresh.source,
           sourceCode: remote.identifier ?? null,
@@ -425,6 +431,15 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
     }
     const localFingerprint = digest(context.native);
     if (Object.keys(toSource).length) {
+      if (collection === 'issues' && Object.hasOwn(toSource, 'label_ids')) {
+        const sourceTeamId = Object.hasOwn(toSource, 'team_id')
+          ? context.resolver.reverse('teams', toSource.team_id)
+          : remote.team?.id;
+        await ensureIssueLabels(db, env, job, context.native.id, { ...io, sourceTeamId });
+        context = await db.transaction((tx) => contextFor(tx, job.config, collection, remote), {
+          readOnly: true,
+        });
+      }
       const input = sourcePatch(collection, toSource, context.resolver, {
         teamId: remote.team?.id,
       });
@@ -456,7 +471,12 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
           },
         });
       });
-      remote = await mutateSource(env, collection, remote.id, input, io);
+      remote = await mutateSource(env, collection, remote.id, input, {
+        ...io,
+        migrationNotice: remote._migrationNotice
+          ? { ...remote._migrationNotice, code: remote.identifier }
+          : null,
+      });
     }
     return await db.transaction(async (tx) => {
       await assertJobFence(tx, job);
@@ -484,6 +504,7 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
         sourceId: remote.id,
         targetId: final.id,
         sourceUpdatedAt: remote.updatedAt,
+        migrationNotice: remote._migrationNotice ?? null,
         baseNative: nextBaseLocal,
         baseSource: nextBaseSource,
         sourceCode: remote.identifier ?? null,

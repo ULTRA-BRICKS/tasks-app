@@ -27,6 +27,13 @@ export function toType(schema) {
 }
 const operations = [
   [
+    '/v1/sync/linear/migration-notices',
+    'post',
+    'LinearNoticeBackfill',
+    'Preview or enqueue signed migration notices without changing business descriptions',
+    'admin',
+  ],
+  [
     '/v1/sync/linear/retry',
     'post',
     'LinearSyncRetry',

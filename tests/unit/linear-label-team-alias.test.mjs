@@ -275,7 +275,7 @@ test('a new task with a label shared by name across teams is created in Linear a
   }
 });
 
-test('a native label without a Linear label for the issue team fails explicitly without a source write', async () => {
+test('a label provision lookup with a wrong-team result fails without a source write', async () => {
   const context = await configured();
   const { f, source, actor, env, config } = context;
   try {
@@ -326,13 +326,24 @@ test('a native label without a Linear label for the issue team fails explicitly 
       ),
     );
     const result = await reconcileEntityJob(f.db, env, job.id, config.generation, {
-      fetcher: api.fetcher,
+      fetcher: async (url, options) => {
+        if (JSON.parse(options.body).query.includes('ProvisionLookup'))
+          return Response.json({
+            data: {
+              issueLabels: {
+                nodes: [{ id: elsewhere, name: 'Other team only', team: { id: OTHER_TEAM } }],
+                pageInfo: { hasNextPage: false },
+              },
+            },
+          });
+        return api.fetcher(url, options);
+      },
     });
-    expect(result).toEqual({ status: 'failed', code: 'SYNC_LABEL_TEAM_UNAVAILABLE' });
+    expect(result).toEqual({ status: 'failed', code: 'SYNC_LABEL_LOOKUP_MISMATCH' });
     expect(api.calls.updates).toEqual([]);
     expect(await jobState(f, job.id)).toEqual({
-      status: 'blocked',
-      last_error: 'SYNC_LABEL_TEAM_UNAVAILABLE',
+      status: 'pending',
+      last_error: 'SYNC_LABEL_LOOKUP_MISMATCH',
     });
   } finally {
     await f.close();
@@ -489,7 +500,7 @@ test('reconcile passes over a still-rejected entity keep one open problem row, c
   }
 });
 
-test('repeated native scans of an ambiguous source alias keep a single blocked row, retired once the alias is resolved', async () => {
+test('repeated native label scans delegate scoped work without unbinding aliases or duplicating a pass', async () => {
   const { f, source, actor, env, config } = await configured();
   try {
     const nativeLabel = targetId(
@@ -518,7 +529,7 @@ test('repeated native scans of an ambiguous source alias keep a single blocked r
         nativeLabel,
       ]);
     });
-    const nativePass = async (pass) => {
+    for (const pass of ['2026-09-29T19:27:13.494Z', '2026-09-29T23:47:54.382Z']) {
       const scan = await f.db.transaction((tx) =>
         enqueueSyncJob(
           tx,
@@ -530,58 +541,38 @@ test('repeated native scans of an ambiguous source alias keep a single blocked r
       expect((await reconcileScanJob(f.db, env, scan.id, config.generation)).status).toBe(
         'scanned',
       );
-      return f.db.transaction((tx) =>
+      const entity = await f.db.transaction((tx) =>
         tx.one(
-          "SELECT id FROM outbox WHERE provider='linear' AND event='entity' AND status='pending' AND payload LIKE ?",
-          ['%"targetId":"' + nativeLabel + '"%'],
+          "SELECT id FROM outbox WHERE provider='linear' AND event='entity' AND status='pending' AND payload LIKE ? AND payload LIKE ?",
+          ['%"targetId":"' + nativeLabel + '"%', '%"side":"native"%'],
         ),
       );
-    };
-    const rows = () =>
-      f.db.transaction((tx) =>
-        tx.all(
-          "SELECT status,last_error FROM outbox WHERE provider='linear' AND event='entity' AND payload LIKE ? ORDER BY status",
-          ['%"targetId":"' + nativeLabel + '"%'],
-        ),
+      expect((await reconcileEntityJob(f.db, env, entity.id, config.generation)).status).toBe(
+        'not-claimed',
       );
-    for (const pass of ['2026-09-29T19:27:13.494Z', '2026-09-29T23:47:54.382Z']) {
-      const entity = await nativePass(pass);
-      expect(await reconcileEntityJob(f.db, env, entity.id, config.generation)).toEqual({
-        status: 'not-claimed',
-      });
+      const parent = await f.db.transaction((tx) =>
+        tx.one('SELECT status,payload FROM outbox WHERE id=?', [entity.id]),
+      );
+      expect(parent.status).toBe('superseded');
+      const delegated = JSON.parse(parent.payload).result.delegatedTo;
+      expect(delegated).toHaveLength(2);
+      expect((await reconcileEntityJob(f.db, env, entity.id, config.generation)).status).toBe(
+        'not-claimed',
+      );
+      const children = await f.db.transaction((tx) =>
+        tx.all('SELECT id FROM outbox WHERE payload LIKE ?', [
+          '%"_parentJobId":"' + entity.id + '"%',
+        ]),
+      );
+      expect(children).toHaveLength(2);
     }
-    expect(await rows()).toEqual([
-      { status: 'blocked', last_error: 'SYNC_SOURCE_ALIAS_AMBIGUOUS' },
-      { status: 'superseded', last_error: 'SYNC_SOURCE_ALIAS_AMBIGUOUS' },
-    ]);
-
-    // An operator resolves the ambiguity by unbinding the other team's alias. The blocked row was
-    // keyed by the native UUID (there was no single source UUID), the new job by the source UUID.
-    await f.db.transaction((tx) =>
-      tx.exec('DELETE FROM linear_source_map WHERE source_id=?', [OTHER_TEAM_LABEL]),
+    const aliases = await f.db.transaction((tx) =>
+      tx.all(
+        'SELECT source_id FROM linear_source_map WHERE workspace_id=? AND collection=? AND target_id=?',
+        [actor.workspace_id, 'issueLabels', nativeLabel],
+      ),
     );
-    const label = { ...source.data.issueLabels[0], team: null, parent: null, archivedAt: null };
-    const fetcher = async (_url, options) => {
-      const { query, variables } = JSON.parse(options.body);
-      if (query.includes('SyncOrganization'))
-        return Response.json({ data: { organization: { id: source.ids.org } } });
-      if (query.includes('SyncEntity')) return Response.json({ data: { issueLabel: label } });
-      if (query.includes('issueLabelUpdate')) {
-        Object.assign(label, variables.input, { updatedAt: '2026-09-30T05:00:00.000Z' });
-        return Response.json({ data: { issueLabelUpdate: { success: true, issueLabel: label } } });
-      }
-      throw Error('Unexpected source operation');
-    };
-    const entity = await nativePass('2026-09-30T04:30:00.000Z');
-    expect(await reconcileEntityJob(f.db, env, entity.id, config.generation, { fetcher })).toEqual({
-      status: 'converged',
-    });
-    expect(label.color).toBe('#654321');
-    expect(await rows()).toEqual([
-      { status: 'done', last_error: null },
-      { status: 'superseded', last_error: 'SYNC_SOURCE_ALIAS_AMBIGUOUS' },
-      { status: 'superseded', last_error: 'SYNC_SOURCE_ALIAS_AMBIGUOUS' },
-    ]);
+    expect(aliases).toHaveLength(2);
   } finally {
     await f.close();
   }

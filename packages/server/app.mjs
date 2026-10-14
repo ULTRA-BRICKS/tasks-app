@@ -1,3 +1,4 @@
+import { planMigrationNotices } from './modules/linear-live/notice-backfill.mjs';
 import { numberingGraphPage } from './modules/linear-numbering/graph-page.mjs';
 import { listInvitations } from './modules/identity/invitation-list.mjs';
 import * as teamManagement from './modules/identity/teams.mjs';
@@ -356,6 +357,11 @@ export function createApp({
           'Delivery ID was reused with different contents',
         );
         response = json(received);
+      } else if (path === '/api/v1/sync/linear/migration-notices' && method === 'POST') {
+        const input = await body(request, schemas.LinearNoticeBackfill);
+        response = json(
+          await run(!input.apply, (tx, a) => planMigrationNotices(tx, a, env, input)),
+        );
       } else if (path === '/api/v1/sync/linear/status' && method === 'GET') {
         response = json(await run(true, (tx, a) => readSyncStatus(tx, a, env)));
       } else if (path === '/api/v1/sync/linear/configure' && method === 'POST') {
