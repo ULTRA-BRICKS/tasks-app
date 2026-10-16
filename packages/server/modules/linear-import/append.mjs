@@ -1,3 +1,4 @@
+import { assertUnboundCommentIdsAvailable } from './comment-identity.mjs';
 import { insertSourceRows as insertRows } from './rows.mjs';
 import { linearIssueUrl, sourceIdentifier } from './source-contract.mjs';
 import { assert, requirePermission } from '../../core/errors.mjs';
@@ -162,6 +163,11 @@ export async function appendLinearRecords(tx, actor, input) {
     actor.workspace_id,
     organization,
     references(issues, comments),
+  );
+  await assertUnboundCommentIdsAvailable(
+    tx,
+    actor.workspace_id,
+    comments.filter((row) => !refs.has('comments:' + row.id)).map((row) => row.id),
   );
   const known = new Map(refs),
     projected = { issues: [], comments: [] },
