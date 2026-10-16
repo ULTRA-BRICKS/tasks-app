@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { ChevronLeft, Layers } from 'lucide-react';
-import type { Catalog, Issue, IssueCreate } from '@tickets/contracts';
+import type { Actor, Catalog, Issue, IssueCreate } from '@tickets/contracts';
 import { IssueProperties } from '@/features/issue-properties';
 import { useCatalog, useMe } from '@/entities/workspace';
 import { api, errorMessage } from '@/shared/api/client';
@@ -12,9 +12,33 @@ import { sessionStoragePort } from '@/shared/lib/state/storage';
 import { issueDraftKey, type Draft } from './model';
 import { createIssueDraftController } from './draft-controller';
 
+/**
+ * The draft key embeds the account, so the controller (and its private text, persisted attempt and
+ * in-flight authority) is built only from a genuine identity and remounted whenever the key changes.
+ * Refetching the same identity keeps the key, so the mounted editor keeps focus and its controller.
+ */
 export function NewIssuePage() {
   const location = useLocation();
-  return <IssueDraftPage key={location.key} />;
+  const { data: me } = useMe();
+  if (!me) {
+    return (
+      <section
+        className="issue-detail-panel new-issue-page"
+        aria-label="New issue"
+        aria-busy="true"
+      />
+    );
+  }
+  const incoming = (location.state?.defaults ?? {}) as Partial<IssueCreate>;
+  const draftKey = issueDraftKey(me.workspace_id, me.id, incoming);
+  return (
+    <IssueDraftPage
+      key={location.key + '|' + draftKey}
+      me={me}
+      draftKey={draftKey}
+      incoming={incoming}
+    />
+  );
 }
 function postIssue(attempt: NonNullable<Draft['attempt']>) {
   return api<Issue>('/v1/issues', {
@@ -60,17 +84,19 @@ function defaultStatus(catalog: Catalog | undefined, team: string) {
     ''
   );
 }
-function IssueDraftPage() {
-  const { data: catalog } = useCatalog(),
-    { data: me } = useMe(),
-    location = useLocation();
-  const incoming = (location.state?.defaults ?? {}) as Partial<IssueCreate>;
-  const controller = useDraftController(
-    issueDraftKey(me?.workspace_id ?? '', me?.id ?? '', incoming),
-    incoming,
-  );
+function IssueDraftPage({
+  me,
+  draftKey,
+  incoming,
+}: {
+  me: Actor;
+  draftKey: string;
+  incoming: Partial<IssueCreate>;
+}) {
+  const { data: catalog } = useCatalog();
+  const controller = useDraftController(draftKey, incoming);
   const view = useStore(controller);
-  const readOnly = me?.role === 'viewer',
+  const readOnly = me.role === 'viewer',
     team = view.draft.team_id || catalog?.teams[0]?.id || '';
   const status = view.draft.status_id || defaultStatus(catalog, team);
   const context = useLatest({ team, status, readOnly });

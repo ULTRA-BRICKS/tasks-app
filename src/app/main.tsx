@@ -1,3 +1,4 @@
+import { DraftPersistenceProvider } from '../shared/lib/draft-persistence-context';
 import { UiStateProvider, useLocalState } from '../shared/lib/state';
 import { ImportedFilesProvider } from '@/shared/ui';
 import { KnowledgeListPage, KnowledgePage } from '@/pages/knowledge';
@@ -135,18 +136,20 @@ function Workspace() {
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <UiStateProvider>
-      <Boundary>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/invite" element={<InvitePage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="*" element={<Workspace />} />
-            </Routes>
-          </BrowserRouter>
-        </QueryClientProvider>
-      </Boundary>
+      <DraftPersistenceProvider>
+        <Boundary>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/invite" element={<InvitePage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="*" element={<Workspace />} />
+              </Routes>
+            </BrowserRouter>
+          </QueryClientProvider>
+        </Boundary>
+      </DraftPersistenceProvider>
     </UiStateProvider>
   </React.StrictMode>,
 );

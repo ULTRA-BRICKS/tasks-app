@@ -5,6 +5,7 @@ import { api, errorMessage } from '@/shared/api/client';
 import {
   ActionMenu,
   Button,
+  Disclosure,
   Picker,
   ErrorState,
   Loading,
@@ -143,14 +144,13 @@ function KnowledgeEditor({ kind, row }: { kind: Kind; row?: Knowledge }) {
           )}
           {model.conflict && (
             <section className="draft-banner">
-              <details>
-                <summary>Review the server version</summary>
+              <Disclosure summary="Review the server version">
                 <pre>
                   {model.conflict.title ?? model.conflict.name}
                   {'\n\n'}
                   {model.conflict.body ?? model.conflict.description}
                 </pre>
-              </details>
+              </Disclosure>
               <Button disabled={readOnly || model.busy} onClick={model.retryConflict}>
                 Keep my text and retry
               </Button>

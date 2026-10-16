@@ -86,3 +86,51 @@ test('opaque resources stay outside serializable state and are released with the
   scope.dispose();
   expect(editorHandle.destroyed).toBe(true);
 });
+
+test('a resource release failure does not strand the remaining scoped resources', () => {
+  const scope = createScope();
+  const released: number[] = [];
+  const one = scope.resource(1, (value) => {
+    released.push(value);
+  });
+  const failure = new Error('release failure');
+  const two = scope.resource(2, (value) => {
+    released.push(value);
+    throw failure;
+  });
+  const three = scope.resource(3, (value) => {
+    released.push(value);
+  });
+  expect(() => scope.dispose()).toThrow('release failure');
+  expect(released).toEqual([3, 2, 1]);
+  for (const handle of [one, two, three]) expect(() => handle.get()).toThrow('released');
+  expect(scope.disposed).toBe(true);
+  expect(() => scope.dispose()).not.toThrow();
+});
+test('an already disposed scope refuses a new opaque resource', () => {
+  const scope = createScope();
+  scope.dispose();
+  expect(() => scope.resource({ node: 'late' })).toThrow('disposed');
+});
+
+test('multiple cleanup failures remain observable after every handle is revoked', () => {
+  const scope = createScope();
+  const first = new Error('first release');
+  const second = new Error('second release');
+  const one = scope.resource(1, () => {
+    throw first;
+  });
+  const two = scope.resource(2, () => {
+    throw second;
+  });
+  let failure: unknown;
+  try {
+    scope.dispose();
+  } catch (error) {
+    failure = error;
+  }
+  expect(failure).toBeInstanceOf(AggregateError);
+  expect((failure as AggregateError).errors).toEqual([second, first]);
+  expect(() => one.get()).toThrow('released');
+  expect(() => two.get()).toThrow('released');
+});

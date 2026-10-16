@@ -56,7 +56,16 @@ export function createScope(runtime: Runtime = new Runtime()): Scope {
     runtime.dispose(); // May refuse inside a transaction: authority is revoked only afterwards.
     disposed = true;
     generation++;
-    for (const release of releases.splice(0).reverse()) release();
+    const errors: unknown[] = [];
+    for (const release of releases.splice(0).reverse()) {
+      try {
+        release();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (errors.length === 1) throw errors[0];
+    if (errors.length > 1) throw new AggregateError(errors, 'Scope resource cleanup failed');
   };
   return {
     runtime,
@@ -68,6 +77,7 @@ export function createScope(runtime: Runtime = new Runtime()): Scope {
     },
     value: (initial, equals) => valueStore(runtime, initial, equals),
     resource<H>(handle: H, release?: (handle: H) => void): ResourceSlot<H> {
+      if (disposed) throw Error('Scope is disposed');
       let held = true;
       releases.push(() => {
         held = false;

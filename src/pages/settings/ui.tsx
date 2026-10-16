@@ -16,7 +16,16 @@ import {
 } from 'lucide-react';
 import { useCatalog, useMe } from '@/entities/workspace';
 import { usePreferences, usePreferencePersistence } from '@/features/preferences';
-import { Button, Input, Textarea, Picker, Avatar, ErrorState, Loading } from '@/shared/ui';
+import {
+  Button,
+  Disclosure,
+  Input,
+  Textarea,
+  Picker,
+  Avatar,
+  ErrorState,
+  Loading,
+} from '@/shared/ui';
 import { api, errorMessage } from '@/shared/api/client';
 import { formatDate } from '@/shared/lib/date';
 type IntegrationState = {
@@ -554,8 +563,7 @@ function IntegrationCard({
       <div className="integration-endpoint">
         <code>/api/webhooks/{provider}</code>
       </div>
-      <details>
-        <summary>Configure status and user mapping</summary>
+      <Disclosure summary="Configure status and user mapping">
         <form
           className="stack-form"
           onSubmit={(e) => {
@@ -575,7 +583,7 @@ function IntegrationCard({
           </Button>
           {mutation.error && <ErrorState message={errorMessage(mutation.error)} />}
         </form>
-      </details>
+      </Disclosure>
     </section>
   );
 }

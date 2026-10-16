@@ -3,7 +3,10 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError, errorMessage } from '@/shared/api/client';
-import { draftPersistence } from '@/shared/lib/draft-persistence';
+import {
+  useDraftPersistence,
+  type DraftPersistenceView,
+} from '@/shared/lib/draft-persistence-context';
 export type Kind = 'documents' | 'initiatives';
 export type Knowledge = {
   id: string;
@@ -47,9 +50,9 @@ const fromServer = (row?: Knowledge): KnowledgeDraft => ({
   version: row?.version ?? 0,
   revision: crypto.randomUUID(),
 });
-function restore(key: string, row?: Knowledge) {
+function restore(drafts: DraftPersistenceView, key: string, row?: Knowledge) {
   try {
-    const value = JSON.parse(draftPersistence.getItem(key) ?? 'null');
+    const value = JSON.parse(drafts.getItem(key) ?? 'null');
     if (
       value &&
       typeof value.title === 'string' &&
@@ -65,8 +68,9 @@ function restore(key: string, row?: Knowledge) {
   return fromServer(row);
 }
 export function useKnowledgeDraft(kind: Kind, key: string, row?: Knowledge) {
-  const [draft, setDraft] = useLocalState(() => restore(key, row)),
-    [dirty, setDirty] = useLocalState(() => draftPersistence.getItem(key) !== null);
+  const drafts = useDraftPersistence();
+  const [draft, setDraft] = useLocalState(() => restore(drafts, key, row)),
+    [dirty, setDirty] = useLocalState(() => drafts.getItem(key) !== null);
   const [archiving, setArchiving] = useLocalState(false);
   const [busy, setBusy] = useLocalState(false),
     [error, setError] = useLocalState(''),
@@ -94,12 +98,12 @@ export function useKnowledgeDraft(kind: Kind, key: string, row?: Knowledge) {
       setDraft(next);
       setDirty(true);
       try {
-        draftPersistence.setItem(key, JSON.stringify(next));
+        drafts.setItem(key, JSON.stringify(next));
       } catch {
         setStorageError(true);
       }
     },
-    [key, setDraft, setDirty, setStorageError],
+    [drafts, key, setDraft, setDirty, setStorageError],
   );
   useEffect(() => {
     if (row && !dirtyRef.current && !locked.current && !editing.current) {
@@ -158,7 +162,7 @@ export function useKnowledgeDraft(kind: Kind, key: string, row?: Knowledge) {
           change({ attempt: { key: crypto.randomUUID(), input } });
           sent = { ...current.current };
         }
-        const proof = draftPersistence.capture(key);
+        const proof = drafts.capture(key);
         try {
           const result = await api<Knowledge>('/v1/' + kind + (row ? '/' + row.id : ''), {
             method: row ? 'PATCH' : 'POST',
@@ -167,7 +171,7 @@ export function useKnowledgeDraft(kind: Kind, key: string, row?: Knowledge) {
           });
           if (proof) {
             try {
-              draftPersistence.acknowledge(proof);
+              drafts.acknowledge(proof);
             } catch {
               if (mounted.current) setStorageError(true);
             }
@@ -271,7 +275,7 @@ export function useKnowledgeDraft(kind: Kind, key: string, row?: Knowledge) {
       setDraft(next);
       dirtyRef.current = false;
       setDirty(false);
-      draftPersistence.removeItem(key);
+      drafts.removeItem(key);
       setConflict(null);
       setError('');
     },
