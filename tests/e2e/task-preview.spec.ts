@@ -190,13 +190,17 @@ test.describe('desktop', () => {
 
     const mid = await surface.evaluate(async (el) => {
       Reflect.set(el, 'probe', true);
-      document.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
-      );
+      // Observe the commit before a delayed animation frame can consume the whole exit.
       await new Promise<void>((resolve) => {
-        const check = () =>
-          el.getAttribute('data-state') === 'closing' ? resolve() : requestAnimationFrame(check);
-        check();
+        const observer = new MutationObserver(() => {
+          if (el.getAttribute('data-state') !== 'closing') return;
+          observer.disconnect();
+          resolve();
+        });
+        observer.observe(el, { attributes: true, attributeFilter: ['data-state'] });
+        document.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+        );
       });
       const running = el.getAnimations();
       for (const animation of running) {

@@ -18,6 +18,7 @@ import {
   claimSyncJob,
   assertJobFence,
   finishSyncJob,
+  enqueueSyncJob,
   failSyncJob,
   readEntityState,
   writeEntityState,
@@ -268,7 +269,9 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
     io = { ...options, deadline };
   const job = await claimSyncJob(db, env, jobId, generation);
   if (!job) return { status: 'not-claimed' };
-  io.verifyMigrationNotices = mappedNoticeVerifier(db, job.config);
+  io.verifyMigrationNotices = mappedNoticeVerifier(db, job.config, {
+    allowSourceTeamMove: job.data.side === 'source',
+  });
   try {
     if (job.data.action === 'migration-notice') return await applyMigrationNotice(db, env, job, io);
     if (job.data.action === 'remove') return await markRemoval(db, env, job, io);
@@ -430,7 +433,16 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
       else conflicts[field] = { baseline: baseLocal[field], local: l, source: r };
     }
     const localFingerprint = digest(context.native);
-    if (Object.keys(toSource).length) {
+    // Reconcile the authenticated inbound move before exporting pending native
+    // edits. A source-side job can write in both directions; its permissive
+    // inbound verifier must never become the outbound code-equality fence.
+    const deferSource =
+      collection === 'issues' &&
+      Boolean(remote._migrationNotice) &&
+      remote.identifier !== context.native.key &&
+      Object.keys(toSource).length > 0;
+    if (Object.keys(toSource).length && !deferSource) {
+      const outbound = { ...io, verifyMigrationNotices: mappedNoticeVerifier(db, job.config) };
       if (collection === 'issues' && Object.hasOwn(toSource, 'label_ids')) {
         const sourceTeamId = Object.hasOwn(toSource, 'team_id')
           ? context.resolver.reverse('teams', toSource.team_id)
@@ -443,7 +455,7 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
       const input = sourcePatch(collection, toSource, context.resolver, {
         teamId: remote.team?.id,
       });
-      const checked = await readSourceEntity(env, collection, remote.id, io);
+      const checked = await readSourceEntity(env, collection, remote.id, outbound);
       if (!checked || checked.updatedAt !== remote.updatedAt)
         throw new SourceError('SOURCE_CHANGED_BEFORE_WRITE', 1);
       await db.transaction(async (tx) => {
@@ -472,7 +484,7 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
         });
       });
       remote = await mutateSource(env, collection, remote.id, input, {
-        ...io,
+        ...outbound,
         migrationNotice: remote._migrationNotice
           ? { ...remote._migrationNotice, code: remote.identifier }
           : null,
@@ -495,7 +507,7 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
       const nextBaseLocal = { ...baseLocal },
         nextBaseSource = { ...baseSource };
       for (const field of fields)
-        if (!conflicts[field]) {
+        if (!conflicts[field] && !(deferSource && Object.hasOwn(toSource, field))) {
           nextBaseLocal[field] = finalLocal[field];
           nextBaseSource[field] = finalSource[field];
         }
@@ -515,10 +527,33 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
       });
       await finishSyncJob(tx, job, {
         updatedNative: Object.keys(toNative),
-        updatedSource: Object.keys(toSource),
+        updatedSource: deferSource ? [] : Object.keys(toSource),
         conflicts: Object.keys(conflicts),
       });
-      return { status: Object.keys(conflicts).length ? 'conflict' : 'converged' };
+      if (deferSource) {
+        // Preserve the old field baselines above so a durable follow-up still
+        // recognizes the unexported native edit after notice refresh.
+        await enqueueSyncJob(
+          tx,
+          job.workspace_id,
+          {
+            kind: 'entity',
+            collection,
+            side: 'native',
+            sourceId: remote.id,
+            targetId: final.id,
+            afterSourceMove: true,
+          },
+          'native-after-source-move:' + job.id,
+        );
+      }
+      return {
+        status: Object.keys(conflicts).length
+          ? 'conflict'
+          : deferSource
+            ? 'deferred-source'
+            : 'converged',
+      };
     });
   } catch (error) {
     await failSyncJob(db, job, error);

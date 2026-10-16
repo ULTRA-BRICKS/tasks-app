@@ -16,7 +16,18 @@ export async function login(page: Page) {
   await page.goto('/login');
   await page.getByLabel('Email', { exact: true }).fill('demo@example.test');
   await page.getByLabel('Password', { exact: true }).fill('local-demo-password');
-  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/auth/login' &&
+        response.request().method() === 'POST',
+    ),
+    page.getByRole('button', { name: 'Continue', exact: true }).click(),
+  ]);
+  if (!response.ok())
+    throw new Error(
+      `Fixture login failed (HTTP ${response.status()}): ${(await response.text()).slice(0, 500)}`,
+    );
   await expect(page.getByTestId('issue-row').first()).toBeVisible();
   session = await page.context().cookies();
 }

@@ -194,18 +194,43 @@ export async function normalizeMigrationNotices(data, env, verifyIdentities) {
   return output;
 }
 
-export function mappedNoticeVerifier(db, config, { allowStaleCode = false } = {}) {
+export function mappedNoticeVerifier(
+  db,
+  config,
+  { allowStaleCode = false, allowSourceTeamMove = false } = {},
+) {
   return async (entries) => {
     failure(entries.length <= 250, 'Too many migration records in one response');
     const ids = [...new Set(entries.map(({ record }) => record.id))];
-    const rows = await db.transaction(
-      (tx) =>
-        tx.all(
-          "SELECT m.source_id,m.target_id,i.key FROM linear_source_map m JOIN issues i ON i.workspace_id=m.workspace_id AND i.id=m.target_id WHERE m.workspace_id=? AND m.source_workspace_id=? AND m.collection='issues' AND m.source_id IN (" +
+    const { rows, teams } = await db.transaction(
+      async (tx) => {
+        const rows = await tx.all(
+          "SELECT m.source_id,m.target_id,i.key,i.team_id FROM linear_source_map m JOIN issues i ON i.workspace_id=m.workspace_id AND i.id=m.target_id WHERE m.workspace_id=? AND m.source_workspace_id=? AND m.collection='issues' AND m.source_id IN (" +
             ids.map(() => '?').join(',') +
             ')',
           [config.workspaceId, config.organizationId, ...ids],
-        ),
+        );
+        const mapped = new Map(rows.map((row) => [row.source_id, row]));
+        const movedTeams = allowSourceTeamMove
+          ? [
+              ...new Set(
+                entries
+                  .filter(({ record }) => record.identifier !== mapped.get(record.id)?.key)
+                  .map(({ record }) => record.team?.id)
+                  .filter(uuid),
+              ),
+            ]
+          : [];
+        const teams = movedTeams.length
+          ? await tx.all(
+              "SELECT m.source_id,t.id,t.key FROM linear_source_map m JOIN teams t ON t.workspace_id=m.workspace_id AND t.id=m.target_id WHERE m.workspace_id=? AND m.source_workspace_id=? AND m.collection='teams' AND m.source_id IN (" +
+                movedTeams.map(() => '?').join(',') +
+                ')',
+              [config.workspaceId, config.organizationId, ...movedTeams],
+            )
+          : [];
+        return { rows, teams };
+      },
       { readOnly: true },
     );
     const bySource = new Map(rows.map((row) => [row.source_id, row]));
@@ -217,6 +242,25 @@ export function mappedNoticeVerifier(db, config, { allowStaleCode = false } = {}
           mapping?.target_id === notice.targetId,
         'Migration notice does not match the active task mapping',
       );
+      // Only authoritative inbound reads may reconcile a mutable code. Native export and
+      // notice writes retain code equality so stale native work cannot undo a source move.
+      // A signed old code is not an immutable identity: two source moves can precede
+      // notice refresh. The authenticated source/target/organization mapping above,
+      // and mapped destination/canonical number below, remain the authority.
+      if (allowSourceTeamMove && record.identifier !== mapping.key) {
+        const team = teams.find((row) => row.source_id === record.team?.id);
+        failure(
+          team &&
+            config.teamIds.includes(record.team?.id) &&
+            Number.isInteger(record.number) &&
+            record.number > 0 &&
+            record.number < 2147483647 &&
+            record.identifier === team.key + '-' + record.number &&
+            team.id !== mapping.team_id,
+          'Source move requires a configured mapped team and canonical source code',
+        );
+        continue;
+      }
       failure(record.identifier === mapping.key, 'Source and native task codes differ');
       failure(
         allowStaleCode || notice.code === record.identifier,
