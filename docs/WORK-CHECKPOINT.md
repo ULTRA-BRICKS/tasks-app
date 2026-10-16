@@ -36,6 +36,7 @@ Targeted comment retry tests subsequently ran successfully: 2 passed, 0 failed, 
 The first notes review found only a missing exact base/head/dirty-path inventory; this section supplies it. No feature source is included in the notes-only commit.
 
 ## 2026-09-18 — isolated state-lib pilot, not the older dirty feature worktree
+
 Current worktree: `/Users/ultra/work/hyper-canvas-draft-worktrees/tasks-app-state-lib-pilot`; branch `pilot/state-lib-HYP-1464`. Started at `39e21e9`, merging current origin/main `1d3ac4d`; the only conflict (preference entry) is resolved. New density behavior from main is preserved in both backends. Baseline preference implementation exactly matches current origin/main.
 
 Actual completed gates: density RED→GREEN (5 tests, 1500-operation comparison); full `bun run check` exit 0 (188 unit tests, lint, FSD, types, build); same 6 Chromium/WebKit browser scenarios passed for state-lib and 6 for baseline. Source review is running under the normal review-cli pool; log/PID are in the sibling evidence directory. No main merge or deployment authorized/performed.
@@ -47,6 +48,7 @@ Independent successful work is preserved. Reports: `docs/STATE-LIB-MIGRATION-REP
 Before resuming, inspect actual git/review/commit state. Preserve unrelated `.metadata_never_index` and all other worktrees. Never call this a complete domain migration or a performance win. Publish only reviewed, tested allowed changes with normal hooks; leave production unchanged.
 
 ## 2026-09-18 — current isolated continuation (supersedes the old worktree above)
+
 Current worktree: `/Users/ultra/work/hyper-canvas-draft-worktrees/tasks-app-state-lib-HYP-1497`; branch `feat/state-lib-HYP-1497`, based on `1d3ac4d21d64e9ba77d4ccd05fdbe436e567f436`. The older pilot worktree and its resolved merge remain untouched, including its exact staged-index hash `206ea934afe33de6baeeba684b558b2fbe75f971ff5f6d186ae9bab6447a6fe0`.
 
 All 349 tracked files matched byte-for-byte immediately after transplantation. New independent changes since then: two RED→GREEN persistence contracts plus unknown-version protection/persisted-projection suppression, and these updated docs. `bun install --frozen-lockfile`, full check (192 unit tests, lint/FSD/types/build), and A/B browser runner (6+6 Chromium/WebKit) passed in this new worktree. No tests were weakened and the pending editor specification stays outside the executable suite.
@@ -58,6 +60,7 @@ HYP-1498 is a distinct newly reproduced persistence issue, successfully created 
 Published Boards source: 8909dbcc83bc4bcf743e40409e4f3621653a830d; report update: 90859a8f5647503e106e1c1f830dc604168b3a02, PR9. Tasks next gate: review the actual ~90 KB pilot diff, commit/push a non-draft comparison PR, update reports and both task cards, read back all remote SHAs. A prior patch attempt failed because the user's Git config emits no a/b prefixes; explicit src-prefix/dst-prefix fixed it with a clean-index check and full file equivalence validation.
 
 ## Published continuation — final source gate
+
 Source `ee0d530df2f095f0fa2a7e6bd7b6edb1f2ec24e2` is pushed to `origin/feat/state-lib-HYP-1497`; normal PR12 is open against main. Full staged Sonnet review produced usable correctness/performance/quality verdicts, exit 0; ordinary Git hooks passed. The earlier Opus timeout was not treated as approval. No production merge/deploy.
 
 Validation: 192 unit tests, 9 preference contracts, full lint/FSD/types/build; 6+6 core browser scenarios and 12+12 density scenarios all pass on the final implementation. Four current Tasks screenshot pairs are pixel-identical. Evidence: tasks-final-sonnet-review.log, tasks-isolated-commit.log, tasks-isolated-push.log, tasks-isolated-pr.log, final-comparison-evidence.json.
@@ -65,6 +68,7 @@ Validation: 192 unit tests, 9 preference contracts, full lint/FSD/types/build; 6
 HYP-1497 and HYP-1498 remain In Progress: Boards document-store is still unwired, Tasks issue-editor remains unimplemented, and shared persistence/UI diagnostics/cross-tab contracts remain unfinished. Original pilot worktree/index hash is unchanged. Resume from this new branch, not from the preserved large in-progress merge. Source reviews and browser suites are complete; next work must address an actual remaining feature/permission boundary rather than blindly repeating the release chain.
 
 ## 2026-09-18 — real document integration and measured evaluation
+
 Current writer worktree is tasks-app-state-lib-HYP-1497, feat/state-lib-HYP-1497. A real Runtime issue-editor controller and persistence status/cross-tab/Settings UI are now connected. The original inline hook remains the selectable baseline; parent keys by account/workspace/issue. No agent is active: the stalled delegation was stopped before any source edits.
 
 Verification: 209 unit passed, 1 FAILED (HYP-1499, disposal from subscriber poisons subsequent cleanup). Three ordinary attempts to correct that ordering were rejected by the tool and no fix was applied. DO NOT remove/skip the test or claim a green full check. Common browser cases: 40 candidate +40 baseline pass; corrected persistence cases 4/4 pass; real editor typing benchmarks 9+9 pass with 3 page replicates per workload. Type-aware checking and selected-backend builds pass independently.
@@ -74,6 +78,7 @@ Reports docs/STATE-LIB-EVALUATION.md/.json distinguish TS Runtime, app adapter a
 Boards now has the actual document-store/Undo/Redo UI integration, 117 unit tests and four full document browser combinations green. Ordinary edits are approximately3x slower at controller level; next-frame UI shows no general speedup. Do not advertise normalization, universal performance wins or completed production acceptance. Main/production and old dirty worktrees remain untouched. Next gate is full review of exactly these sources, then publish only with normal hooks and explicit experiment/incomplete status.
 
 ## Published real integration — final handoff
+
 Tasks source b66348cda1e8c1e7730a7374b0e7bde031aa3fbd is pushed to feat/state-lib-HYP-1497 (PR12); Boards source7e08e8004e9e72833680c77ceb46d123f9876f72 is pushed to pilot/state-lib-HYP-1464 (PR9). Normal Git hooks were used. Full three-role source reviews completed; no source reviewer remains pending.
 
 Final Tasks full-check is RED:210 passed/1 failed out of211, HYP-1499. Do not report release acceptance. Extra review found a future-schema→compatible-event unsaved-preference overwrite; a new RED→GREEN and stronger existing oracle fixed it, and4 actual cross-tab/quota browser cases passed. All7 persistence contracts plus9 preferences pass. Common browser40+40, benchmark9+9 passed; clean selected builds remeasured with --emptyOutDir.
@@ -101,3 +106,13 @@ The experimental identity-switch fixture is untracked and unaccepted; its initia
 Site laboratory deployment and actual browser-to-Neon sharing are independently verified by the coordinator. The four empty comparison databases are not four staged applications. A new service-role provisioning file was denied while being prepared and parked unexecuted as `.pending`; authorization itself works. No production data, permissions or accounts were changed.
 
 No test suite or reviewer is running. The owned Vite fixture on6937 may be stopped after checking its PID; all accepted browser checks finished. Preserve the untracked diagnostic, rig metadata and earlier worktrees. Next work is a targeted identity/lifecycle correction and safe independent staging, not another journal rewrite or historical benchmark rerun.
+
+## 2026-10-16 — Ubuntu integration published
+
+Current worktree: `/home/ultra/work/tasks-state-resume-20261014`, branch `fix/state-staging-completion-20261014`. Published implementation **bb74b069379a2325408d6aa336c9e3a8e3736598**, remote SHA verified; PR64 is stacked on `feat/state-complete-HYP-1491`, not main. Read `STATE-MIGRATION-ACCEPTANCE-20261016.md` for the current status; older handoff totals are historical.
+
+Current source acceptance: 288 unit tests; complete check, independent tsc and credential scan; 20 Chromium/WebKit identity cases; both-mode disclosure semantics including changed defaults; mounted StrictMode recovery provider and final cleanup; 12 real local application A/B cases. All passed. Final three-role Codex review completed without a confirmed blocking defect. The prior Sonnet attempt hit its weekly quota and was not counted as review. Normal Git hooks completed. No app fixture server or source writer remains running.
+
+Full emitted JavaScript is 432,694 gzip bytes in paired baseline and 434,528 in state-lib (+1,834), not a size win. Post-publication rebuilt artifacts exactly match the reviewed index. HYP-1737 tracks full-entry specialization; HYP-1738 tracks shared scope conformance, including still-unproved Activity/Suspense lifetime. Both are distinct from the closed-in-source identity/cleanup defects.
+
+The lab checkbox fix is already deployed separately. Four authenticated application stages remain blocked on isolated runtime credentials/sign-in; do not retry denied role writes, use owner credentials, copy production data or enable local-test mode on cloud. Authorization itself works. Continue the next genuine acceptance gate; do not redo the former four red draft tests, the former dead identity fixture, or another historic blog cycle.
