@@ -374,7 +374,7 @@ test.describe('touch phone', () => {
     await expect(page.getByRole('listbox', { name: 'Labels' })).toBeVisible();
   });
 
-  test('a swipe over the options scrolls the list and chooses nothing', async ({ page }) => {
+  test('a swipe over the options scrolls the list and chooses nothing', async ({ page }, info) => {
     await openTask(page);
     const sent = requests(page, 'PATCH', /^\/api\/v1\/issues\//);
     const estimate = page.getByRole('combobox', { name: 'Estimate', exact: true });
@@ -387,20 +387,33 @@ test.describe('touch phone', () => {
     expect(await list.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
     const start = await page.getByRole('option').nth(2).boundingBox();
     if (!start) throw new Error('The third estimate has no box');
-    // The finger lands on an option and drags upwards.
+    const x = Math.round(start.x + start.width / 2);
+    const y = Math.round(start.y + start.height / 2);
+    expect(
+      await page.evaluate(
+        ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('[role="option"]')),
+        { x, y },
+      ),
+    ).toBe(true);
+    // Native touch events exercise the option's default scrolling and click suppression.
     const cdp = await page.context().newCDPSession(page);
-    await cdp.send('Input.synthesizeScrollGesture', {
-      x: Math.round(start.x + start.width / 2),
-      y: Math.round(start.y + start.height / 2),
-      yDistance: -120,
-      speed: 600,
-      gestureSourceType: 'touch',
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x, y }],
     });
+    for (let distance = 20; distance <= 120; distance += 20) {
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x, y: y - distance }],
+      });
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await cdp.detach();
     await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
     await expect(page.getByRole('listbox', { name: 'Estimate' })).toBeVisible();
     await expect(page.getByRole('option', { selected: true })).toHaveCount(1);
     expect(sent).toHaveLength(0);
+    await page.screenshot({ path: info.outputPath('swiped-estimate-list.png') });
 
     // The list still takes a tap after the swipe.
     const chosen = await tapUnselected(page, 'Estimate');
