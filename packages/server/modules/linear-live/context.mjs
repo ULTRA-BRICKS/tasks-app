@@ -1,3 +1,4 @@
+import { sourcePersonAliases, personFieldComparator } from './person-aliases.mjs';
 import { assert } from '../../core/errors.mjs';
 import { canonical, digest, targetId, collections } from '../../../imports/linear-source.mjs';
 import { now } from '../../core/crypto.mjs';
@@ -124,6 +125,16 @@ export async function referenceResolver(tx, config, collection, remote, original
         .push({ sourceId: row.source_id, ...(labels ? labelScope(row.payload) : {}) });
     }
   }
+  const personAliases = await sourcePersonAliases(
+    tx,
+    config,
+    targets.get('users') ?? [],
+    [...(sources.get('users') ?? [])].map((id) => bySource.get('users:' + id)).filter(Boolean),
+  );
+  for (const alias of personAliases) {
+    // Incoming values remain imported person IDs for attribution FK compatibility.
+    byTarget.set('users:' + alias.member_id, [{ sourceId: alias.source_id }]);
+  }
   const resolve = (kind, id) => {
     const value = bySource.get(kind + ':' + id);
     assert(value, 409, 'SYNC_REFERENCE_PENDING', 'A referenced source entity is not mapped', {
@@ -169,7 +180,7 @@ export async function referenceResolver(tx, config, collection, remote, original
     );
     return fit[0].sourceId;
   };
-  return { resolve, reverse, bySource };
+  return { resolve, reverse, bySource, sameField: personFieldComparator(personAliases) };
 }
 // The stored source record of a label: team null is a workspace label; team undefined means the
 // record never stated a scope.

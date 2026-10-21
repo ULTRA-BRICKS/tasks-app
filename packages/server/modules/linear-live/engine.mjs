@@ -1,7 +1,6 @@
 import { mappedNoticeVerifier } from './migration-notice.mjs';
 import { applyMigrationNotice } from './notice-backfill.mjs';
 import { ensureIssueLabels } from './provision-labels.mjs';
-import { sameField as same } from './merge-fields.mjs';
 import { sourceInScope, nativeInScope } from './scope.mjs';
 import { exportNativeIssue, exportNativeComment } from './export.mjs';
 import { exportNativeMetadata } from './export-metadata.mjs';
@@ -239,7 +238,7 @@ async function markRemoval(db, env, job, options) {
       const baseline =
           state?.baseNative ?? normalizedSource(collection, original, resolver.resolve),
         local = normalizedNative(collection, native, Object.keys(baseline));
-      if (Object.keys(baseline).some((k) => !same(k, baseline[k], local[k])))
+      if (Object.keys(baseline).some((k) => !resolver.sameField(k, baseline[k], local[k])))
         conflicts.removal = {
           local,
           source: { removedAt: occurredAt },
@@ -416,6 +415,7 @@ export async function reconcileEntityJob(db, env, jobId, generation, options = {
       conflicts = {},
       toNative = {},
       toSource = {};
+    const same = context.resolver.sameField;
     for (const field of fields) {
       const l = local[field],
         r = context.source[field];
