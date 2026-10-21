@@ -40,7 +40,9 @@ export async function reconcileScanJob(db, env, id, generation, options = {}) {
   const job = await claimSyncJob(db, env, id, generation);
   if (!job) return { status: 'not-claimed' };
   const io = { ...options, deadline: options.deadline ?? Date.now() + 45000 };
-  io.verifyMigrationNotices = mappedNoticeVerifier(db, job.config);
+  io.verifyMigrationNotices = mappedNoticeVerifier(db, job.config, {
+    allowSourceTeamMove: job.data.side === 'source',
+  });
   try {
     const { collection, side, pass, cursor } = job.data;
     assert(SOURCE_MODELS[collection], 422, 'SYNC_MODEL_UNSUPPORTED', 'Unknown scan family');

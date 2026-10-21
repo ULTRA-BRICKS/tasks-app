@@ -1,3 +1,4 @@
+import { assertUnboundCommentIdsAvailable } from './comment-identity.mjs';
 import { prepareFiles, fileStamp } from './files.mjs';
 import { id, now } from '../../core/crypto.mjs';
 import { assert, missing, requirePermission } from '../../core/errors.mjs';
@@ -203,6 +204,11 @@ async function checkExisting(tx, actor, run, plan) {
     );
     return true;
   }
+  await assertUnboundCommentIdsAvailable(
+    tx,
+    actor.workspace_id,
+    plan.mappings.filter((row) => row.collection === 'comments').map((row) => row.source_id),
+  );
   const teams = await tx.all('SELECT key FROM teams WHERE workspace_id=?', [actor.workspace_id]);
   const labels = await tx.all('SELECT name FROM labels WHERE workspace_id=?', [actor.workspace_id]);
   const conflicts = plan.rows

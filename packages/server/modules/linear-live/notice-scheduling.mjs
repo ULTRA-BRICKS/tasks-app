@@ -6,8 +6,7 @@ export async function scheduleMigrationNotice(tx, job, result, enqueue, readStat
     job.data.collection !== 'issues' ||
     job.data.action === 'migration-notice' ||
     job.data.action === 'remove' ||
-    result?.ignored ||
-    result?.conflicts?.length
+    result?.ignored
   )
     return;
   const setting = await tx.one(
@@ -21,6 +20,17 @@ export async function scheduleMigrationNotice(tx, job, result, enqueue, readStat
   );
   if (!mapping || mapping.deleted_at || mapping.key.startsWith('PENDING-')) return;
   const state = await readState(tx, job.workspace_id, 'issues', mapping.source_id);
+  // A confirmed identity/code move needs its signed link refreshed even when an
+  // unrelated business field conflicts. The refresh only wraps the current
+  // source body and cannot resolve or overwrite that business-field conflict.
+  const movedNotice =
+    state?.migrationNotice?.sourceId === mapping.source_id &&
+    state.migrationNotice.targetId === mapping.target_id &&
+    state.migrationNotice.organizationId === job.config.organizationId &&
+    state.migrationNotice.code !== mapping.key &&
+    state.sourceCode === mapping.key &&
+    state.nativeCode === mapping.key;
+  if (result?.conflicts?.length && !movedNotice) return;
   if (
     state?.collection === 'issues' &&
     state.migrationNotice?.sourceId === mapping.source_id &&
