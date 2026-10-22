@@ -1,3 +1,4 @@
+import { syncDeploymentId } from './runtime.mjs';
 import { scheduleMigrationNotice } from './notice-scheduling.mjs';
 import { assert, AppError, requirePermission } from '../../core/errors.mjs';
 import { id, now } from '../../core/crypto.mjs';
@@ -39,7 +40,7 @@ export async function configureSync(tx, actor, input, env) {
     userId: actor.id,
     enabled: input.enabled === true,
     generation: id(),
-    deploymentId: env.VERCEL_DEPLOYMENT_ID ?? null,
+    deploymentId: syncDeploymentId(env),
     teamIds: input.teamIds?.length ? input.teamIds : knownTeams.map((t) => t.source_id),
     configuredAt: now(),
   };
@@ -75,7 +76,7 @@ export async function readSyncConfig(tx, env, { optional = false } = {}) {
     assert(false, 503, 'SYNC_DISABLED', 'Synchronization is paused');
   }
   assert(
-    !config.deploymentId || config.deploymentId === env.VERCEL_DEPLOYMENT_ID,
+    !config.deploymentId || config.deploymentId === syncDeploymentId(env),
     409,
     'SYNC_DEPLOYMENT_CHANGED',
     'This deployment is not the active synchronization writer',

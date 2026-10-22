@@ -200,3 +200,55 @@ test('paged issue reads await validation of all marked identities before exposin
   expect(checked).toBe(2);
   expect(result.issues.nodes.map((r) => r.description)).toEqual([body, 'Second body']);
 });
+
+test('an explicit legacy origin survives the canonical domain change without trusting other hosts', () => {
+  const old = createMigrationNotice(body, context);
+  const next = {
+    ...context,
+    appOrigin: 'https://tasks.glide.vc',
+    legacyAppOrigin: context.appOrigin,
+  };
+  const parsed = readMigrationNotice(old, next);
+  expect(parsed.body).toBe(body);
+  expect(parsed.notice.appOrigin).toBe(context.appOrigin);
+  expect(() => readMigrationNotice(old, { ...next, legacyAppOrigin: undefined })).toThrow();
+  const foreign = createMigrationNotice(body, {
+    ...context,
+    appOrigin: 'https://other.example.test',
+  });
+  expect(() => readMigrationNotice(foreign, next)).toThrow();
+  expect(() => readMigrationNotice(old, { ...next, secret: 'another-synthetic-secret' })).toThrow();
+  const updated = retainMigrationNotice('Genuine edit', old, next);
+  expect(updated).toContain('https://tasks.glide.vc/tasks/HYP-1482');
+  expect(readMigrationNotice(updated, next).body).toBe('Genuine edit');
+});
+
+test('legacy domain normalization still verifies the exact task mapping before stripping', async () => {
+  const { normalizeMigrationNotices } =
+    await import('../../packages/server/modules/linear-live/migration-notice.mjs');
+  const data = {
+    issue: {
+      id: context.sourceId,
+      identifier: context.code,
+      description: createMigrationNotice(body, context),
+    },
+  };
+  let checked = false;
+  const result = await normalizeMigrationNotices(
+    data,
+    {
+      APP_URL: 'https://tasks.glide.vc',
+      LINEAR_LEGACY_APP_ORIGIN: context.appOrigin,
+      LINEAR_WEBHOOK_SECRET: context.secret,
+    },
+    async (rows) => {
+      expect(rows).toHaveLength(1);
+      expect(rows[0].notice.targetId).toBe(context.targetId);
+      expect(rows[0].notice.sourceId).toBe(context.sourceId);
+      checked = true;
+    },
+  );
+  expect(checked).toBe(true);
+  expect(result.issue.description).toBe(body);
+  expect(data.issue.description).toContain('Managed in Tasks-app');
+});

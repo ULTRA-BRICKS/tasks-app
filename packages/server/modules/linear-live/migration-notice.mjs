@@ -109,7 +109,30 @@ export function readMigrationNotice(body, expected = {}) {
   const parts = fragment[1].slice(RECORD.length).split('.');
   failure(parts.length === 5, 'Migration record has unexpected fields');
   const [organizationId, sourceId, targetId, code, mac] = parts;
-  const notice = context({ ...expected, organizationId, sourceId, targetId, code });
+  let notice = context({ ...expected, organizationId, sourceId, targetId, code });
+  // A domain cutover may retain exactly one explicitly configured predecessor.
+  // Signature, business-body boundaries and source/native mapping checks remain mandatory.
+  if (expected.legacyAppOrigin) {
+    const previous = context({
+      ...expected,
+      appOrigin: expected.legacyAppOrigin,
+      organizationId,
+      sourceId,
+      targetId,
+      code,
+    });
+    let linkedOrigin;
+    try {
+      linkedOrigin = new URL(found[0].url).origin;
+    } catch {
+      failure(false, 'Migration link origin is malformed');
+    }
+    failure(
+      linkedOrigin === notice.appOrigin || linkedOrigin === previous.appOrigin,
+      'Migration link belongs to an unconfigured origin',
+    );
+    if (linkedOrigin === previous.appOrigin) notice = previous;
+  }
   for (const key of ['organizationId', 'sourceId', 'targetId'])
     if (expected[key] !== undefined)
       failure(
@@ -149,6 +172,7 @@ export async function normalizeMigrationNotices(data, env, verifyIdentities) {
     if (!record || typeof record.description !== 'string') return record;
     const parsed = readMigrationNotice(record.description, {
       appOrigin: env.APP_URL,
+      legacyAppOrigin: env.LINEAR_LEGACY_APP_ORIGIN,
       secret: env.LINEAR_WEBHOOK_SECRET,
       sourceId: record.id,
     });

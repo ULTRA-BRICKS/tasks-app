@@ -1,3 +1,4 @@
+import { linearQueueDriver } from './runtime.mjs';
 import { pendingSyncJobs, readSyncConfig } from './store.mjs';
 // Queue messages contain only job UUIDs. Private data and retry state remain in the authorized database.
 export async function dispatchLinearJobs(db, env, { send, limit = 20, clock = Date.now } = {}) {
@@ -10,6 +11,8 @@ export async function dispatchLinearJobs(db, env, { send, limit = 20, clock = Da
     { readOnly: true },
   );
   if (!state) return { sent: 0 };
+  if (linearQueueDriver(env) === 'postgres') return { sent: 0, pending: state.jobs.length };
+
   const publish = send ?? (await import('@vercel/queue')).send;
   // At-least-once outbox repair: a lost/obsolete broker delivery must not pin a
   // durable unclaimed job to the same deduplication key for an entire day.

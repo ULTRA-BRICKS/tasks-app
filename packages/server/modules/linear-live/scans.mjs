@@ -13,9 +13,8 @@ import {
   writeEntityState,
 } from './store.mjs';
 import { TABLES } from './model.mjs';
-export async function startReconciliation(tx, config) {
-  const pass = new Date().toISOString(),
-    jobs = [];
+export async function startReconciliation(tx, config, pass = new Date().toISOString()) {
+  const jobs = [];
   for (const collection of Object.keys(SOURCE_MODELS))
     jobs.push(
       await enqueueSyncJob(
