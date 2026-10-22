@@ -22,8 +22,11 @@ let manifest = { format: 1, files: {}, failures: {} };
 try {
   manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 } catch {}
-// The normal CLI owns authentication; credential bytes stay in memory and are never logged.
-const login = spawnSync('linear', ['auth', 'token'], { encoding: 'utf8', timeout: 15000 });
+// An explicit LINEAR_API_KEY (e.g. injected by the keychain) wins; otherwise the normal CLI owns authentication.
+// Credential bytes stay in memory and are never logged.
+const login = process.env.LINEAR_API_KEY
+  ? { status: 0, stdout: process.env.LINEAR_API_KEY }
+  : spawnSync('linear', ['auth', 'token'], { encoding: 'utf8', timeout: 15000 });
 if (login.status !== 0) throw new Error('The authenticated Linear CLI is unavailable');
 const token = login.stdout.trim();
 if (!token || /\s/.test(token))

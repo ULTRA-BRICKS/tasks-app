@@ -202,8 +202,9 @@ export function projectSnapshot(snapshot, actor, { labelTargets = {} } = {}) {
         archived_at: archived(issue),
         deleted_at: issue.trashed ? issue.updatedAt : null,
       });
-      for (const label of issue.labelIds ?? [])
-        add('issue_labels', { issue_id: id('issues', issue), label_id: ref('issueLabels', label) });
+      // Same-name labels of several teams share one native label, so an issue names it once.
+      for (const labelId of new Set((issue.labelIds ?? []).map((label) => ref('issueLabels', label))))
+        add('issue_labels', { issue_id: id('issues', issue), label_id: labelId });
       add('external_links', {
         id: id('linear-link', issue),
         issue_id: id('issues', issue),

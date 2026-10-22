@@ -1,4 +1,7 @@
 import { test, expect } from 'bun:test';
+import { createHash } from 'node:crypto';
+import { MAX_UPLOAD } from '../../packages/server/modules/attachments/service.mjs';
+import { uploadImportFile } from '../../packages/server/modules/linear-import/files.mjs';
 import { fixture } from './helpers.mjs';
 import { sourceFixture } from './linear-import-fixture.mjs';
 import { collections, targetId } from '../../packages/imports/linear-source.mjs';
@@ -254,6 +257,130 @@ test('ambiguous source labels fail at planning without merging different identit
     expect(
       Number((await f.db.transaction((tx) => tx.one('SELECT COUNT(*) AS n FROM issues'))).n),
     ).toBe(0);
+  } finally {
+    await f.close();
+  }
+});
+
+test('same-name labels of different teams bind to one native label without double attachment', async () => {
+  const f = await fixture(),
+    source = sourceFixture();
+  try {
+    const other = crypto.randomUUID();
+    source.data.issueLabels[0].team = { id: source.ids.team };
+    source.data.issueLabels.push({
+      ...source.data.issueLabels[0],
+      id: other,
+      color: '#abcdef',
+      team: { id: crypto.randomUUID() },
+      createdAt: '2024-01-03T03:04:05.006Z',
+    });
+    source.data.issues[0].labelIds = [source.ids.label, other];
+    source.manifest.counts.issueLabels++;
+    const run = await stage(f, source);
+    const plan = await f.request('POST', `/api/v1/imports/linear/${run}/plan`);
+    expect(plan.status).toBe(200);
+    expect(
+      (
+        await f.request('POST', `/api/v1/imports/linear/${run}/apply`, {
+          plan_hash: plan.data.plan_hash,
+        })
+      ).status,
+    ).toBe(200);
+    const rows = await f.db.transaction((tx) =>
+      tx.all("SELECT id FROM labels WHERE name='Imported fixture'"),
+    );
+    expect(rows).toHaveLength(1);
+    const maps = await f.db.transaction((tx) =>
+      tx.all("SELECT target_id FROM linear_source_map WHERE collection='issueLabels'"),
+    );
+    expect(maps.map((m) => m.target_id)).toEqual([rows[0].id, rows[0].id]);
+    const attached = await f.db.transaction((tx) =>
+      tx.one('SELECT COUNT(*) AS n FROM issue_labels WHERE label_id=?', [rows[0].id]),
+    );
+    expect(Number(attached.n)).toBe(2);
+  } finally {
+    await f.close();
+  }
+});
+
+test('cross-team same-name labels bind to an existing native label without a name conflict', async () => {
+  const f = await fixture(),
+    source = sourceFixture();
+  try {
+    await f.db.transaction((tx) =>
+      tx.exec('INSERT INTO labels(id,workspace_id,name,color) VALUES(?,?,?,?)', [
+        crypto.randomUUID(),
+        f.init.workspace_id,
+        'Imported fixture',
+        '#000000',
+      ]),
+    );
+    const other = crypto.randomUUID();
+    source.data.issueLabels[0].team = { id: source.ids.team };
+    source.data.issueLabels.push({
+      ...source.data.issueLabels[0],
+      id: other,
+      team: { id: crypto.randomUUID() },
+    });
+    source.manifest.counts.issueLabels++;
+    const run = await stage(f, source);
+    const plan = await f.request('POST', `/api/v1/imports/linear/${run}/plan`);
+    expect(plan.status).toBe(200);
+    expect(plan.data.reused_labels).toHaveLength(2);
+    expect(
+      (
+        await f.request('POST', `/api/v1/imports/linear/${run}/apply`, {
+          plan_hash: plan.data.plan_hash,
+        })
+      ).status,
+    ).toBe(200);
+    const rows = await f.db.transaction((tx) =>
+      tx.all("SELECT id FROM labels WHERE name='Imported fixture'"),
+    );
+    expect(rows).toHaveLength(1);
+  } finally {
+    await f.close();
+  }
+});
+
+test('offline restore may keep an original above the HTTP upload ceiling, the default refuses it', async () => {
+  const f = await fixture(),
+    source = sourceFixture();
+  try {
+    source.data.issues[0].description +=
+      '\n![big](https://uploads.linear.app/fixture/big.png)';
+    const run = await stage(f, source);
+    const plan = (await f.request('POST', `/api/v1/imports/linear/${run}/plan`)).data;
+    const bytes = Buffer.alloc(MAX_UPLOAD + 1, 1);
+    const metadata = {
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+      mime: 'application/octet-stream',
+      filename: 'big.bin',
+    };
+    const actor = {
+      id: f.init.user_id,
+      workspace_id: f.init.workspace_id,
+      role: 'owner',
+      scopes: ['read', 'write', 'admin'],
+    };
+    const storage = {
+      kind: 'test',
+      store: new Map(),
+      async put(key, value) {
+        this.store.set(key, value);
+      },
+      async download(key) {
+        return { bytes: this.store.get(key) };
+      },
+    };
+    await expect(
+      uploadImportFile(f.db, storage, actor, run, plan.files[0].id, bytes, metadata),
+    ).rejects.toMatchObject({ code: 'INVALID_IMPORTED_BYTES' });
+    const saved = await uploadImportFile(f.db, storage, actor, run, plan.files[0].id, bytes, metadata, {
+      maxBytes: MAX_UPLOAD + 1,
+    });
+    expect(saved.status).toBe('ready');
   } finally {
     await f.close();
   }

@@ -163,26 +163,37 @@ async function projection(tx, actor, run) {
     'INCOMPLETE_SNAPSHOT',
     'All declared source collections must be staged before planning',
   );
+  const labelGroups = new Map();
+  for (const label of data.issueLabels) {
+    if (!labelGroups.has(label.name)) labelGroups.set(label.name, []);
+    labelGroups.get(label.name).push(label);
+  }
+  // Native labels are unique per workspace by name while Linear scopes a label to one team (or the
+  // workspace), so same-name labels of DIFFERENT scopes bind to one native label; same-scope
+  // duplicates stay ambiguous and need an explicit disambiguation map.
   assert(
-    new Set(data.issueLabels.map((label) => label.name)).size === data.issueLabels.length,
+    [...labelGroups.values()].every(
+      (group) =>
+        new Set(group.map((label) => label.team?.id ?? null)).size === group.length,
+    ),
     422,
     'AMBIGUOUS_SOURCE_LABELS',
-    'Different source labels share a name. An explicit disambiguation map is required; no source labels are merged or application records written.',
+    'Different source labels of the same scope share a name. An explicit disambiguation map is required; no source labels are merged or application records written.',
   );
   try {
     const labels = await tx.all('SELECT id,name,color FROM labels WHERE workspace_id=?', [
       actor.workspace_id,
     ]);
-    const labelTargets = Object.fromEntries(
-      data.issueLabels.flatMap((label) => {
-        const target = labels.find(
-          (x) =>
-            x.name === label.name &&
-            x.id !== targetId(actor.workspace_id, run.source_workspace_id, 'issueLabels', label.id),
-        );
-        return target ? [[label.id, target]] : [];
-      }),
-    );
+    const labelTargets = {};
+    for (const group of labelGroups.values()) {
+      const [first] = [...group].sort(
+        (a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : 1),
+      );
+      const own = targetId(actor.workspace_id, run.source_workspace_id, 'issueLabels', first.id);
+      const existing = labels.find((x) => x.name === first.name && x.id !== own);
+      const shared = existing ?? { id: own, color: first.color };
+      for (const label of group) if (existing || label !== first) labelTargets[label.id] = shared;
+    }
     return projectSnapshot({ data, manifest }, { ...actor, id: run.created_by }, { labelTargets });
   } catch (error) {
     assert(false, 422, 'UNREPRESENTABLE_SOURCE', error.message);

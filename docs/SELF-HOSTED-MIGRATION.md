@@ -21,3 +21,13 @@ Write failing regressions for deployment identity, PostgreSQL queue mode, inacti
 ## Rollback and secrets
 
 Before cutover the old database remains authoritative and the candidate worker stays inactive. After writes move, rollback requires fencing both sides and reconciling new writes; pointing at an older database is not a rollback. Keep original AUTH_SECRET stable because pending mail is encrypted with it. Use sops/operator-managed secret files; no credentials in source, image layers, command lines or public logs. Existing Blob storage may be retained temporarily until object copying is verified.
+
+## Fallback: restore from Linear (Neon dump unavailable)
+
+Isolated, read-only toward Linear; never run against production. Steps (secrets only via `keychain exec`):
+
+1. `LINEAR_API_KEY=… bun scripts/export-linear-snapshot.mjs --out EMPTY_DIR` writes the `tickets-linear-snapshot-v1` snapshot (GraphQL queries only; a second issue pass proves no drift). Records of a team Linear no longer lists, and people missing from the user list (guests), are handled explicitly and recorded in `manifest.exclusions`.
+2. `LINEAR_API_KEY=… bun scripts/download-linear-files.mjs --snapshot DIR` downloads and hashes private `uploads.linear.app` files; 404 sources stay explicit failures.
+3. On an empty local PostgreSQL: `bun scripts/db.mjs migrate`, `bun scripts/db.mjs bootstrap` (new owner account), then `TEST_DATABASE_URL=postgres://…@127.0.0.1:PORT/DB bun scripts/restore-linear-snapshot.mjs --snapshot DIR --workspace-slug SLUG --report FILE --objects DIR` (loopback only; plan/apply with replay check; originals above the 3 MiB HTTP ceiling are kept).
+
+Same-name labels of different Linear teams bind to one native label. Not recoverable from Linear: accounts, password hashes, sessions, OAuth/MCP tokens, native UUIDs (new ones are derived deterministically from the Linear ids), native-only local edits/history not mirrored to Linear, notice/queue state and the original `AUTH_SECRET`-encrypted mail.

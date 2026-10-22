@@ -60,13 +60,23 @@ async function entry(tx, actor, runId, fileId, scope = 'admin') {
   if (!file) throw missing('Imported file');
   return file;
 }
-export async function uploadImportFile(db, storage, actor, runId, fileId, bytes, metadata) {
+// `maxBytes` lets the offline restore keep large originals (e.g. video) that the HTTP upload ceiling refuses.
+export async function uploadImportFile(
+  db,
+  storage,
+  actor,
+  runId,
+  fileId,
+  bytes,
+  metadata,
+  { maxBytes = MAX_UPLOAD } = {},
+) {
   const expected = await db.transaction((tx) => entry(tx, actor, runId, fileId), {
     readOnly: true,
   });
   const checksum = sha256(bytes);
   assert(
-    bytes.length > 0 && bytes.length <= MAX_UPLOAD && checksum === metadata.sha256,
+    bytes.length > 0 && bytes.length <= maxBytes && checksum === metadata.sha256,
     422,
     'INVALID_IMPORTED_BYTES',
     'File size or checksum does not match',
