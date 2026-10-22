@@ -233,3 +233,32 @@ test('a failed daily receipt rolls back its jobs and allows a complete retry', a
     await c.f.close();
   }
 });
+
+test('an unexpected job failure does not starve later jobs in the same batch', async () => {
+  const { runPostgresLinearTick } =
+    await import('../../packages/server/modules/linear-live/postgres-worker.mjs');
+  const c = await configured();
+  try {
+    const env = { ...c.env, LINEAR_QUEUE_DRIVER: 'postgres' };
+    const job = {
+      kind: 'entity',
+      collection: 'issues',
+      sourceId: c.source.ids.issue,
+      side: 'source',
+    };
+    await c.f.db.transaction(async (tx) => {
+      await enqueueSyncJob(tx, c.actor.workspace_id, job, 'first');
+      await enqueueSyncJob(tx, c.actor.workspace_id, { ...job, side: 'target' }, 'second');
+    });
+    let calls = 0;
+    const fetcher = async () => {
+      calls++;
+      throw new RangeError('synthetic unexpected failure');
+    };
+    const result = await runPostgresLinearTick(c.f.db, env, { fetcher, limit: 5 });
+    expect(result.processed + result.retrying + result.failed).toBeGreaterThanOrEqual(2);
+    expect(calls).toBeGreaterThanOrEqual(2);
+  } finally {
+    await c.f.close();
+  }
+});

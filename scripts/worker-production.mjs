@@ -20,24 +20,29 @@ for (const signal of ['SIGTERM', 'SIGINT'])
   });
 try {
   while (!stopping) {
-    try {
-      const ready = await inspectReadiness(db);
-      if (ready.status !== 'ready')
-        throw Object.assign(new Error(), { code: 'DATABASE_NOT_READY' });
-      if (env.LINEAR_SYNC_WORKSPACE_ID) await scheduleDailyReconciliation(db, env);
+    const stage = async (run) => {
+      try {
+        return await run();
+      } catch (error) {
+        const code =
+          typeof error.code === 'string' && /^[A-Z_]{1,60}$/.test(error.code)
+            ? error.code
+            : 'WORKER_TICK_FAILED';
+        console.error(JSON.stringify({ code }));
+        return undefined;
+      }
+    };
+    const ready = await stage(() => inspectReadiness(db));
+    if (ready?.status === 'ready') {
+      if (env.LINEAR_SYNC_WORKSPACE_ID) await stage(() => scheduleDailyReconciliation(db, env));
       const linear = env.LINEAR_SYNC_WORKSPACE_ID
-        ? await runPostgresLinearTick(db, env, { limit: 5 })
-        : { processed: 0 };
-      if (!stopping) await runWorker(db, env, { limit: 5 });
-      if (!stopping) await deliverAccountEmails(db, env, { limit: 5 });
-      if (linear.processed) console.log(JSON.stringify({ event: 'linear-worker-tick', ...linear }));
-    } catch (error) {
-      const code =
-        typeof error.code === 'string' && /^[A-Z_]{1,60}$/.test(error.code)
-          ? error.code
-          : 'WORKER_TICK_FAILED';
-      console.error(JSON.stringify({ code }));
-    }
+        ? await stage(() => runPostgresLinearTick(db, env, { limit: 5 }))
+        : undefined;
+      if (!stopping) await stage(() => runWorker(db, env, { limit: 5 }));
+      if (!stopping) await stage(() => deliverAccountEmails(db, env, { limit: 5 }));
+      if (linear?.processed || linear?.failed)
+        console.log(JSON.stringify({ event: 'linear-worker-tick', ...linear }));
+    } else if (ready) console.error(JSON.stringify({ code: 'DATABASE_NOT_READY' }));
     if (!stopping) await sleep(2000, undefined, { signal: abort.signal }).catch(() => {});
   }
 } finally {

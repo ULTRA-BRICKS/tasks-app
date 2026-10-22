@@ -37,7 +37,7 @@ export async function runPostgresLinearTick(db, env, options = {}) {
     throw error;
   }
   if (!state) return { status: 'inactive', processed: 0, retrying: 0 };
-  const result = { status: 'active', processed: 0, retrying: 0 };
+  const result = { status: 'active', processed: 0, retrying: 0, failed: 0 };
   const deadline = options.deadline ?? Date.now() + 45000;
   for (const row of state.jobs) {
     if (Date.now() >= deadline) break;
@@ -50,17 +50,21 @@ export async function runPostgresLinearTick(db, env, options = {}) {
       );
       result.processed++;
     } catch (error) {
+      // One unexpected job failure must not starve the rest of the batch.
       if (
-        !error.code ||
-        ![
+        error.code &&
+        [
           'SYNC_RETRY',
           'SOURCE_RATE_LIMITED',
           'SOURCE_NETWORK_ERROR',
           'SYNC_TRANSIENT_ERROR',
         ].includes(error.code)
       )
-        throw error;
-      result.retrying++;
+        result.retrying++;
+      else {
+        result.failed++;
+        result.failureCode = typeof error.code === 'string' ? error.code : 'SYNC_JOB_FAILED';
+      }
     }
   }
   return result;

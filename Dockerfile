@@ -18,6 +18,7 @@ COPY --from=dependencies --chown=bun:bun /app/node_modules ./node_modules
 COPY --from=build --chown=bun:bun /app/package.json ./package.json
 COPY --from=build --chown=bun:bun /app/packages ./packages
 COPY --from=build --chown=bun:bun /app/scripts ./scripts
+COPY --from=build --chown=bun:bun /app/docs/openapi.json ./docs/openapi.json
 COPY --from=build --chown=bun:bun /app/src/shared ./src/shared
 COPY --from=build --chown=bun:bun /app/vendor ./vendor
 COPY --from=build --chown=bun:bun /app/dist ./dist
