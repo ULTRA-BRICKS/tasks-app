@@ -46,8 +46,8 @@ export async function listSlackPeople(env, fetcher = fetch) {
       };
       if (seen.has(row.slack_id)) continue;
       seen.add(row.slack_id);
-      if (member.team_id && env.SLACK_TEAM_ID && member.team_id !== env.SLACK_TEAM_ID)
-        people.otherTeam.push(row);
+      // The profile sync requires the same exact team, so a member without team_id is not ours.
+      if (member.team_id !== env.SLACK_TEAM_ID) people.otherTeam.push(row);
       else if (member.is_bot || member.id === 'USLACKBOT') people.bots.push(row);
       else if (member.deleted) people.deactivated.push(row);
       else if (!row.email) people.noEmail.push(row);
@@ -93,11 +93,21 @@ export async function importSlackMembers({
     await db.transaction(async (tx) => {
       // Everything the mapping step needs is checked before the first account is created.
       await assertModule(tx, actor.workspace_id, 'slack');
+      const row = await tx.one(
+        "SELECT config FROM module_settings WHERE workspace_id=? AND module='slack'",
+        [actor.workspace_id],
+      );
+      const configured = JSON.parse(row?.config ?? '{}').team_id;
       assert(
-        await tx.one('SELECT id FROM teams WHERE workspace_id=? LIMIT 1', [actor.workspace_id]),
+        await tx.one(
+          configured
+            ? 'SELECT id FROM teams WHERE workspace_id=? AND id=?'
+            : 'SELECT id FROM teams WHERE workspace_id=? LIMIT 1',
+          configured ? [actor.workspace_id, configured] : [actor.workspace_id],
+        ),
         409,
         'NO_TEAM',
-        'The workspace has no team to attach the Slack configuration to',
+        'The configured (or first) team of the workspace does not exist, so the Slack mapping cannot be saved',
       );
     });
   const report = {

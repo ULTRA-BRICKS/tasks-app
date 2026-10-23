@@ -204,3 +204,36 @@ test('a disabled Slack module is refused before anything is created', async () =
     await f.close();
   }
 });
+
+test('a Slack configuration naming a deleted team is refused before anything is created', async () => {
+  const f = await fixture();
+  try {
+    await f.db.transaction((tx) =>
+      tx.exec("UPDATE module_settings SET config=? WHERE workspace_id=? AND module='slack'", [
+        JSON.stringify({ team_id: crypto.randomUUID() }),
+        f.init.workspace_id,
+      ]),
+    );
+    const error = await importSlackMembers(options(f, slackApi(), { apply: true })).catch((e) => e);
+    expect(error.code).toBe('NO_TEAM');
+    expect(await emails(f)).toEqual(['owner@example.test']);
+  } finally {
+    await f.close();
+  }
+});
+
+test('a Slack member without a team id is not imported', async () => {
+  const f = await fixture();
+  try {
+    const members = [slackUser('U2', 'new.one@example.test', 'New One', { team_id: undefined })];
+    const api = {
+      fetcher: async () =>
+        Response.json({ ok: true, members, response_metadata: { next_cursor: '' } }),
+    };
+    const report = await importSlackMembers(options(f, api));
+    expect(report.slack.otherTeam).toBe(1);
+    expect(report.created).toEqual([]);
+  } finally {
+    await f.close();
+  }
+});
