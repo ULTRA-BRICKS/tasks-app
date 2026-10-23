@@ -166,6 +166,20 @@ const operations = [
   ],
   ['/auth/options', 'get', null, 'Read available account recovery options', 'public'],
   [
+    '/auth/slack/start',
+    'get',
+    null,
+    'Start Sign in with Slack: 302 to Slack with a short-lived HttpOnly state cookie',
+    'public',
+  ],
+  [
+    '/auth/slack/callback',
+    'get',
+    null,
+    'Finish Sign in with Slack for an existing member: 302 to the app with a session cookie, or with ?slack_signin=<code>',
+    'public',
+  ],
+  [
     '/auth/forgot-password',
     'post',
     'ForgotPassword',
@@ -452,9 +466,33 @@ export function generateOpenAPI() {
         description:
           'Slack refused users.list or could not be reached: SLACK_MISSING_SCOPE, SLACK_AUTH_FAILED, SLACK_REQUEST_FAILED or SLACK_UNREACHABLE (docs/SLACK-PROFILES.md)',
       };
+    if (path === '/auth/slack/start' || path === '/auth/slack/callback') {
+      // Browser navigations: every outcome is a redirect, never a JSON body.
+      operation.responses[302] = {
+        description:
+          path === '/auth/slack/start'
+            ? 'Redirect to Slack with the tickets_slack_oauth state cookie'
+            : 'Redirect to the app: with a tickets_session cookie on success, otherwise to /?slack_signin=<code> (docs/SLACK-SIGNIN.md)',
+      };
+      delete operation.responses[200];
+    }
     if (['public', 'webhook'].includes(scope)) operation.security = [];
     if (scope === 'worker') operation.security = [{ workerSecret: [] }];
     operation.parameters = [];
+    if (path === '/auth/slack/callback')
+      for (const name of ['code', 'state', 'error'])
+        operation.parameters.push({
+          name,
+          in: 'query',
+          required: name === 'state',
+          schema: { type: 'string' },
+          description:
+            name === 'state'
+              ? 'The state returned by Slack; must match the signed tickets_slack_oauth cookie'
+              : name === 'code'
+                ? 'One-time authorization code from Slack'
+                : 'Set instead of code when the user denied access',
+        });
     if (path.includes('{id}'))
       operation.parameters.push({
         name: 'id',

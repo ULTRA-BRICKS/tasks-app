@@ -1,6 +1,7 @@
 import { useEphemeralLinkToken } from './password-reset';
-import { useId, useRef, useState, type MouseEvent } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { slackSigninMessage } from './slack-signin-message';
+import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthShell } from './shell';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
@@ -26,6 +27,18 @@ export function LoginPage() {
       submitting.current = false;
     },
   });
+  const options = useQuery({
+    queryKey: ['account-options'],
+    queryFn: () => api<{ passwordReset: boolean; slackSignIn?: boolean }>('/auth/options'),
+  });
+  // Read once, then drop the query so the message does not outlive this visit.
+  const [slackError] = useState(() =>
+    slackSigninMessage(new URLSearchParams(location.search).get('slack_signin')),
+  );
+  useEffect(() => {
+    if (new URLSearchParams(location.search).has('slack_signin'))
+      void navigate({ pathname: location.pathname }, { replace: true });
+  }, [location.pathname, location.search, navigate]);
   return (
     <AuthShell
       title="Welcome back"
@@ -129,6 +142,16 @@ export function LoginPage() {
           <ArrowRight size={18} aria-hidden="true" />
         </Button>
       </form>
+      {options.data?.slackSignIn && (
+        <a
+          className="button button-secondary auth-submit"
+          href="/api/auth/slack/start"
+          data-testid="slack-signin"
+        >
+          Continue with Slack
+        </a>
+      )}
+      {slackError && <ErrorState message={slackError} />}
       {import.meta.env.DEV && (
         <p className="dev-hint">
           Local demo after <code>bun run setup -- --demo</code>:<br />

@@ -163,27 +163,34 @@ export async function login(db, input, clientKey) {
       'INVALID_CREDENTIALS',
       'Invalid email or password',
     );
-    const membership = await tx.one(
-      `SELECT m.*,w.slug FROM memberships m JOIN workspaces w ON w.id=m.workspace_id WHERE m.user_id=? ${input.workspace_slug ? 'AND w.slug=?' : ''} ORDER BY w.created_at LIMIT 1`,
-      input.workspace_slug ? [user.id, input.workspace_slug] : [user.id],
-    );
-    assert(membership, 401, 'INVALID_CREDENTIALS', 'Invalid email or workspace');
-    const token = secret();
-    await tx.exec(
-      'INSERT INTO sessions(hash,user_id,workspace_id,expires_at,created_at) VALUES(?,?,?,?,?)',
-      [sha256(token), user.id, membership.workspace_id, days(7), now()],
-    );
-    return {
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: membership.role,
-        workspace_id: membership.workspace_id,
-      },
-    };
+    const session = await startSession(tx, user, { slug: input.workspace_slug });
+    assert(session, 401, 'INVALID_CREDENTIALS', 'Invalid email or workspace');
+    return session;
   });
+}
+/** Opens the standard hashed, expiring session for a user's first matching membership; null without one. */
+export async function startSession(tx, user, { slug, workspaceId } = {}) {
+  const filters = [slug ? 'AND w.slug=?' : '', workspaceId ? 'AND m.workspace_id=?' : ''].join(' ');
+  const membership = await tx.one(
+    `SELECT m.*,w.slug FROM memberships m JOIN workspaces w ON w.id=m.workspace_id WHERE m.user_id=? ${filters} ORDER BY w.created_at LIMIT 1`,
+    [user.id, ...(slug ? [slug] : []), ...(workspaceId ? [workspaceId] : [])],
+  );
+  if (!membership) return null;
+  const token = secret();
+  await tx.exec(
+    'INSERT INTO sessions(hash,user_id,workspace_id,expires_at,created_at) VALUES(?,?,?,?,?)',
+    [sha256(token), user.id, membership.workspace_id, days(7), now()],
+  );
+  return {
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: membership.role,
+      workspace_id: membership.workspace_id,
+    },
+  };
 }
 export async function authenticate(tx, { bearer, cookie }) {
   const token = bearer || cookie;

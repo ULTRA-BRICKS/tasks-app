@@ -26,6 +26,12 @@ import { identityDirectory } from './core/source-people.mjs';
 import { PRODUCT_NAME, PRODUCT_VERSION } from '../config/product.mjs';
 import { requestPasswordReset, resetPassword } from './modules/identity/password-reset.mjs';
 import {
+  STATE_COOKIE,
+  completeSlackSignin,
+  slackSigninConfigured,
+  startSlackSignin,
+} from './modules/identity/slack-signin.mjs';
+import {
   emailConfiguration,
   enqueueAccountEmail,
   deliverAccountEmails,
@@ -56,13 +62,19 @@ const json = (value, status = 200, headers = {}) =>
     status,
     headers: { 'content-type': 'application/json; charset=utf-8', ...headers },
   });
-const cookie = (request) =>
+const redirect = (location, headers = {}) => {
+  const response = new Response(null, { status: 302, headers: { location } });
+  for (const [name, value] of Object.entries(headers))
+    for (const item of [].concat(value)) response.headers.append(name, item);
+  return response;
+};
+const cookie = (request, name = 'tickets_session') =>
   request.headers
     .get('cookie')
     ?.split(';')
     .map((p) => p.trim())
-    .find((p) => p.startsWith('tickets_session='))
-    ?.slice(16);
+    .find((p) => p.startsWith(name + '='))
+    ?.slice(name.length + 1);
 async function rawBody(request, max = 1024 * 1024) {
   assert(
     Number(request.headers.get('content-length') ?? 0) <= max,
@@ -205,7 +217,43 @@ export function createApp({
           { headers: { 'content-type': 'application/json' } },
         );
       else if (path === '/api/auth/options' && method === 'GET') {
-        response = json({ passwordReset: emailConfiguration(env).configured });
+        response = json({
+          passwordReset: emailConfiguration(env).configured,
+          slackSignIn: slackSigninConfigured(env),
+        });
+      } else if (path === '/api/auth/slack/start' && method === 'GET') {
+        // No limiter: starting writes nothing and a limiter bucket would be a lock-out lever.
+        const started = startSlackSignin({ env, origin, signingKey });
+        response = redirect(started.location, {
+          'set-cookie': `${STATE_COOKIE}=${started.cookieValue}; HttpOnly; SameSite=Lax; Path=/api/auth/slack; Max-Age=600${production ? '; Secure' : ''}`,
+        });
+      } else if (path === '/api/auth/slack/callback' && method === 'GET') {
+        const clearState = `${STATE_COOKIE}=; HttpOnly; SameSite=Lax; Path=/api/auth/slack; Max-Age=0${production ? '; Secure' : ''}`;
+        try {
+          const session = await completeSlackSignin({
+            db,
+            env,
+            origin,
+            signingKey,
+            query: url.searchParams,
+            cookieValue: cookie(request, STATE_COOKIE),
+            fetcher: slackFetch,
+          });
+          response = redirect(origin + '/', {
+            'set-cookie': [
+              `tickets_session=${session.token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800${production ? '; Secure' : ''}`,
+              clearState,
+            ],
+          });
+        } catch (error) {
+          // A browser navigation must always land back in the app, never on a JSON error page.
+          if (!(error instanceof AppError))
+            logger.error?.({ code: error.code ?? 'SLACK_SIGNIN_FAILED' });
+          const code = error instanceof AppError ? error.code.toLowerCase() : 'failed';
+          response = redirect(origin + '/?slack_signin=' + encodeURIComponent(code), {
+            'set-cookie': clearState,
+          });
+        }
       } else if (path === '/api/auth/forgot-password' && method === 'POST') {
         const input = await body(request, schemas.ForgotPassword);
         response = json(
