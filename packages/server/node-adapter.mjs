@@ -10,7 +10,11 @@ export function nodeHandler(app, baseUrl = resolveDevelopment(process.env).apiTa
         ...(!['GET', 'HEAD'].includes(method) ? { body: Readable.toWeb(req), duplex: 'half' } : {}),
       });
       const response = await app.fetch(request);
-      res.writeHead(response.status, Object.fromEntries(response.headers));
+      const headers = Object.fromEntries(response.headers);
+      // Object.fromEntries would keep only one of several Set-Cookie headers.
+      const cookies = response.headers.getSetCookie();
+      if (cookies.length) headers['set-cookie'] = cookies;
+      res.writeHead(response.status, headers);
       if (response.body) Readable.fromWeb(response.body).pipe(res);
       else res.end();
     } catch {

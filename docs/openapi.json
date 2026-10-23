@@ -1791,6 +1791,128 @@
         "parameters": []
       }
     },
+    "/auth/slack/start": {
+      "get": {
+        "summary": "Start Sign in with Slack: 302 to Slack with a short-lived HttpOnly state cookie",
+        "operationId": "get_auth_slack_start",
+        "x-required-scope": "public",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "302": {
+            "description": "Redirect to Slack with the tickets_slack_oauth state cookie"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "security": [],
+        "parameters": []
+      }
+    },
+    "/auth/slack/callback": {
+      "get": {
+        "summary": "Finish Sign in with Slack for an existing member: 302 to the app with a session cookie, or with ?slack_signin=<code>",
+        "operationId": "get_auth_slack_callback",
+        "x-required-scope": "public",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted for background processing; not a delivery receipt"
+          },
+          "302": {
+            "description": "Redirect to the app: with a tickets_session cookie on success, otherwise to /?slack_signin=<code> (docs/SLACK-SIGNIN.md)"
+          },
+          "400": {
+            "description": "Malformed request"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Insufficient scope, role, or CSRF protection"
+          },
+          "404": {
+            "description": "Resource not found in this workspace"
+          },
+          "409": {
+            "description": "Version conflict (error.details.current), dependency conflict, or duplicate"
+          },
+          "410": {
+            "description": "Expired or already-used account link"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Rate limit"
+          },
+          "503": {
+            "description": "Provider or production configuration missing"
+          }
+        },
+        "security": [],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "One-time authorization code from Slack"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The state returned by Slack; must match the signed tickets_slack_oauth cookie"
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Set instead of code when the user denied access"
+          }
+        ]
+      }
+    },
     "/auth/forgot-password": {
       "post": {
         "summary": "Queue a reset email; same 202 response for known and unknown emails",
