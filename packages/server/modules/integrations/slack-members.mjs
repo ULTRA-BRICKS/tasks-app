@@ -11,6 +11,8 @@ import { setIntegrationConfig } from './service.mjs';
 import { syncSlackProfiles } from './slack-profiles.mjs';
 
 const text = (value) => (typeof value === 'string' ? value.trim() : '');
+/** schemas.SlackConfig caps user_map at 100 entries. */
+const MAX_USER_MAP = 100;
 
 /** Classifies every Slack account; only active, non-bot accounts with an email can become members. */
 export async function listSlackPeople(env, fetcher = fetch) {
@@ -119,6 +121,7 @@ export async function importSlackMembers({
     other_workspace_accounts: [],
     duplicate_emails: [],
     mapped: 0,
+    unmapped: 0,
     sync: null,
   };
   const userIds = new Map();
@@ -197,19 +200,27 @@ export async function importSlackMembers({
     // Another Slack account may already map to the same member; keep it, never overwrite.
     const taken = new Set(Object.values(config.user_map ?? {}));
     config.user_map = { ...config.user_map };
+    let unmapped = 0;
     for (const [slackId, userId] of userIds)
       if (
         !Object.hasOwn(config.user_map, slackId) &&
         !Object.hasOwn(config.source_person_map ?? {}, slackId) &&
         !taken.has(userId)
       ) {
+        // The Settings form validates the stored config against schemas.SlackConfig; a larger map
+        // would make every later PATCH of this integration fail with 422.
+        if (Object.keys(config.user_map).length >= MAX_USER_MAP) {
+          unmapped++;
+          continue;
+        }
         config.user_map[slackId] = userId;
         taken.add(userId);
       }
     await setIntegrationConfig(tx, actor, 'slack', config);
-    return Object.keys(config.user_map).length;
+    return { total: Object.keys(config.user_map).length, unmapped };
   });
-  report.mapped = mapped;
+  report.mapped = mapped.total;
+  report.unmapped = mapped.unmapped;
   const run = (read, fn) =>
     db.transaction(
       async (tx) => {
@@ -218,6 +229,11 @@ export async function importSlackMembers({
       },
       { readOnly: read },
     );
-  report.sync = await syncSlackProfiles({ run, env, fetcher });
+  // Accounts and mappings are already committed: a sync failure must not discard the report.
+  report.sync = await syncSlackProfiles({ run, env, fetcher }).catch((error) => ({
+    error: error.code ?? 'ERROR',
+    // Only the app's own errors carry a message that is safe to print; others may hold query details.
+    ...(error instanceof AppError && { message: error.message }),
+  }));
   return report;
 }

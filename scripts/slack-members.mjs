@@ -24,7 +24,7 @@ try {
     includeGuests: args.includes('--include-guests'),
   });
   console.log(JSON.stringify({ mode: apply ? 'apply' : 'dry-run', ...report }, null, 2));
-  if (report.failed.length) process.exitCode = 1;
+  if (report.failed.length || report.sync?.error) process.exitCode = 1;
 } catch (error) {
   console.error(
     JSON.stringify({

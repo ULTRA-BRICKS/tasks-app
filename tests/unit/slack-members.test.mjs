@@ -237,3 +237,57 @@ test('a Slack member without a team id is not imported', async () => {
     await f.close();
   }
 });
+
+test('a failing profile sync still returns the report of the accounts it created', async () => {
+  const f = await fixture();
+  try {
+    const members = [slackUser('U2', 'new.one@example.test', 'New One')];
+    let calls = 0;
+    const fetcher = async () => {
+      // The first request lists the people for the import; the profile sync that follows is refused.
+      if (++calls === 1)
+        return Response.json({ ok: true, members, response_metadata: { next_cursor: '' } });
+      return Response.json({ ok: false, error: 'missing_scope' });
+    };
+    const report = await importSlackMembers(options(f, { fetcher }, { apply: true }));
+    expect(report.created).toEqual(['new.one@example.test']);
+    expect(report.mapped).toBe(1);
+    expect(report.sync.error).toBe('SLACK_MISSING_SCOPE');
+    expect(await emails(f)).toContain('new.one@example.test');
+  } finally {
+    await f.close();
+  }
+});
+
+test('the Slack mapping never exceeds the 100 entries the settings schema accepts', async () => {
+  const f = await fixture();
+  try {
+    const members = [
+      slackUser('U1', 'owner@example.test', 'Owner Slack'),
+      ...Array.from({ length: 101 }, (_, i) =>
+        slackUser(`UX${i}`, `bulk.${i}@example.test`, `Bulk ${i}`),
+      ),
+    ];
+    const fetcher = async () =>
+      Response.json({ ok: true, members, response_metadata: { next_cursor: '' } });
+    const report = await importSlackMembers(options(f, { fetcher }, { apply: true }));
+    expect(report.created).toHaveLength(101);
+    expect(report.mapped).toBe(100);
+    expect(report.unmapped).toBe(2);
+    // The Settings form sends the stored config back; it must still pass schemas.SlackConfig.
+    const row = await f.db.transaction((tx) =>
+      tx.one("SELECT config FROM module_settings WHERE workspace_id=? AND module='slack'", [
+        f.init.workspace_id,
+      ]),
+    );
+    const stored = JSON.parse(row.config);
+    const saved = await f.request('PATCH', '/api/v1/integrations/slack', {
+      team_id: stored.team_id,
+      notify: false,
+      user_map: stored.user_map,
+    });
+    expect(saved.status).toBe(200);
+  } finally {
+    await f.close();
+  }
+}, 120000);

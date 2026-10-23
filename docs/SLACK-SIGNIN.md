@@ -47,4 +47,5 @@ Slack app (api.slack.com/apps → OAuth & Permissions):
 - Dry run by default: prints counts (humans, bots, deactivated, no email, other team), guests skipped and the emails it would create. `--apply` writes. `--role admin|viewer` and `--include-guests` are opt-in.
 - It needs `SLACK_BOT_TOKEN` with `users:read` **and** `users:read.email` (the app itself never reads Slack emails), `SLACK_TEAM_ID`, `INTEGRATIONS_WORKSPACE_ID`, `DATABASE_URL`.
 - Output carries emails and counts, never tokens.
+- The Slack mapping keeps at most 100 entries (the Settings schema limit); further members are still created and counted in `unmapped`. A failed profile sync is reported as `sync.error` (exit code 1) and never discards the report of the accounts already created.
 - Covered by `tests/unit/slack-members.test.mjs`.
