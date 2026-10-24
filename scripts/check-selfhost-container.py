@@ -127,7 +127,7 @@ def main() -> None:
                             'imageUser': docker('image', 'inspect', args.image, '--format', '{{.Config.User}}')})
         finally:
             for name in reversed(resources):
-                docker('rm', '-f', name)
+                docker('rm', '-fv', name)
             if network_created:
                 docker('network', 'rm', prefix)
             receipt['cleanup'] = True
