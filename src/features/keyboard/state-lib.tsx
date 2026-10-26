@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMe } from '@/entities/workspace';
 import { Modal } from '@/shared/ui';
@@ -59,10 +59,11 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
   );
   useScope(() => controller.scope);
   const help = useStore(controller.help);
-  useEffect(() => {
+  // Do not erase a chord accepted after the new route has committed.
+  useLayoutEffect(() => {
     controller.reset();
   }, [controller, location.pathname, location.search]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const listener = (event: KeyboardEvent) => controller.handle(event);
     window.addEventListener('keydown', listener, true);
     return () => window.removeEventListener('keydown', listener, true);

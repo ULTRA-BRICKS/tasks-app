@@ -3,7 +3,15 @@
  * SSR-safe (server snapshot supplied) and StrictMode-safe (scope created in a lazy
  * state initializer; authority revoked on cleanup and restored on replay).
  */
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { selectExternalStore } from '@ultrabricks/state-lib';
 import type { Scope, Store } from './scope';
 
@@ -38,12 +46,12 @@ export function useScope<S extends Scope>(create: () => S): S {
 }
 
 /**
- * A stable getter for the latest render's value, refreshed after commit. Lets a
+ * A stable getter refreshed at commit, before layout-time input can read stale props. Lets a
  * long-lived controller read current props/router state without recreating it.
  */
 export function useLatest<T>(value: T): () => T {
   const ref = useRef(value);
-  useEffect(() => {
+  useLayoutEffect(() => {
     ref.current = value;
   });
   return useCallback(() => ref.current, []);

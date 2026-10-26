@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { StrictMode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createScope } from '../../src/shared/lib/state/scope';
-import { useStore, useSelector, useScope } from '../../src/shared/lib/state/react';
+import { useStore, useSelector, useScope, useLatest } from '../../src/shared/lib/state/react';
 
 test('useStore renders the current snapshot on the server without subscribing', () => {
   const scope = createScope();
@@ -44,4 +44,34 @@ test('useScope creates one scope per mount and StrictMode double render leaks no
   // and an inactive scope holds no timers or subscriptions.
   expect(created.length).toBeGreaterThanOrEqual(1);
   for (const scope of created) scope.dispose();
+});
+
+test('useLatest has a request-local SSR value and emits no layout-effect warnings on the pinned React version', () => {
+  const previous = console.error;
+  const errors: unknown[][] = [];
+  console.error = (...args: unknown[]) => {
+    errors.push(args);
+  };
+  function View({ value }: { value: string }) {
+    return <p>{useLatest(value)()}</p>;
+  }
+  try {
+    expect(
+      renderToStaticMarkup(
+        <StrictMode>
+          <View value="first request" />
+        </StrictMode>,
+      ),
+    ).toBe('<p>first request</p>');
+    expect(
+      renderToStaticMarkup(
+        <StrictMode>
+          <View value="second request" />
+        </StrictMode>,
+      ),
+    ).toBe('<p>second request</p>');
+    expect(errors).toEqual([]);
+  } finally {
+    console.error = previous;
+  }
 });

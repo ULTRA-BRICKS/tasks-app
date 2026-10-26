@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMe } from '@/entities/workspace';
 import { Modal } from '@/shared/ui';
@@ -9,10 +9,11 @@ export function WorkspaceKeyboard({ onSearch }: { onSearch: () => void }) {
     location = useLocation();
   const [help, setHelp] = useState(false);
   const chordUntil = useRef(0);
-  useEffect(() => {
+  // Revoke the previous route's chord before the new page can accept input.
+  useLayoutEffect(() => {
     chordUntil.current = 0;
   }, [location.pathname, location.search]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const listener = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       // Deliberate exception: command search works inside editors; ordinary keys do not.
